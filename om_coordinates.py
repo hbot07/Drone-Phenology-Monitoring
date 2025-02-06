@@ -1,3 +1,4 @@
+# script to extract coordinates from om
 import rasterio
 import matplotlib.pyplot as plt
 
