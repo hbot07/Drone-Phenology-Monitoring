@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw, ImageFont
 import pandas as pd
 import rasterio
 
-# Load the DeepForest model
+
 model = main.deepforest()
 model.use_release()
 
