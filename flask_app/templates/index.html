@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Drone Phenology Monitoring Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 900px; margin: auto; }
+        .metrics, .visualization { margin-top: 30px; }
+        .btn { padding: 10px 20px; font-size: 16px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Drone Phenology Monitoring Dashboard</h1>
+    <button class="btn" onclick="runTracking()">Run Tracking</button>
+    <div class="metrics" id="metrics">
+        <h2>Metrics</h2>
+        <pre id="metrics_report">Click 'Run Tracking' to see metrics.</pre>
+    </div>
+    <div class="visualization">
+        <h2>Orthomosaic with Crowns</h2>
+        <button class="btn" onclick="showOrthoCrowns()">Show Orthomosaic</button>
+        <div id="ortho_chart"></div>
+        <h2>Visualize Matching Chain</h2>
+        <form onsubmit="visualizeChain(event)">
+            <label>OM ID: <input type="number" id="om_id" value="1" min="1" required></label>
+            <label>Crown ID: <input type="number" id="crown_id" value="0" min="0" required></label>
+            <button class="btn" type="submit">Show Chain</button>
+        </form>
+        <div id="plotly_chart"></div>
+    </div>
+</div>
+<script>
+function runTracking() {
+    fetch('/run_tracking', {method: 'POST'})
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('metrics_report').textContent = data.report || 'No report.';
+        });
+}
+function showOrthoCrowns() {
+    fetch('/orthomosaic_with_crowns')
+        .then(res => res.json())
+        .then(data => {
+            if (data.fig) {
+                let fig = JSON.parse(data.fig);
+                Plotly.newPlot('ortho_chart', fig.data, fig.layout);
+            } else {
+                document.getElementById('ortho_chart').textContent = data.error || 'Error.';
+            }
+        });
+}
+function visualizeChain(event) {
+    event.preventDefault();
+    let om_id = document.getElementById('om_id').value;
+    let crown_id = document.getElementById('crown_id').value;
+    fetch(`/visualize_chain/${om_id}/${crown_id}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.fig) {
+                let fig = JSON.parse(data.fig);
+                Plotly.newPlot('plotly_chart', fig.data, fig.layout);
+            } else {
+                document.getElementById('plotly_chart').textContent = data.error || 'Error.';
+            }
+        });
+}
+</script>
+</body>
+</html>
