@@ -1,2 +1,5 @@
 input/
 output/
+.venv/
+.codebuddy/
+
