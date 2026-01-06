@@ -1,0 +1,247 @@
+\section{Implementation, Tooling, and Data Management}
+
+This section describes the software engineering aspects of the crown tracking system, including the technology stack, computational environment, data management strategies, and practical engineering challenges encountered during development. While the previous sections focused on algorithmic design, here we address the practical considerations necessary for reproducible, scalable, and maintainable implementation.
+
+%--------------------------------------------------------------------
+\subsection{Software Stack and Compute Environment}
+
+The crown tracking pipeline is implemented entirely in Python 3.10+, leveraging a mature ecosystem of scientific computing and geospatial libraries. The choice of Python balances ease of prototyping, extensive library support, and compatibility with machine learning frameworks (Detectron2).
+
+%--------------------------------------------------------------------
+\paragraph{Core dependencies:}
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+    \item \textbf{NumPy 1.24+}: Array operations, numerical computing, and vectorized geometric calculations. Used for centroid distance matrices, overlap computations, and statistical analysis.
+    
+    \item \textbf{GeoPandas 0.13+}: Geospatial data structures built on Pandas DataFrames. Provides seamless integration with Shapely geometries and supports reading/writing GeoPackage (`.gpkg`) files with CRS (Coordinate Reference System) management.
+    
+    \item \textbf{Shapely 2.0+}: Computational geometry library implementing GEOS (Geometry Engine, Open Source) bindings. Core operations include:
+    \begin{itemize}
+        \item Polygon intersection/union for IoU computation
+        \item Containment tests (\texttt{contains()}, \texttt{within()})
+        \item Geometric transformations (\texttt{translate()}, \texttt{affine\_transform()})
+        \item Shape properties (area, perimeter, centroid, minimum rotated rectangle)
+    \end{itemize}
+    Shapely 2.0 introduced significant performance improvements via vectorized operations and improved numerical robustness.
+    
+    \item \textbf{NetworkX 3.1+}: Graph data structure and algorithms library. Used to represent the tracking graph $G = (V, E)$ as a \texttt{DiGraph} (directed graph) object with:
+    \begin{itemize}
+        \item Node attributes: OM ID, crown index, centroid, area, attributes
+        \item Edge attributes: similarity score, IoU, overlap ratios, case label
+        \item Graph traversal: Source/sink node identification, path extraction, degree distributions
+    \end{itemize}
+    NetworkX provides efficient algorithms for connected components, shortest paths, and topological sorting (though we use simpler greedy chain extraction).
+    
+    \item \textbf{Rasterio 1.3+}: Pythonic interface to GDAL (Geospatial Data Abstraction Library) for reading/writing raster data. Key functionality:
+    \begin{itemize}
+        \item Opening GeoTIFF orthomosaics with georeferencing metadata
+        \item Reading pixel values with \texttt{rasterio.mask.mask()} for polygon-based extraction
+        \item CRS transformations and bounds computation
+        \item Memory-mapped I/O for large rasters ($>$2 GB)
+    \end{itemize}
+    
+    \item \textbf{Matplotlib 3.7+}: Visualization library for plotting crown polygons, tracking chains, IoU matrices, and threshold sweep curves. Integrated with GeoPandas for geospatial plotting (\texttt{.plot()} method).
+    
+    \item \textbf{Detectron2 0.6+}: Facebook AI Research's object detection framework built on PyTorch. Used only in the detection pipeline (\texttt{detectree\_parth.ipynb}); the tracking pipeline operates on pre-computed crown polygons and does not require Detectron2.
+    
+    \item \textbf{Detectree2 (custom)}: Wrapper library around Detectron2 specifically designed for tree crown detection. Handles tiling, prediction batching, and conversion from instance masks to polygon geometries. Model: \texttt{250312\_flexi.pth} (pre-trained Mask R-CNN with ResNet-50 backbone).
+\end{itemize}
+
+%--------------------------------------------------------------------
+\paragraph{Runtime performance:}
+For the SIT dataset (5 orthomosaics, 408 total crowns):
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Operation & Time & Bottleneck \\
+\midrule
+Load crown GeoPackages (5 OMs) & 1.2 s & I/O (disk read) \\
+Extract RGB images (408 crowns) & 145 s & Rasterio masking \\
+Compute crown attributes (408 crowns) & 0.8 s & Shapely geometry ops \\
+Spatial alignment (4 pairs) & 3.5 s & Centroid distance matrix \\
+Candidate pair generation (4 pairs) & 2.1 s & Spatial filtering \\
+Feature computation (all candidates) & 4.7 s & IoU computation \\
+Edge selection \& graph build & 1.9 s & Sorting by score \\
+Chain extraction & 0.3 s & Graph traversal \\
+Quality report generation & 0.5 s & String formatting \\
+\midrule
+\textbf{Total (without image extraction)} & \textbf{14.0 s} & \\
+\textbf{Total (with image extraction)} & \textbf{159.0 s} & \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Scalability analysis:}
+\begin{itemize}
+    \item \textbf{Crown count}: Candidate generation is $O(|\mathcal{C}_i| \times |\mathcal{C}_{i+1}|)$ per consecutive pair, but spatial filtering reduces this to $O(k \cdot |\mathcal{C}_i|)$ where $k \ll |\mathcal{C}_{i+1}|$ is the average number of spatially proximate crowns (typically $k \approx 5$--15 for our dataset). For $N$ OMs with $m$ crowns each, total complexity is $O(N \cdot k \cdot m)$, linear in dataset size.
+    
+    \item \textbf{Image extraction}: Dominates runtime when enabled. Each crown requires one \texttt{rasterio.mask()} call, which crops and reads a rectangular region from the orthomosaic. For 408 crowns $\times$ 5 OMs at $\sim$0.35 s/crown, total time $\approx$ 145 s. This operation is embarrassingly parallel (crowns independent), but current implementation is sequential.
+    
+    \item \textbf{Graph construction}: NetworkX operations (add node/edge, query degree) are $O(1)$ amortized. Building a graph with $|V| = 408$ nodes and $|E| = 201$ edges takes $<$ 0.1 s.
+\end{itemize}
+
+%--------------------------------------------------------------------
+\subsection{Archiving Orthomosaics and Crown Graphs}
+
+We adopt a structured file organization scheme with clear separation of inputs, intermediate outputs, and final results.
+
+%--------------------------------------------------------------------
+\paragraph{Directory structure:}
+\begin{verbatim}
+Drone-Phenology-Monitoring/
+├── input/
+│   ├── input_crowns/          # Crown GeoPackages (post-detection)
+│   │   ├── OM1.gpkg           # 82 crowns, CRS: EPSG:32643 (UTM 43N)
+│   │   ├── OM2.gpkg           # 85 crowns
+│   │   ├── OM3.gpkg           # 78 crowns
+│   │   ├── OM4.gpkg           # 80 crowns
+│   │   └── OM5.gpkg           # 83 crowns
+│   ├── input_om/              # Orthomosaics (original GeoTIFFs)
+│   │   ├── sit_om1.tif        # 1.8 GB, 3-band RGB, 0.02 m/pixel
+│   │   ├── sit_om2.tif        # 2.1 GB
+│   │   ├── sit_om3.tif        # 1.9 GB
+│   │   ├── sit_om4.tif        # 2.0 GB
+│   │   └── sit_om5.tif        # 2.2 GB
+│   └── detectree_models/      # Pre-trained Detectron2 models
+│       └── 250312_flexi.pth   # 170 MB, Mask R-CNN ResNet-50
+├── src/
+│   └── notebooks/             # Jupyter notebooks
+└── output/                    # Results and analysis
+    ├── *.csv                  # Metrics tables (match rates, etc.)
+    ├── *_quality_report.txt   # Human-readable summaries
+    ├── *_quality_metrics.json # Machine-readable metrics
+    ├── *_complexity_metrics.json
+    ├── *.gpkg                 # Aligned crown GeoPackages
+    └── *.html                 # Interactive visualizations
+\end{verbatim}
+
+%--------------------------------------------------------------------
+\paragraph{Input data specifications:}
+
+\textbf{Orthomosaics (\texttt{input\_om/}):}
+\begin{itemize}
+    \item \textbf{Format}: GeoTIFF (`.tif`) with embedded georeferencing (GeoTransform and CRS)
+    \item \textbf{CRS}: EPSG:32643 (WGS 84 / UTM zone 43N), appropriate for IIT Delhi campus location ($28.5^\circ$N, $77.2^\circ$E)
+    \item \textbf{Resolution}: 0.02 m/pixel ($\approx$ 2 cm ground sampling distance)
+    \item \textbf{Bands}: 3 channels (Red, Green, Blue), 8-bit unsigned integer per band
+    \item \textbf{Compression}: LZW or uncompressed (for fast random access during image extraction)
+    \item \textbf{Dimensions}: Typically $10000 \times 12000$ pixels ($200 \times 240$ m coverage)
+    \item \textbf{File size}: 1.8--2.2 GB per orthomosaic (uncompressed), 600--800 MB with LZW compression
+    \item \textbf{Metadata}: Acquisition date, camera model, processing software stored in GDAL metadata tags
+\end{itemize}
+
+\textbf{Crown GeoPackages (\texttt{input\_crowns/}):}
+\begin{itemize}
+    \item \textbf{Format}: OGC GeoPackage (`.gpkg`), an open standard for geospatial vector data based on SQLite
+    \item \textbf{CRS}: EPSG:32643 (matching orthomosaics)
+    \item \textbf{Geometry type}: Polygon (2D)
+    \item \textbf{Attributes}: Each crown feature includes:
+    \begin{itemize}
+        \item \texttt{fid}: Unique feature ID (integer, auto-incremented)
+        \item \texttt{confidence}: Detection confidence score from Mask R-CNN (float, 0--1)
+        \item \texttt{geometry}: Polygon boundary (WKB encoding)
+    \end{itemize}
+    \item \textbf{Polygon properties}:
+    \begin{itemize}
+        \item Simplified with Douglas--Peucker tolerance = 0.3 m (reduces vertex count by $\sim$40\% while preserving shape)
+        \item Valid geometries only (no self-intersections, holes, or zero-area polygons)
+        \item Minimum area: 5 m$^2$ (filters out spurious small detections)
+        \item Maximum area: 400 m$^2$ (filters out over-segmented large patches)
+    \end{itemize}
+    \item \textbf{File size}: 20--80 KB per GeoPackage (small due to simplified geometries)
+\end{itemize}
+
+%--------------------------------------------------------------------
+\paragraph{Output data formats:}
+
+\textbf{Tracking graphs (in-memory):}
+The tracking graph $G = (V, E)$ is stored as a NetworkX \texttt{DiGraph} object in memory during analysis. Node and edge attributes are Python dictionaries. For archival, we serialize the graph using:
+\begin{itemize}
+    \item \textbf{JSON export}: \texttt{nx.node\_link\_data(G)} converts the graph to a JSON-serializable dictionary with nodes and edges lists. Example structure:
+\begin{verbatim}
+{
+  "directed": true,
+  "nodes": [
+    {"id": "(1, 0)", "om_id": 1, "crown_idx": 0, "area": 45.3, ...},
+    {"id": "(1, 1)", "om_id": 1, "crown_idx": 1, "area": 62.7, ...},
+    ...
+  ],
+  "links": [
+    {"source": "(1, 0)", "target": "(2, 3)", "score": 0.89, 
+     "iou": 0.72, "case": "one_to_one", ...},
+    ...
+  ]
+}
+\end{verbatim}
+    \item \textbf{GML export}: \texttt{nx.write\_gml(G, "graph.gml")} saves to Graph Modelling Language format for compatibility with graph visualization tools (Gephi, Cytoscape).
+    
+    \item \textbf{GraphML export}: \texttt{nx.write\_graphml(G, "graph.graphml")} for richer attribute support (XML-based).
+\end{itemize}
+
+\textbf{Quality reports (\texttt{*\_quality\_report.txt}):}
+Human-readable text summaries of tracking performance, generated via the \texttt{quality\_report()} method. Example content:
+\begin{verbatim}
+================================================================================
+TRACKING QUALITY REPORT: Ultra-Relaxed Preset
+================================================================================
+
+DATASET SUMMARY
+  Orthomosaics: 5
+  Total crowns: 408
+  Nodes in graph: 408
+  Edges in graph: 201
+
+OVERALL MATCH STATISTICS
+  Crowns with at least one match: 258 / 408 (63.2%)
+  Average matches per crown: 0.49
+  Match rate (edges / min crowns per pair): 63.2%
+
+PER-PAIR MATCH RATES
+  OM1 → OM2: 57 / 82 = 69.5%
+  OM2 → OM3: 53 / 78 = 67.9%
+  OM3 → OM4: 50 / 78 = 64.1%
+  OM4 → OM5: 41 / 80 = 51.3%
+
+CHAIN LENGTH DISTRIBUTION
+  Length 1 (singletons): 114 (27.9%)
+  Length 2: 39 (9.6%)
+  Length 3: 21 (5.1%)
+  Length 4: 12 (2.9%)
+  Length 5 (full): 21 (5.1%)
+
+  Average chain length: 1.97
+  Max chain length: 5
+  Full-length chains: 21
+
+EDGES BY MATCH CASE
+  one_to_one: 122 (60.7%)
+  containment: 5 (2.5%)
+  nearby: 74 (36.8%)
+================================================================================
+\end{verbatim}
+
+\textbf{Metrics JSON (\texttt{*\_quality\_metrics.json}):}
+Machine-readable metrics for automated analysis and comparison across parameter sweeps. Contains nested dictionaries with numerical values, lists, and metadata. Used for generating threshold sweep plots and comparative tables.
+
+\textbf{Aligned crown GeoPackages (\texttt{output/*.gpkg}):}
+After spatial alignment, shifted crown geometries can be exported to new GeoPackages for visualization in QGIS or ArcGIS. These files include additional attributes:
+\begin{itemize}
+    \item \texttt{om\_id}: Orthomosaic ID
+    \item \texttt{shift\_dx}, \texttt{shift\_dy}: Applied translational shift (meters)
+    \item \texttt{aligned}: Boolean flag indicating whether crown was shifted
+\end{itemize}
+
+\textbf{Interactive visualizations (\texttt{interactive\_tracking\_map.html}):}
+HTML files with embedded JavaScript (Leaflet.js or Plotly) for interactive exploration of tracking chains. Users can hover over crowns to see attributes, click to display RGB patches, and toggle between orthomosaics.
+
+
+%--------------------------------------------------------------------
+\subsection{Discussion: Lessons for Future Implementations}
+
+\paragraph{Modularity and reusability:}
+The \texttt{TreeTrackingGraph} class encapsulates all tracking logic in a single reusable object. This design enables:
+\begin{itemize}
+    \item Easy parameter experimentation (change presets via \texttt{case\_configs} attribute)
+    \item Extension to new datasets (automatic file discovery, no hardcoded paths)
+    \item Integration into production pipelines (import class, call methods programmatically)
+\end{itemize}
+Future work could refactor this into a standalone Python package with CLI (command-line interface) for batch processing.

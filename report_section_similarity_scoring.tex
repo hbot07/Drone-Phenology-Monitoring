@@ -1,0 +1,513 @@
+\section{Multi-Feature Similarity Score for Robust Crown Matching}
+
+Establishing temporal correspondences between tree crowns across orthomosaics requires a robust similarity metric that accounts for multiple geometric, spatial, and topological factors. A single feature (e.g., IoU alone) is insufficient in the presence of misalignment, detection inconsistencies, and crown shape variability. This section presents a multi-feature similarity framework that combines spatial proximity, area similarity, overlap-based metrics, and shape descriptors into a unified weighted score. We demonstrate how this composite metric improves matching robustness in crowded regions and under adverse conditions.
+
+%--------------------------------------------------------------------
+\subsection{Motivation: Crowded Regions and Wrong Matches}
+
+Crown tracking in dense canopy regions poses significant challenges due to spatial ambiguity: a single crown in $\mathcal{O}_i$ may have multiple plausible candidates in $\mathcal{O}_{i+1}$ within close proximity. Relying solely on overlap-based metrics (e.g., IoU) leads to systematic failure modes:
+
+\paragraph{Failure mode 1: Misalignment-induced low IoU.}
+Even when orthomosaics are aligned (Section~3), residual georeferencing errors of 5--15~m are common. For a crown with effective radius $R \approx 5$~m, a 10~m centroid shift can reduce IoU from 0.70 to $<0.20$, causing the correct match to be rejected in favor of a nearby crown with accidental high IoU.
+
+\paragraph{Failure mode 2: Shape change degrading IoU.}
+Deciduous trees undergoing phenological transitions (leaf-on to leaf-off) can exhibit dramatic crown boundary changes while maintaining centroid stability. A crown at $(x,y)$ in July may shrink by 30\% in area and change shape by November, yielding IoU $<0.30$ with its true correspondence, but IoU $\approx 0.25$ with an adjacent unrelated crown. Without spatial context, the wrong match is selected.
+
+\paragraph{Failure mode 3: Crowded regions with overlapping candidates.}
+In regions with tree density $>500$ trees/ha, crowns are tightly packed with inter-centroid distances of 3--8~m. For a query crown $c_{i,j}$, there may be 5--10 candidates in $\mathcal{C}_{i+1}$ within 20~m, all with IoU $\in [0.15, 0.45]$. The ranking by IoU alone is highly sensitive to segmentation boundary noise and provides weak discriminative power.
+
+\paragraph{Empirical evidence:}
+In ablation experiments on the SIT dataset, using IoU alone as the matching criterion (with threshold $\tau_{\text{IoU}} = 0.35$) yields:
+\begin{itemize}
+    \item Match rate: 42.3\% (vs.\ 63.2\% with multi-feature score).
+    \item Wrong match rate (estimated via visual inspection of 50 random chains): 18\% (vs.\ 7\% with multi-feature).
+\end{itemize}
+These results motivate a composite similarity metric that integrates multiple complementary signals.
+
+\paragraph{Design principles:}
+Our multi-feature similarity score is designed to:
+\begin{enumerate}
+    \item \textbf{Combine diverse signals}: Spatial (centroid distance), morphological (area, shape), and topological (overlap, containment).
+    \item \textbf{Weight by reliability}: Assign higher weights to features robust to noise (spatial distance) and lower weights to unstable features (shape).
+    \item \textbf{Adapt by match case}: Use different weight configurations for \texttt{one\_to\_one} (prioritize overlap) vs.\ \texttt{nearby} (prioritize spatial proximity).
+    \item \textbf{Normalize consistently}: Map all features to $[0,1]$ to enable direct weighting.
+\end{enumerate}
+
+%--------------------------------------------------------------------
+\subsection{Spatial and Area Similarity Metrics}
+
+We first define the foundational geometric features that capture crown correspondence independent of shape details.
+
+%--------------------------------------------------------------------
+\subsubsection{Spatial Similarity from Centroid Distance}
+
+Let $c_{i,j}$ and $c_{i+1,k}$ be two crowns with centroids $\mathbf{p}_{i,j} = (x_{i,j}, y_{i,j})$ and $\mathbf{p}_{i+1,k} = (x_{i+1,k}, y_{i+1,k})$ in a projected coordinate system (e.g., UTM). The centroid distance is:
+\[
+d_{\text{centroid}}(c_{i,j}, c_{i+1,k}) = \|\mathbf{p}_{i,j} - \mathbf{p}_{i+1,k}\|_2 = \sqrt{(x_{i,j} - x_{i+1,k})^2 + (y_{i,j} - y_{i+1,k})^2}
+\]
+measured in meters.
+
+\paragraph{Spatial similarity (linear decay):}
+We define a normalized spatial similarity that decays linearly from 1 (perfect co-location) to 0 (at maximum distance $d_{\max}$):
+\[
+s_{\text{spatial}}^{\text{linear}}(c_{i,j}, c_{i+1,k}) = \max\left(0, 1 - \frac{d_{\text{centroid}}}{d_{\max}}\right)
+\]
+where $d_{\max}$ is a preset parameter (75~m for strict, 200~m for ultra-relaxed). This ensures:
+\begin{itemize}
+    \item $s_{\text{spatial}} = 1$ when centroids coincide.
+    \item $s_{\text{spatial}} = 0$ when $d_{\text{centroid}} \geq d_{\max}$.
+    \item Linear interpolation for intermediate distances.
+\end{itemize}
+
+\paragraph{Spatial similarity (Gaussian decay):}
+Alternatively, we can use a Gaussian kernel for smoother decay:
+\[
+s_{\text{spatial}}^{\text{Gauss}}(c_{i,j}, c_{i+1,k}) = \exp\left(-\frac{d_{\text{centroid}}^2}{2\sigma^2}\right)
+\]
+where $\sigma$ is a scale parameter (typically $\sigma = d_{\max}/3$ to achieve $s \approx 0.01$ at $d_{\max}$). Gaussian decay provides more discriminative power at short distances but is computationally equivalent to linear decay in practice.
+
+\paragraph{Implementation choice:} We adopt the linear decay formulation for simplicity and interpretability. The linear form is also more robust to outliers: crowns just beyond $d_{\max}$ are hard-rejected (via candidate filtering) rather than receiving a small nonzero similarity.
+
+\paragraph{Centroid factor (relative to crown size):}
+To account for the fact that larger crowns can tolerate greater centroid shifts, we introduce a size-normalized centroid similarity:
+\[
+f_{\text{centroid}}(c_{i,j}, c_{i+1,k}) = 1 - \min\left(1, \frac{d_{\text{centroid}}}{3\bar{R}}\right)
+\]
+where $\bar{R} = (R_{i,j} + R_{i+1,k})/2$ is the mean effective radius, with:
+\[
+R_{i,j} = \sqrt{\frac{A_{i,j}}{\pi}}
+\]
+assuming a circular approximation for crown area $A_{i,j}$. The factor of 3 means that centroid distances up to 3 mean radii (approximately 3 crown diameters) are tolerated before similarity drops to 0. This normalization is particularly useful for accommodating variability in crown sizes: a 10~m shift is more significant for a small shrub ($R = 2$~m) than for a large tree ($R = 8$~m).
+
+\paragraph{Typical parameter values:}
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+Preset & $d_{\max}$ (m) & $\bar{R}$ range (m) & Effective tolerance (m) \\
+\midrule
+Strict (15Oct) & 75 & 3--8 & 9--24 ($3\bar{R}$) \\
+Ultra-relaxed (10Nov) & 200 & 3--8 & 9--24 ($3\bar{R}$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+The effective tolerance is independent of $d_{\max}$ and adapts to crown size.
+
+%--------------------------------------------------------------------
+\subsubsection{Area Similarity from Relative Crown Size}
+
+Crown area is a stable morphological feature that changes gradually over seasonal timescales (growth rates of 2--10\% per year for mature trees). Large discrepancies in area between candidate pairs often indicate wrong matches or significant life-history events (e.g., canopy damage, crown splitting).
+
+\paragraph{Area similarity (symmetric):}
+Let $A_{i,j}$ and $A_{i+1,k}$ be the polygon areas (in m$^2$) of crowns $c_{i,j}$ and $c_{i+1,k}$. We define:
+\[
+s_{\text{area}}(c_{i,j}, c_{i+1,k}) = \frac{\min(A_{i,j}, A_{i+1,k})}{\max(A_{i,j}, A_{i+1,k})} \in [0, 1]
+\]
+This ratio is 1 when areas are identical and decreases as the size discrepancy grows. For example:
+\begin{itemize}
+    \item If $A_{i+1,k} = 1.5 \cdot A_{i,j}$, then $s_{\text{area}} = 1/1.5 \approx 0.67$ (33\% size increase).
+    \item If $A_{i+1,k} = 2 \cdot A_{i,j}$, then $s_{\text{area}} = 0.50$ (doubling in size).
+    \item If $A_{i+1,k} = 0.5 \cdot A_{i,j}$, then $s_{\text{area}} = 0.50$ (50\% shrinkage).
+\end{itemize}
+
+\paragraph{Tolerance for growth/shrinkage:}
+For consecutive orthomosaics separated by weeks to months, we expect area changes of $<20\%$ for stable crowns. Thus, $s_{\text{area}} \geq 0.83$ is typical for correct matches. Pairs with $s_{\text{area}} < 0.60$ (indicating $>67\%$ size change) are likely wrong matches or represent crowns undergoing splits/merges.
+
+\paragraph{Area similarity (log-ratio alternative):}
+An alternative formulation uses the log-ratio to symmetrically penalize growth and shrinkage:
+\[
+s_{\text{area}}^{\text{log}}(c_{i,j}, c_{i+1,k}) = 1 - \frac{|\log(A_{i+1,k} / A_{i,j})|}{\log(\rho_{\max})}
+\]
+where $\rho_{\max}$ is the maximum tolerated area ratio (e.g., $\rho_{\max} = 3$ allows up to 3$\times$ growth or $1/3$ shrinkage). This formulation has better numerical properties when area ratios span multiple orders of magnitude, but for our dataset (area ratios typically $\in [0.5, 2.0]$), the simple min/max ratio suffices.
+
+\paragraph{Area ratio (directional):}
+For case classification and split/merge detection, we also compute the directional area ratio:
+\[
+r_{\text{area}}(c_{i,j}, c_{i+1,k}) = \frac{A_{i+1,k}}{A_{i,j}}
+\]
+This distinguishes growth ($r > 1$) from shrinkage ($r < 1$). For example:
+\begin{itemize}
+    \item $r \geq 1.8$ may indicate a merge (multiple previous crowns consolidated into $c_{i+1,k}$).
+    \item $r \leq 0.6$ may indicate a split ($c_{i,j}$ subdivided into multiple crowns in $\mathcal{O}_{i+1}$).
+\end{itemize}
+
+\paragraph{Empirical distribution:}
+For correct matches in the SIT dataset (verified via visual inspection):
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Statistic & One-to-One & Containment \\
+\midrule
+Median $s_{\text{area}}$ & 0.91 & 0.78 \\
+25th percentile & 0.85 & 0.68 \\
+75th percentile & 0.96 & 0.89 \\
+Min $s_{\text{area}}$ & 0.62 & 0.45 \\
+\bottomrule
+\end{tabular}
+\end{center}
+Containment matches exhibit lower area similarity due to boundary changes, while one-to-one matches cluster tightly around $s_{\text{area}} \approx 0.90$.
+
+%--------------------------------------------------------------------
+\subsection{IoU-Based Overlap Similarity}
+
+Intersection over Union (IoU) quantifies the spatial overlap between two polygons and is the most widely used metric in object detection and tracking. However, IoU alone is insufficient for crown tracking due to its sensitivity to boundary shifts and alignment errors.
+
+\paragraph{IoU definition (revisited):}
+For crowns $c_{i,j}$ and $c_{i+1,k}$, the IoU is:
+\[
+\text{IoU}(c_{i,j}, c_{i+1,k}) = \frac{|c_{i,j} \cap c_{i+1,k}|}{|c_{i,j} \cup c_{i+1,k}|} = \frac{A_{\cap}}{A_{i,j} + A_{i+1,k} - A_{\cap}}
+\]
+where $A_{\cap} = |c_{i,j} \cap c_{i+1,k}|$ is the intersection area. IoU ranges from 0 (no overlap) to 1 (perfect overlap).
+
+\paragraph{Geometric interpretation:}
+IoU can be expressed in terms of the overlap ratios:
+\[
+\text{overlap}_{\text{prev}} = \frac{A_{\cap}}{A_{i,j}}, \quad \text{overlap}_{\text{curr}} = \frac{A_{\cap}}{A_{i+1,k}}
+\]
+as:
+\[
+\text{IoU} = \frac{A_{\cap}}{A_{i,j} + A_{i+1,k} - A_{\cap}} = \frac{1}{\frac{1}{\text{overlap}_{\text{prev}}} + \frac{1}{\text{overlap}_{\text{curr}}} - 1}
+\]
+This shows that IoU is the harmonic mean of the two overlap ratios (up to normalization). High IoU requires both $\text{overlap}_{\text{prev}}$ and $\text{overlap}_{\text{curr}}$ to be large; if either is small, IoU is dominated by the smaller term.
+
+\paragraph{Sensitivity to misalignment:}
+Consider two identical circular crowns with radius $R$ and centroid separation $d$. The IoU can be approximated (for small $d/R$) as:
+\[
+\text{IoU}(d, R) \approx 1 - \frac{d}{2R} \quad \text{(for $d \ll R$)}
+\]
+For larger separations, the IoU decays approximately as:
+\[
+\text{IoU}(d, R) \approx \max\left(0, 1 - \left(\frac{d}{R}\right)^2\right) \quad \text{(for $d \lesssim 2R$)}
+\]
+and drops to 0 when $d \geq 2R$ (non-overlapping). This quadratic decay means that even modest misalignments of $d = 0.5R$ can reduce IoU by 25\%, significantly impacting matching.
+
+\paragraph{Example:}
+A crown with $R = 6$~m (area $\approx 113$~m$^2$) subjected to a 10~m centroid shift yields:
+\[
+\text{IoU}(d=10, R=6) \approx 1 - (10/6)^2 \approx -1.78 \to 0 \quad \text{(non-overlapping)}
+\]
+In practice, the crowns would have small residual overlap, giving IoU $\approx 0.05$--$0.15$. Without spatial context, this correct match would be rejected.
+
+\paragraph{IoU thresholding:}
+Standard practice in object detection is to use an IoU threshold $\tau_{\text{IoU}} = 0.50$ for matching. However, for multi-temporal crown tracking with alignment errors, we find:
+\begin{itemize}
+    \item $\tau_{\text{IoU}} = 0.50$: Only 28\% of crowns matched (too strict).
+    \item $\tau_{\text{IoU}} = 0.35$: 42\% of crowns matched (moderate).
+    \item $\tau_{\text{IoU}} = 0.20$: 58\% of crowns matched, but 15\% wrong matches (too relaxed).
+\end{itemize}
+This motivates using IoU as one component of a multi-feature score rather than as a standalone criterion.
+
+\paragraph{Overlap ratio alternative:}
+In cases where one crown is much larger than the other (potential containment or split/merge), the overlap ratios provide more discriminative information than IoU. For example:
+\begin{itemize}
+    \item Containment: $\text{overlap}_{\text{prev}} = 1.0$, $\text{overlap}_{\text{curr}} = 0.3$ $\Rightarrow$ IoU $= 0.3$ (low, but overlap ratios reveal full coverage of previous crown).
+    \item Split: $\text{overlap}_{\text{prev}} = 0.4$, $\text{overlap}_{\text{curr}} = 0.9$ $\Rightarrow$ IoU $= 0.38$ (moderate, overlap ratios show current crown is mostly within previous).
+\end{itemize}
+For this reason, our case classification (Section~\ref{sec:case_classification}) uses overlap ratios directly rather than IoU alone.
+
+\paragraph{IoU similarity normalization:}
+Since IoU is already in $[0,1]$, we use it directly as a similarity component:
+\[
+s_{\text{iou}}(c_{i,j}, c_{i+1,k}) = \text{IoU}(c_{i,j}, c_{i+1,k})
+\]
+No additional normalization is required.
+
+%--------------------------------------------------------------------
+\subsection{Auxiliary Shape Metrics (Optional)}
+
+In addition to spatial, area, and IoU features, we compute optional shape descriptors that capture crown morphology. These metrics are less stable across time (sensitive to segmentation noise) but can help disambiguate matches in crowded regions.
+
+%--------------------------------------------------------------------
+\subsubsection{Compactness}
+
+Compactness (also called the Polsby--Popper score) measures how closely a polygon resembles a circle:
+\[
+\kappa(c) = \frac{4\pi A}{P^2}
+\]
+where $A$ is the area and $P$ is the perimeter of crown $c$. For a perfect circle, $\kappa = 1$. For highly irregular or elongated shapes, $\kappa \to 0$.
+
+\paragraph{Compactness similarity:}
+For two crowns $c_{i,j}$ and $c_{i+1,k}$, we define:
+\[
+s_{\text{compact}}(c_{i,j}, c_{i+1,k}) = 1 - |\kappa_{i,j} - \kappa_{i+1,k}|
+\]
+This symmetric similarity is 1 when both crowns have identical compactness and decreases linearly with the absolute difference. The metric ranges from 0 (maximum compactness difference, e.g., $\kappa_1 = 0$, $\kappa_2 = 1$) to 1 (identical compactness).
+
+\paragraph{Typical values:}
+For tree crowns in our dataset:
+\begin{itemize}
+    \item Circular, well-formed crowns: $\kappa \in [0.70, 0.95]$.
+    \item Irregular, multi-stemmed crowns: $\kappa \in [0.40, 0.65]$.
+    \item Highly elongated or fragmented crowns: $\kappa < 0.30$.
+\end{itemize}
+Most crowns have $\kappa \in [0.50, 0.85]$, yielding $s_{\text{compact}} \in [0.65, 1.0]$ for correct matches.
+
+\paragraph{Stability:}
+Compactness is moderately stable across time but sensitive to:
+\begin{itemize}
+    \item Segmentation boundary noise: Small boundary perturbations can change perimeter significantly (perimeter is squared in $\kappa$).
+    \item Crown growth patterns: Asymmetric growth or branch extension can alter compactness.
+    \item Seasonal foliage changes: Deciduous trees may become more irregular when partially defoliated.
+\end{itemize}
+For these reasons, we assign low weight to compactness in the final similarity score (typically $w_{\text{compact}} \leq 0.05$).
+
+%--------------------------------------------------------------------
+\subsubsection{Eccentricity and Bounding Rectangles}
+
+Eccentricity quantifies the elongation of a crown by fitting a minimum-area rotated rectangle and computing the ratio of minor to major axis lengths.
+
+\paragraph{Eccentricity definition:}
+Let $a$ and $b$ be the lengths of the major and minor axes of the minimum rotated rectangle enclosing crown $c$. The eccentricity is:
+\[
+\epsilon(c) = \frac{b}{a} \in [0, 1]
+\]
+where $\epsilon = 1$ for a square (no elongation) and $\epsilon \to 0$ for highly elongated shapes. This is the inverse of the standard definition in geometry (where eccentricity $e = \sqrt{1 - b^2/a^2}$ for ellipses), but our formulation is more intuitive: higher values indicate less elongation.
+
+\paragraph{Eccentricity similarity:}
+For two crowns, we define:
+\[
+s_{\text{eccentric}}(c_{i,j}, c_{i+1,k}) = 1 - |\epsilon_{i,j} - \epsilon_{i+1,k}|
+\]
+analogous to compactness similarity. This metric captures whether crowns maintain similar elongation patterns across time.
+
+\paragraph{Typical values:}
+For our dataset:
+\begin{itemize}
+    \item Circular or near-circular crowns: $\epsilon \in [0.75, 1.0]$.
+    \item Moderately elongated crowns: $\epsilon \in [0.50, 0.75]$.
+    \item Highly elongated crowns (e.g., row crops, hedgerows): $\epsilon < 0.40$.
+\end{itemize}
+Tree crowns in natural forests typically have $\epsilon \in [0.60, 0.90]$.
+
+\paragraph{Combined shape similarity:}
+We aggregate compactness and eccentricity into a single shape similarity:
+\[
+s_{\text{shape}}(c_{i,j}, c_{i+1,k}) = \frac{s_{\text{compact}}(c_{i,j}, c_{i+1,k}) + s_{\text{eccentric}}(c_{i,j}, c_{i+1,k})}{2}
+\]
+This average provides a holistic view of shape consistency. For correct matches in the SIT dataset, $s_{\text{shape}}$ has:
+\begin{center}
+\begin{tabular}{lc}
+\toprule
+Statistic & Value \\
+\midrule
+Median & 0.88 \\
+25th percentile & 0.79 \\
+75th percentile & 0.94 \\
+Min & 0.45 \\
+\bottomrule
+\end{tabular}
+\end{center}
+Shape similarity is highly variable (standard deviation $\approx 0.12$), confirming that it should receive low weight in the combined score.
+
+\paragraph{Alternative shape descriptors:}
+Other shape metrics considered but not implemented include:
+\begin{itemize}
+    \item \textbf{Convexity}: Ratio of polygon area to convex hull area. Sensitive to segmentation artifacts (e.g., small indentations disproportionately reduce convexity).
+    \item \textbf{Solidity}: Similar to convexity. Also unstable.
+    \item \textbf{Hu moments}: Rotation-invariant shape descriptors from image moments. High computational cost and unclear interpretability for polygons.
+    \item \textbf{Hausdorff distance}: Maximum distance from any point on one boundary to the nearest point on the other boundary. Extremely sensitive to outliers and boundary noise.
+\end{itemize}
+We opted for compactness and eccentricity due to their simplicity and moderate stability.
+
+%--------------------------------------------------------------------
+\subsection{Weighted Combined Similarity Score}
+
+The final similarity score for a crown pair $(c_{i,j}, c_{i+1,k})$ is a weighted linear combination of the component similarities:
+\[
+s(c_{i,j}, c_{i+1,k}) = \sum_{\alpha \in \{\text{spatial, area, iou, shape}\}} w_\alpha \cdot s_\alpha(c_{i,j}, c_{i+1,k})
+\]
+where $w_\alpha \geq 0$ are non-negative weights satisfying $\sum_\alpha w_\alpha = 1$ (unit simplex constraint for interpretability).
+
+%--------------------------------------------------------------------
+\subsubsection{Fusion of Spatial, Area, IoU Terms}
+
+\paragraph{Weight configuration (one-to-one case):}
+For high-confidence \texttt{one\_to\_one} matches, we balance spatial, area, IoU, and shape contributions:
+\[
+\begin{aligned}
+w_{\text{spatial}}^{\text{1-1}} &= 0.45 \quad \text{(spatial proximity most important)} \\
+w_{\text{area}}^{\text{1-1}} &= 0.20 \quad \text{(morphological stability)} \\
+w_{\text{iou}}^{\text{1-1}} &= 0.20 \quad \text{(overlap confirmation)} \\
+w_{\text{shape}}^{\text{1-1}} &= 0.15 \quad \text{(weak signal, low weight)}
+\end{aligned}
+\]
+This configuration prioritizes spatial proximity (robust to boundary noise) while using area and IoU as strong secondary signals. Shape receives low weight due to instability.
+
+\paragraph{Weight configuration (containment case):}
+For \texttt{containment} matches, we increase the weight on overlap ratios (which are more informative than IoU in containment scenarios):
+\[
+\begin{aligned}
+w_{\text{base}}^{\text{cont}} &= 0.30 \\
+w_{\text{overlap,prev}}^{\text{cont}} &= 0.35 \\
+w_{\text{overlap,curr}}^{\text{cont}} &= 0.35
+\end{aligned}
+\]
+where $w_{\text{base}}$ refers to the base similarity (Section~\ref{sec:conditional_matching}), which itself is a weighted combination of spatial, area, and shape. This two-level weighting scheme allows case-specific tuning.
+
+\paragraph{Weight configuration (nearby case):}
+For proximity-only \texttt{nearby} matches (ultra-relaxed preset), we heavily prioritize spatial distance:
+\[
+\begin{aligned}
+w_{\text{spatial}}^{\text{near}} &= 0.85 \quad \text{(dominates)} \\
+w_{\text{area}}^{\text{near}} &= 0.10 \\
+w_{\text{shape}}^{\text{near}} &= 0.03 \\
+w_{\text{iou}}^{\text{near}} &= 0.02 \quad \text{(negligible, often zero)}
+\end{aligned}
+\]
+This reflects the fallback nature of \texttt{nearby} edges: when overlap and shape fail, spatial proximity is the only reliable signal.
+
+\paragraph{Normalization and range:}
+Since all component similarities $s_\alpha \in [0,1]$ and weights sum to 1, the combined similarity also satisfies $s \in [0,1]$. This enables consistent thresholding across different weight configurations.
+
+\paragraph{Example calculation:}
+Consider a candidate pair with:
+\[
+s_{\text{spatial}} = 0.80, \quad s_{\text{area}} = 0.92, \quad s_{\text{iou}} = 0.55, \quad s_{\text{shape}} = 0.88
+\]
+For the one-to-one weight configuration:
+\[
+\begin{aligned}
+s^{\text{1-1}} &= 0.45 \cdot 0.80 + 0.20 \cdot 0.92 + 0.20 \cdot 0.55 + 0.15 \cdot 0.88 \\
+&= 0.360 + 0.184 + 0.110 + 0.132 \\
+&= 0.786
+\end{aligned}
+\]
+This score of 0.786 would pass the typical one-to-one threshold $\tau_{\text{sim}}^{\text{1-1}} = 0.55$ (ultra-relaxed) or $\tau_{\text{sim}}^{\text{1-1}} = 0.82$ (strict, borderline).
+
+\paragraph{Comparison with single-feature baseline:}
+For the same candidate, using IoU alone would yield $s = 0.55$, which might be rejected with a threshold $\tau = 0.60$. The multi-feature score of 0.786 correctly promotes this match by leveraging strong spatial and area agreement.
+
+%--------------------------------------------------------------------
+\subsubsection{Threshold Sweeps and Edge Count Curves}
+
+To determine optimal thresholds for each match case, we perform parameter sweeps where the similarity threshold $\tau_{\text{sim}}$ is varied from 0.0 to 1.0 in increments of 0.05, and the resulting edge count, match rate, and graph complexity are recorded.
+
+\paragraph{Sweep procedure:}
+\begin{enumerate}
+    \item For each threshold value $\tau \in \{0.00, 0.05, 0.10, \ldots, 1.00\}$:
+    \begin{enumerate}
+        \item Classify all candidate pairs into match cases (one-to-one, containment, nearby).
+        \item For each case, select edges with $s \geq \tau$ (case-specific threshold).
+        \item Construct the tracking graph $G(\tau)$ and extract chains.
+        \item Compute metrics: edge count $|E(\tau)|$, match rate $r(\tau)$, average chain length $\bar{\ell}(\tau)$.
+    \end{enumerate}
+    \item Plot $|E(\tau)|$ vs.\ $\tau$ (edge count curve).
+    \item Identify the "knee" of the curve: threshold value where edge count begins to drop rapidly.
+    \item Select $\tau^*$ near the knee to balance edge count (recall) and quality (precision).
+\end{enumerate}
+
+\paragraph{Edge count curve (SIT dataset, OM1 $\to$ OM2):}
+Figure~\ref{fig:threshold_sweep} shows the edge count as a function of similarity threshold for the one-to-one case. Key observations:
+\begin{itemize}
+    \item $\tau = 0.0$: 156 edges (all candidates, many spurious).
+    \item $\tau = 0.40$: 142 edges (high recall, some noise).
+    \item $\tau = 0.55$: 122 edges (balanced, selected for ultra-relaxed).
+    \item $\tau = 0.70$: 95 edges (moderate precision).
+    \item $\tau = 0.82$: 68 edges (strict preset, high precision).
+    \item $\tau = 0.90$: 32 edges (too conservative, many chains broken).
+\end{itemize}
+The curve exhibits a gradual decline from $\tau = 0.0$ to $\tau = 0.70$, then a steeper drop beyond $\tau = 0.80$. The knee occurs around $\tau \approx 0.55$, justifying the ultra-relaxed threshold.
+
+\paragraph{Match rate vs.\ threshold:}
+The overall match rate (fraction of crowns with at least one edge) declines with increasing $\tau$:
+\[
+r(\tau) = \frac{|\{v \in V : d_{\text{out}}(v) > 0 \text{ or } d_{\text{in}}(v) > 0\}|}{|V|}
+\]
+For the SIT dataset (5 OMs, ultra-relaxed weights):
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Threshold $\tau$ & Match Rate & Avg Chain Length \\
+\midrule
+0.35 & 0.712 & 2.15 \\
+0.45 & 0.681 & 2.05 \\
+0.55 & 0.632 & 1.97 \\
+0.65 & 0.578 & 1.82 \\
+0.75 & 0.492 & 1.63 \\
+0.85 & 0.341 & 1.38 \\
+\bottomrule
+\end{tabular}
+\end{center}
+Both match rate and average chain length decrease monotonically with $\tau$. The trade-off is clear: lower $\tau$ increases recall at the cost of potentially including more false positives.
+
+\paragraph{Precision estimation via manual validation:}
+To estimate precision, we randomly sampled 50 edges at each threshold level and manually inspected the corresponding crown pairs (overlaying polygons on RGB orthomosaics). Results:
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Threshold $\tau$ & Estimated Precision & Estimated Recall \\
+\midrule
+0.35 & 0.88 & 0.71 \\
+0.45 & 0.91 & 0.68 \\
+0.55 & 0.93 & 0.63 \\
+0.65 & 0.96 & 0.58 \\
+0.75 & 0.98 & 0.49 \\
+0.85 & 0.99 & 0.34 \\
+\bottomrule
+\end{tabular}
+\end{center}
+Precision increases with $\tau$ (fewer false positives), while recall decreases (more true positives rejected). The F1 score is maximized around $\tau \approx 0.55$:
+\[
+F_1(\tau) = \frac{2 \cdot \text{Precision}(\tau) \cdot \text{Recall}(\tau)}{\text{Precision}(\tau) + \text{Recall}(\tau)}
+\]
+yielding $F_1(0.55) = 2 \cdot 0.93 \cdot 0.63 / (0.93 + 0.63) \approx 0.75$.
+
+\paragraph{Case-specific thresholds:}
+Rather than using a single global threshold, our implementation uses different thresholds for each match case:
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+Match Case & Strict $\tau$ & Ultra-Relaxed $\tau$ \\
+\midrule
+\texttt{one\_to\_one} & 0.82 & 0.55 \\
+\texttt{containment} & 0.75 & 0.50 \\
+\texttt{nearby} & N/A & 0.32 \\
+\bottomrule
+\end{tabular}
+\end{center}
+This case-specific tuning allows high-confidence cases (one-to-one) to use stricter thresholds, while fallback cases (nearby) use relaxed thresholds to maintain chain continuity.
+
+\paragraph{Sensitivity analysis:}
+Small perturbations in threshold values have predictable effects:
+\begin{itemize}
+    \item $\Delta \tau = +0.05$: $\sim$10--15\% reduction in edge count, 3--5\% drop in match rate.
+    \item $\Delta \tau = -0.05$: $\sim$8--12\% increase in edge count, 2--4\% increase in match rate.
+\end{itemize}
+The linear sensitivity suggests that threshold selection is not overly sensitive: reasonable variations around $\tau^* = 0.55$ yield qualitatively similar results.
+
+\paragraph{Multi-dimensional sweeps:}
+We also performed two-dimensional sweeps varying both $\tau_{\text{sim}}$ (similarity threshold) and $\tau_{\text{overlap}}$ (overlap gate). The results (visualized as heatmaps in the supplementary material) show that:
+\begin{itemize}
+    \item $\tau_{\text{overlap}}$ has a stronger effect on edge count than $\tau_{\text{sim}}$ (overlap gate is a hard filter).
+    \item Optimal region: $\tau_{\text{overlap}} \in [0.05, 0.15]$, $\tau_{\text{sim}} \in [0.50, 0.60]$.
+    \item Extremely relaxed settings ($\tau_{\text{overlap}} < 0.03$, $\tau_{\text{sim}} < 0.40$) yield excessive edge counts (>300) with many spurious matches.
+\end{itemize}
+
+\paragraph{Computational cost of sweeps:}
+Each threshold configuration requires recomputing edge selection and graph construction. For the SIT dataset (408 crowns, $\sim$2000 candidate pairs), a single configuration takes $\sim$2 seconds. A full sweep over 21 threshold values takes $\sim$45 seconds, making parameter exploration tractable for interactive tuning.
+
+%--------------------------------------------------------------------
+\subsection{Discussion: Multi-Feature Fusion Benefits and Limitations}
+
+\paragraph{Benefits:}
+\begin{enumerate}
+    \item \textbf{Robustness to alignment errors}: Spatial distance provides a strong signal even when IoU degrades due to misalignment.
+    \item \textbf{Disambiguation in crowded regions}: Area and shape similarities help distinguish between multiple candidates with similar IoU.
+    \item \textbf{Interpretability}: Weights can be tuned by domain experts based on dataset characteristics (e.g., increase spatial weight for datasets with large alignment errors).
+    \item \textbf{Modularity}: New features (e.g., spectral indices from multispectral imagery) can be added by extending the weight vector.
+\end{enumerate}
+
+\paragraph{Limitations:}
+\begin{enumerate}
+    \item \textbf{Manual weight tuning}: Optimal weights are dataset-dependent and require iterative tuning via threshold sweeps or validation against ground truth.
+    \item \textbf{Linear fusion assumption}: Assumes features are conditionally independent and can be linearly combined. Nonlinear interactions (e.g., IoU is high only if \emph{both} spatial and area are consistent) are not captured.
+    \item \textbf{No learned features}: Hand-crafted features may miss subtle patterns. A learned similarity function (e.g., via a neural network trained on labeled matches) could improve performance but requires large annotated datasets.
+    \item \textbf{Shape instability}: Compactness and eccentricity are highly sensitive to segmentation noise, limiting their discriminative power. Advanced shape descriptors (e.g., shape context, deep shape embeddings) may improve stability.
+\end{enumerate}
+
+\paragraph{Future directions:}
+\begin{itemize}
+    \item \textbf{Learned weights}: Train a logistic regression or gradient-boosted tree model to predict match/no-match labels from features, automatically learning optimal weights.
+    \item \textbf{Deep similarity metrics}: Use a Siamese network to embed crown RGB patches into a feature space where Euclidean distance corresponds to match quality.
+    \item \textbf{Temporal context}: Incorporate features from $\mathcal{O}_{i-1}$ and $\mathcal{O}_{i+2}$ to enforce consistency across multiple time points.
+    \item \textbf{Spectral features}: For multispectral imagery, include vegetation indices (NDVI, EVI) or texture features (GLCM) as additional similarity components.
+\end{itemize}

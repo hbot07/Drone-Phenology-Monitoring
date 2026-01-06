@@ -1,0 +1,98 @@
+\section{Appendix A: Definitions and Metrics}
+
+This appendix provides formal definitions of key evaluation metrics used throughout the report. Metrics are computed by \texttt{TreeTrackingGraph.quality\_report()} and exported to JSON files.
+
+%--------------------------------------------------------------------
+\subsection{Crown-Level Evaluation Metrics}
+
+\paragraph{Overall match rate:}
+Fraction of crowns with at least one temporal correspondence:
+\[
+r_{\text{match}} = \frac{|\{v \in V : d_{\text{in}}(v) > 0 \text{ or } d_{\text{out}}(v) > 0\}|}{|V|}
+\]
+where $V$ is the set of nodes and $d_{\text{in}}(v)$, $d_{\text{out}}(v)$ are in/out-degrees. Example: $r_{\text{match}} = 258/408 = 63.2\%$ (ultra-relaxed).
+
+\paragraph{Pairwise match rate:}
+For consecutive pair $(\mathcal{O}_i, \mathcal{O}_{i+1})$:
+\[
+r_{\text{pair}}(i, i+1) = \frac{|\{(u,v) \in E : u \in \mathcal{C}_i, v \in \mathcal{C}_{i+1}\}|}{\min(|\mathcal{C}_i|, |\mathcal{C}_{i+1}|)}
+\]
+Example: OM1→OM2: 69.5\%, OM2→OM3: 67.9\%, OM3→OM4: 64.1\%, OM4→OM5: 51.3\% (declining due to cumulative drift).
+
+\paragraph{Edges by match case:}
+Distribution across cases: $n_{\texttt{one\_to\_one}} = 122$ (60.7\%), $n_{\texttt{containment}} = 5$ (2.5\%), $n_{\texttt{nearby}} = 74$ (36.8\%).
+
+\paragraph{Degree distribution:}
+Percentage of crowns by out-degree: $d=0$ (27.9\%), $d=1$ (66.7\%), $d=2$ (4.4\%), $d \geq 3$ (1.0\%). Most crowns have degree 0 or 1 (one-to-one tracking).
+
+\paragraph{Mean IoU:}
+Average Intersection over Union for all edges:
+\[
+\bar{\text{IoU}} = \frac{1}{|E|} \sum_{(u,v) \in E} \text{IoU}(c_u, c_v)
+\]
+Example: $\bar{\text{IoU}} \approx 0.42$--$0.58$ depending on OM pair. Low values ($< 0.30$) suggest reliance on spatial proximity.
+
+\paragraph{Mean centroid distance:}
+Average Euclidean distance between matched crown centroids:
+\[
+\bar{d}_{\text{centroid}} = \frac{1}{|E|} \sum_{(u,v) \in E} \|\mathbf{p}_u - \mathbf{p}_v\|_2
+\]
+Example: Median 8--25 m (with alignment), 15--40 m (without). Distances $> 50$ m suggest wrong matches.
+
+%--------------------------------------------------------------------
+\subsection{Chain-Level Metrics}
+
+\paragraph{Chain definition:}
+A tracking chain $\mathcal{P} = (v_1, \ldots, v_\ell)$ is a directed path where $v_1$ is a source ($d_{\text{in}} = 0$), $v_\ell$ is a sink ($d_{\text{out}} = 0$), and $(v_k, v_{k+1}) \in E$ for all $k$. Length is $\ell$ (number of nodes).
+
+\paragraph{Chain length distribution:}
+For ultra-relaxed (207 chains): Length 1: 114 (55.1\%), Length 2: 39 (18.8\%), Length 3: 21 (10.1\%), Length 4: 12 (5.8\%), Length 5 (full): 21 (10.1\%).
+
+\paragraph{Average chain length:}
+Mean nodes per chain: $\bar{\ell} = \frac{1}{|\{\mathcal{P}\}|} \sum_{\mathcal{P}} |\mathcal{P}|$. Example: $\bar{\ell} = 1.97$ (ultra-relaxed).
+
+\paragraph{Full-length chain count and rate:}
+Chains spanning all $N$ orthomosaics: $n_{\text{full}} = |\{\mathcal{P} : |\mathcal{P}| = N\}|$. Example: 21 chains (10.1\%) for $N=5$. These represent the most reliable tracking.
+
+\paragraph{Chain continuity score:}
+Temporal coverage with no gaps: $C(\mathcal{P}) = (\ell - 1)/(i_\ell - i_1)$ where $v_k = (i_k, j_k)$. Value is 1.0 for consecutive OMs, $< 1.0$ for gaps. Mean continuity: $\bar{C} \approx 0.85$ (ultra-relaxed).
+
+\paragraph{Chain quality score:}
+Composite metric: $Q(\mathcal{P}) = w_{\ell} \cdot (\ell/N) + w_C \cdot C(\mathcal{P}) + w_s \cdot \bar{s}(\mathcal{P})$ where $\bar{s}(\mathcal{P})$ is mean edge similarity (typical weights: 0.4, 0.3, 0.3). Chains with $Q > 0.8$ are high-quality.
+
+\paragraph{Chain spatial drift:}
+Cumulative centroid displacement: $\Delta d(\mathcal{P}) = \|\mathbf{p}_{v_\ell} - \mathbf{p}_{v_1}\|_2$. Values $> 75$ m flagged (trees don't move; likely wrong matches).
+
+\paragraph{Chain area change:}
+Relative area change: $\Delta A_{\text{rel}}(\mathcal{P}) = (A_{v_\ell} - A_{v_1})/A_{v_1}$. Values $|\Delta A_{\text{rel}}| > 0.50$ flagged (likely segmentation error or wrong match).
+
+\paragraph{Chain categorization:}
+\begin{itemize}[leftmargin=*, itemsep=1pt]
+    \item \textbf{Gold standard} (21, 10.1\%): $\ell = N$, $C = 1.0$, $\bar{s} > 0.70$, $\text{IoU}_{\text{mean}} > 0.50$ — use for phenology
+    \item \textbf{Good quality} (33, 15.9\%): $\ell \geq 3$, $C \geq 0.75$, $\bar{s} > 0.55$ — comparative analysis
+    \item \textbf{Moderate quality} (39, 18.8\%): $\ell \geq 2$, $\bar{s} > 0.40$ — visual validation required
+    \item \textbf{Low quality} (28, 13.5\%): $\ell = 2$, $\bar{s} \leq 0.40$ or $\text{IoU}_{\text{mean}} < 0.20$ — likely wrong matches
+    \item \textbf{Singletons} (114, 55.1\%): $\ell = 1$ — unmatched crowns
+\end{itemize}
+
+%--------------------------------------------------------------------
+\paragraph{Summary statistics (ultra-relaxed preset):}
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Metric} & \textbf{Value} & \textbf{Unit} \\
+\midrule
+Total crowns & 408 & count \\
+Matched crowns & 258 & count \\
+Overall match rate & 63.2\% & fraction \\
+Mean IoU & 0.48 & [0,1] \\
+Median centroid distance & 12.3 & m \\
+\midrule
+Total chains & 207 & count \\
+Average chain length & 1.97 & count \\
+Full-length chains & 21 & count \\
+Full-length rate & 10.1\% & fraction \\
+Mean continuity & 0.85 & [0,1] \\
+\bottomrule
+\end{tabular}
+\end{center}
