@@ -1,0 +1,46 @@
+Detection:
+  - run_id: str              # Identifier for the orthomosaic run (e.g., date or name)
+  - image_file: str          # Name of the orthomosaic or source image file
+  - bbox: Tuple[float, float, float, float]  # Bounding box (xmin, ymin, xmax, ymax)
+  - center: Tuple[float, float]              # Center point (x, y) in pixel or metric/geospatial units
+  - score: float             # Confidence score of the detection
+  - label: str               # Label (e.g., "Tree")
+
+Tree:
+  - unique_id: int           # Unique tree identifier
+  - detections: List[Detection]  # List of all detections (from different runs) associated with this tree
+
+TreeTracker:
+  - trees: Dict[int, Tree]   # Mapping from unique_id to Tree objects
+  - next_id: int             # Next available unique tree identifier
+  - matching_threshold: float  # Maximum allowed distance between detections to consider them the same tree
+  - Methods:
+      - add_or_update_tree(detection: Detection) -> int
+          # If a detection is within threshold of an existing tree’s latest detection, add it there.
+          # Otherwise, create a new Tree and assign a new unique_id.
+      - get_all_trees() -> Dict[int, Tree]
+          # Returns the current collection of tracked trees.
+
+OrthoMosaicProcessor:
+  - path: str                # File path to the new orthomosaic
+  - deepforest_model: DeepForest model instance  # Pre-trained detection model
+  - georeference_data: Object (e.g., from rasterio)  # For converting pixel coordinates to geospatial coordinates
+  - Methods:
+      - load_orthomosaic() -> None
+          # Loads the orthomosaic image and georeference info from the given path.
+      - run_detection() -> List[Detection]
+          # Runs the detection model on the orthomosaic and returns a list of Detection objects.
+      - annotate_and_save(detections: List[Detection], output_path: str) -> None
+          # Annotates the orthomosaic with detection info and saves the output.
+
+DronePhenologyMonitor:
+  - tree_tracker: TreeTracker       # Manages tracked trees across runs
+  - ortho_processor: OrthoMosaicProcessor  # Handles loading and processing of orthomosaics
+  - Methods:
+      - process_new_run(orthomosaic_path: str) -> None
+          # Given the path of a new orthomosaic:
+          #   1. Load the orthomosaic using OrthoMosaicProcessor.
+          #   2. Run tree detection to produce a list of Detection objects.
+          #   3. For each Detection, use TreeTracker.add_or_update_tree() to update tracking.
+          #   4. Annotate and save the resulting image.
+

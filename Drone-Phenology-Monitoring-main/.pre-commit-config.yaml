@@ -1,0 +1,14 @@
+repos:
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+      - id: nbstripout
+        # Optionally drop selected metadata keys too
+        args: ["--extra-keys", "metadata.kernelspec,metadata.language_info,metadata.colab,metadata.papermill"]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+        # Block adding files larger than ~90MB to commits
+        args: ["--maxkb=90000"]
