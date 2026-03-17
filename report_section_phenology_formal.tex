@@ -263,7 +263,7 @@ where the recorded value is $a$.
 For a chosen set of metrics $\mathcal{M}$, construct a tree-by-time matrix for each $m\in\mathcal{M}$.
 For a fixed tree $t$ and metric $m$, let
 \begin{equation}
-\tilde{x}^{(m)}_{t} = \bigl( x^{(m)}_{t,o_1},\dots,x^{(m)}_{t,o_T}\bigr)\in\mathbb{R}^T
+\tilde{x}^{(m)}_{t} = \bigl( x^{(m)}_{t}(o_{1}),\dots,x^{(m)}_{t}(o_{T})\bigr)\in\mathbb{R}^T
 \end{equation}
 where bad observations are set to NaN before further processing.
 
@@ -276,7 +276,7 @@ Let $\mathcal{K}=\{k: y_k\ \text{is finite}\}$.
 \item If $|\mathcal{K}|\ge 2$, define $\hat{x}^{(m)}_{t}(\xi)$ as the 1D linear interpolant through the finite points
 $\{(\xi_k, y_k): k\in\mathcal{K}\}$ with boundary values held constant outside the observed range.
 The interpolated series is
-$\bigl(\hat{x}^{(m)}_{t}(o_1),\dots,\hat{x}^{(m)}_{t}(o_T)\bigr)$.
+$\bigl(\hat{x}^{(m)}_{t}(o_{1}),\dots,\hat{x}^{(m)}_{t}(o_{T})\bigr)$.
 \item If $|\mathcal{K}|=1$, all missing entries are filled with the single observed value.
 \item If $|\mathcal{K}|=0$, all entries are filled with $0$.
 \end{itemize}
@@ -306,9 +306,11 @@ This transformation preserves seasonal \emph{shape} while removing absolute leve
 
 For each tree $t$ and metric $m$ (after interpolation), define:
 \begin{align}
-\mathrm{amp}_t^{(m)} &= \max_k \hat{x}^{(m)}_t[k] - \min_k \hat{x}^{(m)}_t[k],\\
-\mathrm{peak\_om}_t^{(m)} &= o_{\arg\max_k\hat{x}^{(m)}_t[k]},\\
-\mathrm{trough\_om}_t^{(m)} &= o_{\arg\min_k\hat{x}^{(m)}_t[k]}.
+\mathrm{amp}_t^{(m)} &= \max_{k} \hat{x}^{(m)}_t[k] - \min_{k} \hat{x}^{(m)}_t[k],\\
+k^{\mathrm{pk}}_t(m) &= \arg\max_{k}\,\hat{x}^{(m)}_t[k],\\
+k^{\mathrm{tr}}_t(m) &= \arg\min_{k}\,\hat{x}^{(m)}_t[k],\\
+\mathrm{peak\_om}_t^{(m)} &= o_{k^{\mathrm{pk}}_t(m)},\\
+\mathrm{trough\_om}_t^{(m)} &= o_{k^{\mathrm{tr}}_t(m)}.
 \end{align}
 
 The implementation also records a slope with respect to the time index $k\in\{0,\dots,T-1\}$ (not OM ID), via
@@ -336,9 +338,9 @@ Optionally, a texture signal $m_\mathrm{tex}=\texttt{laplacian\_var}$ is used if
 
 For each tree $t$, define raw interpolated amplitudes
 \begin{equation}
-A_t^{\mathrm{veg}} = \max_k \hat{x}^{(m_\mathrm{veg})}_t[k] - \min_k \hat{x}^{(m_\mathrm{veg})}_t[k],
+A_t^{\mathrm{veg}} = \max_{k} \hat{x}^{(m_\mathrm{veg})}_t[k] - \min_{k} \hat{x}^{(m_\mathrm{veg})}_t[k],
 \qquad
-A_t^{\mathrm{gcc}} = \max_k \hat{x}^{(m_\mathrm{gcc})}_t[k] - \min_k \hat{x}^{(m_\mathrm{gcc})}_t[k].
+A_t^{\mathrm{gcc}} = \max_{k} \hat{x}^{(m_\mathrm{gcc})}_t[k] - \min_{k} \hat{x}^{(m_\mathrm{gcc})}_t[k].
 \end{equation}
 Let $A_{90}^{\mathrm{veg}}$ and $A_{90}^{\mathrm{gcc}}$ denote the 90th percentile across trees (NaNs ignored):
 \begin{equation}
@@ -357,8 +359,8 @@ Within each tree loop, the vegetation series is clipped to $[0,1]$ prior to comp
 \end{equation}
 Define
 \begin{equation}
-\mathrm{veg\_min}_t = \min_k \hat{v}_t[k],\qquad
-\mathrm{veg\_max}_t = \max_k \hat{v}_t[k],\qquad
+\mathrm{veg\_min}_t = \min_{k} \hat{v}_t[k],\qquad
+\mathrm{veg\_max}_t = \max_{k} \hat{v}_t[k],\qquad
 \mathrm{veg\_amp}_t = \mathrm{veg\_max}_t-\mathrm{veg\_min}_t.
 \end{equation}
 Let $\mathrm{gcc\_amp}_t=A_t^{\mathrm{gcc}}$.
@@ -418,12 +420,12 @@ For each time index $k$:
 
 Let
 \begin{equation}
- k_{\min}=\arg\min_k \hat{v}_t[k],\qquad k_{\max}=\arg\max_k \hat{v}_t[k].
+ k^{\mathrm{off}}=\arg\min_{k} \,\hat{v}_t[k],\qquad k^{\mathrm{on}}=\arg\max_{k} \,\hat{v}_t[k].
 \end{equation}
 The full leaf-off OM and peak leaf-on OM are
 \begin{equation}
-\mathrm{full\_leaf\_off\_om}(t)=o_{k_{\min}},\qquad
-\mathrm{leaf\_on\_peak\_om}(t)=o_{k_{\max}}.
+\mathrm{full\_leaf\_off\_om}(t)=o_{k^{\mathrm{off}}},\qquad
+\mathrm{leaf\_on\_peak\_om}(t)=o_{k^{\mathrm{on}}}.
 \end{equation}
 
 If $t$ is deciduous, the leaf-off start and leaf-on return events are computed from the categorical state sequence:

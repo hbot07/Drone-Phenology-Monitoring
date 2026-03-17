@@ -61,10 +61,10 @@ Temporal coverage with no gaps: $C(\mathcal{P}) = (\ell - 1)/(i_\ell - i_1)$ whe
 Composite metric: $Q(\mathcal{P}) = w_{\ell} \cdot (\ell/N) + w_C \cdot C(\mathcal{P}) + w_s \cdot \bar{s}(\mathcal{P})$ where $\bar{s}(\mathcal{P})$ is mean edge similarity (typical weights: 0.4, 0.3, 0.3). Chains with $Q > 0.8$ are high-quality.
 
 \paragraph{Chain spatial drift:}
-Cumulative centroid displacement: $\Delta d(\mathcal{P}) = \|\mathbf{p}_{v_\ell} - \mathbf{p}_{v_1}\|_2$. Values $> 75$ m flagged (trees don't move; likely wrong matches).
+Cumulative centroid displacement: $\Delta d(\mathcal{P}) = \|\mathbf{p}(v_{\ell}) - \mathbf{p}(v_{1})\|_2$. Values $> 75$ m flagged (trees don't move; likely wrong matches).
 
 \paragraph{Chain area change:}
-Relative area change: $\Delta A_{\text{rel}}(\mathcal{P}) = (A_{v_\ell} - A_{v_1})/A_{v_1}$. Values $|\Delta A_{\text{rel}}| > 0.50$ flagged (likely segmentation error or wrong match).
+Relative area change: $\Delta A_{\text{rel}}(\mathcal{P}) = (A(v_{\ell}) - A(v_{1}))/A(v_{1})$. Values $|\Delta A_{\text{rel}}| > 0.50$ flagged (likely segmentation error or wrong match).
 
 \paragraph{Chain categorization:}
 \begin{itemize}[leftmargin=*, itemsep=1pt]

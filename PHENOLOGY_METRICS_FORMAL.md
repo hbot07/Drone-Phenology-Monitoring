@@ -223,7 +223,7 @@ For each tree and metric (after interpolation):
 
 $$
 \bar{x}_t[k]=\begin{cases}
-\dfrac{\hat{x}_t[k]-\min_k\hat{x}_t[k]}{\max_k\hat{x}_t[k]-\min_k\hat{x}_t[k]} & \text{if range}>10^{-9}\\
+\dfrac{\hat{x}_t[k]-\min_{k}\hat{x}_t[k]}{\max_{k}\hat{x}_t[k]-\min_{k}\hat{x}_t[k]} & \text{if range}>10^{-9}\\
 0 & \text{otherwise.}
 \end{cases}
 $$
@@ -233,8 +233,8 @@ $$
 From each interpolated series $\hat{x}_t$:
 
 - amplitude: $\max-\min$
-- peak OM: $o_{\arg\max}$
-- trough OM: $o_{\arg\min}$
+- peak OM: $o_{k^{\mathrm{pk}}}$ where $k^{\mathrm{pk}}=\arg\max_{k}\,\hat{x}_t[k]$
+- trough OM: $o_{k^{\mathrm{tr}}}$ where $k^{\mathrm{tr}}=\arg\min_{k}\,\hat{x}_t[k]$
 - slope: linear fit vs **time index** $k\in\{0,\dots,T-1\}$ (not OM ID)
 
 Directional changes are computed on the normalized series:
@@ -312,8 +312,8 @@ Let $v_n[k]$ be the per-tree min–max normalized veg series.
 
 Let $k_{\min}=\arg\min\hat{v}[k]$ and $k_{\max}=\arg\max\hat{v}[k]$.
 
-- `full_leaf_off_om = o_{k_min}`
-- `leaf_on_peak_om = o_{k_max}`
+- `full_leaf_off_om = o_{kOff}`
+- `leaf_on_peak_om = o_{kOn}`
 
 If deciduous:
 

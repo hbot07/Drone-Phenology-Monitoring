@@ -5,7 +5,7 @@ This section presents the core algorithmic framework for tracking individual tre
 %--------------------------------------------------------------------
 \subsection{High-Level Pipeline Overview}
 
-The crown tracking pipeline operates on a sequence of $N$ orthomosaics $\{\mathcal{O}_1, \mathcal{O}_2, \ldots, \mathcal{O}_N\}$ captured at discrete time points $t_1 < t_2 < \cdots < t_N$. For each orthomosaic $\mathcal{O}_i$, we obtain a set of crown polygons $\mathcal{C}_i = \{c_{i,1}, c_{i,2}, \ldots, c_{i,m_i}\}$ via the Detectree2 segmentation pipeline described in Section~3. The tracking problem seeks to establish correspondences between crowns across consecutive time points, ultimately constructing temporal chains that represent individual trees tracked through time.
+The crown tracking pipeline operates on a sequence of $N$ orthomosaics $\{\mathcal{O}_1, \mathcal{O}_2, \ldots, \mathcal{O}_N\}$ captured at discrete time points $t_1 < t_2 < \cdots < t_N$. For each orthomosaic $\mathcal{O}_i$, we obtain a set of crown polygons $\mathcal{C}_i = \{c_{i,j}\}_{j=1}^{m_i}$ via the Detectree2 segmentation pipeline described in Section~3. The tracking problem seeks to establish correspondences between crowns across consecutive time points, ultimately constructing temporal chains that represent individual trees tracked through time.
 
 \paragraph{Pipeline stages:}
 \begin{enumerate}[leftmargin=*, itemsep=2pt]
@@ -62,8 +62,9 @@ The Hungarian algorithm solves the \emph{linear assignment problem}: given a bip
 
 The Hungarian algorithm optimizes a global objective over a single bipartite graph:
 \[
-\max_{\pi : \mathcal{C}_i \to \mathcal{C}_{i+1}} \sum_{j} w(c_{i,j}, c_{i+1,\pi(j)})
+\max_{\pi} \sum_{j} w(c_{i,j}, c_{i+1,\pi(j)})
 \]
+subject to $\pi : \mathcal{C}_i \to \mathcal{C}_{i+1}$,
 where $w(\cdot,\cdot)$ is a similarity weight (e.g., IoU). However, this optimization is \emph{local} to the pair $(\mathcal{O}_i, \mathcal{O}_{i+1})$ and ignores information from other time points.
 
 \paragraph{Transitive inconsistencies:} Consider three consecutive orthomosaics $\mathcal{O}_i, \mathcal{O}_{i+1}, \mathcal{O}_{i+2}$. The Hungarian algorithm independently computes:
