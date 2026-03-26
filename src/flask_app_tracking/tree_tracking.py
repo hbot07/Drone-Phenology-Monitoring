@@ -14,7 +14,7 @@ import pandas as pd
 import plotly.graph_objs as go
 import rasterio
 from rasterio.mask import mask
-from shapely.affinity import translate
+from shapely.affinity import affine_transform, translate
 from shapely.geometry import Polygon, mapping
 
 try:
@@ -31,6 +31,20 @@ try:
     SKIMAGE_AVAILABLE = True
 except Exception:
     SKIMAGE_AVAILABLE = False
+
+try:
+    import cv2
+
+    OPENCV_AVAILABLE = True
+except Exception:
+    OPENCV_AVAILABLE = False
+
+try:
+    from sklearn.neighbors import NearestNeighbors
+
+    SKLEARN_AVAILABLE = True
+except Exception:
+    SKLEARN_AVAILABLE = False
 
 
 @dataclass
@@ -85,6 +99,8 @@ class TreeTrackingGraph:
         self.crown_crs: Dict[int, Optional[Any]] = {}
         self.ortho_crs: Dict[int, Optional[Any]] = {}
         self.alignment_shifts: Dict[int, Tuple[float, float]] = {}
+        self.alignment_transforms: Dict[int, Tuple[float, float, float, float, float, float]] = {}
+        self.alignment_debug: Dict[int, Dict[str, Any]] = {}
 
         self.multithreshold_layers: Dict[int, List[str]] = {}
         self.base_threshold_tag: Optional[str] = None
@@ -275,52 +291,521 @@ class TreeTrackingGraph:
         dy = shift_row * ref_transform.e
         return float(dx), float(dy)
 
-    def align_to_reference(self, reference_om_id: Optional[int] = None, max_preview: int = 1200) -> Dict[int, Tuple[float, float]]:
+    @classmethod
+    def _phase_corr_shift_tiled(
+        cls,
+        ref_gray,
+        mov_gray,
+        ref_transform,
+        mov_transform,
+        tiles: int = 4,
+        min_tile_size: int = 160,
+        upsample_factor: int = 10,
+        min_valid_tiles: int = 4,
+    ) -> Optional[Tuple[float, float]]:
+        shift, _ = cls._phase_corr_shift_tiled_debug(
+            ref_gray,
+            mov_gray,
+            ref_transform,
+            mov_transform,
+            tiles=tiles,
+            min_tile_size=min_tile_size,
+            upsample_factor=upsample_factor,
+            min_valid_tiles=min_valid_tiles,
+        )
+        return shift
+
+    @classmethod
+    def _phase_corr_shift_tiled_debug(
+        cls,
+        ref_gray,
+        mov_gray,
+        ref_transform,
+        mov_transform,
+        tiles: int = 4,
+        min_tile_size: int = 160,
+        upsample_factor: int = 10,
+        min_valid_tiles: int = 4,
+        min_texture_std: float = 0.02,
+        max_error: float = 1.0,
+        max_abs_shift_fraction: float = 0.35,
+        inlier_sigma: float = 3.0,
+        min_inliers: int = 3,
+    ) -> Tuple[Optional[Tuple[float, float]], Dict[str, Any]]:
+        """Robust PCC: estimate shift as the median of many local tile PCC shifts.
+
+        Returns both the (dx, dy) shift in map units and a debug dict describing
+        tile acceptance/rejection and inlier filtering.
+        """
+        debug: Dict[str, Any] = {
+            "method": "pcc_tiled",
+            "tiles": int(tiles),
+            "min_tile_size": int(min_tile_size),
+            "upsample_factor": int(upsample_factor),
+            "min_valid_tiles": int(min_valid_tiles),
+            "min_texture_std": float(min_texture_std),
+            "max_error": float(max_error),
+            "max_abs_shift_fraction": float(max_abs_shift_fraction),
+            "inlier_sigma": float(inlier_sigma),
+            "min_inliers": int(min_inliers),
+            "fallback": "",
+            "rejected": {"low_texture": 0, "high_error": 0, "too_large_shift": 0, "exception": 0},
+        }
+
         if not SKIMAGE_AVAILABLE:
-            return {om_id: (0.0, 0.0) for om_id in self.om_ids}
+            debug["fallback"] = "skimage_missing"
+            return None, debug
+
+        ref_crop, mov_crop = cls._crop_to_overlap(ref_gray, mov_gray, ref_transform, mov_transform)
+        if ref_crop is None or mov_crop is None:
+            debug["fallback"] = "no_overlap"
+            return None, debug
+        ref_crop, mov_crop = cls._match_shape(ref_crop, mov_crop)
+
+        h, w = ref_crop.shape[:2]
+        debug["overlap_shape"] = (int(h), int(w))
+        if h < min_tile_size or w < min_tile_size:
+            debug["fallback"] = "full_pcc_small_overlap"
+            return cls._phase_corr_shift(ref_gray, mov_gray, ref_transform, mov_transform), debug
+
+        t = max(2, int(tiles))
+        tile_h = h // t
+        tile_w = w // t
+        debug["n_tile_positions"] = int(t * t)
+        if tile_h < min_tile_size or tile_w < min_tile_size:
+            debug["fallback"] = "full_pcc_tiles_too_small"
+            return cls._phase_corr_shift(ref_gray, mov_gray, ref_transform, mov_transform), debug
+
+        # Shift sanity bound: prevent tiles from voting for absurd jumps.
+        # Bound is proportional to overlap extent.
+        overlap_width_mu = float(w * ref_transform.a)
+        overlap_height_mu = float(h * ref_transform.e)
+        max_dx = float(abs(overlap_width_mu) * float(max_abs_shift_fraction))
+        max_dy = float(abs(overlap_height_mu) * float(max_abs_shift_fraction))
+
+        candidates: List[Tuple[float, float, float]] = []  # (dx, dy, error)
+        for i in range(t):
+            for j in range(t):
+                r0 = i * tile_h
+                r1 = (i + 1) * tile_h if i < t - 1 else h
+                c0 = j * tile_w
+                c1 = (j + 1) * tile_w if j < t - 1 else w
+                ref_tile = ref_crop[r0:r1, c0:c1]
+                mov_tile = mov_crop[r0:r1, c0:c1]
+                if ref_tile.shape[0] < min_tile_size or ref_tile.shape[1] < min_tile_size:
+                    continue
+
+                # Simple texture gate: avoid tiles that are mostly uniform (PCC unstable).
+                ref_std = float(np.std(ref_tile))
+                mov_std = float(np.std(mov_tile))
+                if not np.isfinite(ref_std) or not np.isfinite(mov_std) or ref_std < min_texture_std or mov_std < min_texture_std:
+                    debug["rejected"]["low_texture"] += 1
+                    continue
+
+                try:
+                    shift, error, _ = phase_cross_correlation(ref_tile, mov_tile, upsample_factor=upsample_factor)
+                except Exception:
+                    debug["rejected"]["exception"] += 1
+                    continue
+                if not np.isfinite(error) or float(error) > float(max_error):
+                    debug["rejected"]["high_error"] += 1
+                    continue
+                shift_row, shift_col = shift
+                dx = float(shift_col * ref_transform.a)
+                dy = float(shift_row * ref_transform.e)
+                if abs(dx) > max_dx or abs(dy) > max_dy:
+                    debug["rejected"]["too_large_shift"] += 1
+                    continue
+
+                candidates.append((dx, dy, float(error)))
+
+        debug["n_valid_tiles"] = int(len(candidates))
+        if len(candidates) < int(min_valid_tiles):
+            debug["fallback"] = "full_pcc_insufficient_tiles"
+            return cls._phase_corr_shift(ref_gray, mov_gray, ref_transform, mov_transform), debug
+
+        dxs = np.array([c[0] for c in candidates], dtype=float)
+        dys = np.array([c[1] for c in candidates], dtype=float)
+        errs = np.array([c[2] for c in candidates], dtype=float)
+        debug["median_error_all"] = float(np.median(errs)) if errs.size else float("nan")
+
+        # Robust inlier selection around the (dx,dy) median.
+        dx_med = float(np.median(dxs))
+        dy_med = float(np.median(dys))
+        resid = np.sqrt((dxs - dx_med) ** 2 + (dys - dy_med) ** 2)
+        resid_med = float(np.median(resid))
+        mad = float(np.median(np.abs(resid - resid_med)))
+        scale = 1.4826 * mad if mad > 0 else 0.0
+        thr = float(inlier_sigma) * scale if scale > 0 else float("inf")
+        inliers = resid <= thr
+
+        if int(inliers.sum()) < int(min_inliers):
+            # If MAD collapses or we over-filtered, fall back to using all candidates.
+            inliers = np.ones_like(resid, dtype=bool)
+            debug["fallback"] = "no_inliers_using_all_tiles"
+        else:
+            debug["fallback"] = ""
+
+        debug["n_inliers"] = int(inliers.sum())
+        if errs.size:
+            debug["median_error_inliers"] = float(np.median(errs[inliers]))
+
+        dx_out = float(np.median(dxs[inliers]))
+        dy_out = float(np.median(dys[inliers]))
+        return (dx_out, dy_out), debug
+
+    @classmethod
+    def _ecc_shift(
+        cls,
+        ref_gray,
+        mov_gray,
+        ref_transform,
+        mov_transform,
+        motion: str = "euclidean",
+        number_of_iterations: int = 250,
+        termination_eps: float = 1e-6,
+    ) -> Optional[Tuple[float, float]]:
+        """Estimate translation-like shift using OpenCV ECC on overlap region.
+
+        ECC can be more stable than PCC when there is small rotation/illumination changes.
+        Returns (dx, dy) in map units.
+        """
+        if not OPENCV_AVAILABLE:
+            return None
+        ref_crop, mov_crop = cls._crop_to_overlap(ref_gray, mov_gray, ref_transform, mov_transform)
+        if ref_crop is None or mov_crop is None:
+            return None
+        ref_crop, mov_crop = cls._match_shape(ref_crop, mov_crop)
+
+        ref = ref_crop.astype(np.float32)
+        mov = mov_crop.astype(np.float32)
+        ref = ref - float(np.mean(ref))
+        mov = mov - float(np.mean(mov))
+        ref_std = float(np.std(ref))
+        mov_std = float(np.std(mov))
+        if ref_std > 0:
+            ref = ref / ref_std
+        if mov_std > 0:
+            mov = mov / mov_std
+
+        motion = (motion or "euclidean").lower().strip()
+        if motion == "translation":
+            warp_mode = cv2.MOTION_TRANSLATION
+        else:
+            warp_mode = cv2.MOTION_EUCLIDEAN
+        warp = np.eye(2, 3, dtype=np.float32)
+        criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, int(number_of_iterations), float(termination_eps))
+        try:
+            cv2.findTransformECC(ref, mov, warp, warp_mode, criteria, inputMask=None, gaussFiltSize=5)
+        except Exception:
+            return None
+
+        tx = float(warp[0, 2])
+        ty = float(warp[1, 2])
+        dx = tx * float(ref_transform.a)
+        dy = ty * float(ref_transform.e)
+        return float(dx), float(dy)
+
+    def align_to_reference(self, reference_om_id: Optional[int] = None, max_preview: int = 1200) -> Dict[int, Tuple[float, float]]:
+        return self.align_to_reference_with_method(reference_om_id=reference_om_id, max_preview=max_preview, method="pcc")
+
+    @staticmethod
+    def _as_homog(params: Tuple[float, float, float, float, float, float]) -> np.ndarray:
+        a, b, d, e, xoff, yoff = params
+        return np.array([[a, b, xoff], [d, e, yoff], [0.0, 0.0, 1.0]], dtype=float)
+
+    @staticmethod
+    def _from_homog(M: np.ndarray) -> Tuple[float, float, float, float, float, float]:
+        return (float(M[0, 0]), float(M[0, 1]), float(M[1, 0]), float(M[1, 1]), float(M[0, 2]), float(M[1, 2]))
+
+    @staticmethod
+    def _invert_affine_params(params: Tuple[float, float, float, float, float, float]) -> Tuple[float, float, float, float, float, float]:
+        a, b, d, e, xoff, yoff = params
+        det = a * e - b * d
+        if abs(det) < 1e-12:
+            return (1.0, 0.0, 0.0, 1.0, -xoff, -yoff)
+        ia = e / det
+        ib = -b / det
+        id_ = -d / det
+        ie = a / det
+        ixoff = -(ia * xoff + ib * yoff)
+        iyoff = -(id_ * xoff + ie * yoff)
+        return (float(ia), float(ib), float(id_), float(ie), float(ixoff), float(iyoff))
+
+    @staticmethod
+    def _apply_affine_to_gdf(gdf: gpd.GeoDataFrame, params: Tuple[float, float, float, float, float, float]) -> gpd.GeoDataFrame:
+        out = gdf.copy()
+        out["geometry"] = out["geometry"].apply(lambda g: affine_transform(g, params) if g is not None else g)
+        return out
+
+    @staticmethod
+    def _kp_to_map_xy(kp_xy: np.ndarray, transform: rasterio.transform.Affine) -> np.ndarray:
+        if kp_xy.size == 0:
+            return np.zeros((0, 2), dtype=float)
+        cols = kp_xy[:, 0]
+        rows = kp_xy[:, 1]
+        xs = transform.c + cols * transform.a + rows * transform.b
+        ys = transform.f + cols * transform.d + rows * transform.e
+        return np.column_stack([xs, ys]).astype(float)
+
+    @classmethod
+    def _orb_affine_step(
+        cls,
+        ref_gray: np.ndarray,
+        mov_gray: np.ndarray,
+        ref_transform: rasterio.transform.Affine,
+        mov_transform: rasterio.transform.Affine,
+        nfeatures: int = 5000,
+        ransac_thresh_map_units: float = 2.5,
+        min_inliers: int = 25,
+    ) -> Tuple[Optional[Tuple[float, float, float, float, float, float]], Dict[str, Any]]:
+        debug: Dict[str, Any] = {
+            "method": "orb_affine",
+            "nfeatures": int(nfeatures),
+            "ransac_thresh_map_units": float(ransac_thresh_map_units),
+            "min_inliers": int(min_inliers),
+        }
+        if not OPENCV_AVAILABLE:
+            debug["error"] = "opencv_unavailable"
+            return None, debug
+
+        try:
+            ref_u8 = np.clip(ref_gray * 255.0, 0, 255).astype(np.uint8)
+            mov_u8 = np.clip(mov_gray * 255.0, 0, 255).astype(np.uint8)
+            orb = cv2.ORB_create(nfeatures=nfeatures)
+            kp1, des1 = orb.detectAndCompute(ref_u8, None)
+            kp2, des2 = orb.detectAndCompute(mov_u8, None)
+            debug["kp_ref"] = 0 if kp1 is None else int(len(kp1))
+            debug["kp_mov"] = 0 if kp2 is None else int(len(kp2))
+            if des1 is None or des2 is None or len(des1) < 20 or len(des2) < 20:
+                debug["error"] = "insufficient_descriptors"
+                return None, debug
+
+            matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
+            knn = matcher.knnMatch(des2, des1, k=2)  # query=mov, train=ref
+            good = []
+            for m, n in knn:
+                if m.distance < 0.75 * n.distance:
+                    good.append(m)
+            debug["matches_good"] = int(len(good))
+            if len(good) < 40:
+                debug["error"] = "insufficient_matches"
+                return None, debug
+
+            mov_xy = np.array([kp2[m.queryIdx].pt for m in good], dtype=float)
+            ref_xy = np.array([kp1[m.trainIdx].pt for m in good], dtype=float)
+
+            mov_map = cls._kp_to_map_xy(mov_xy, mov_transform)
+            ref_map = cls._kp_to_map_xy(ref_xy, ref_transform)
+
+            M, inliers = cv2.estimateAffinePartial2D(
+                mov_map,
+                ref_map,
+                method=cv2.RANSAC,
+                ransacReprojThreshold=ransac_thresh_map_units,
+                maxIters=5000,
+                confidence=0.995,
+                refineIters=10,
+            )
+            if M is None or inliers is None:
+                debug["error"] = "affine_estimation_failed"
+                return None, debug
+            inliers = inliers.reshape(-1).astype(bool)
+            n_in = int(inliers.sum())
+            debug["inliers"] = n_in
+            if n_in < min_inliers:
+                debug["error"] = "too_few_inliers"
+                return None, debug
+
+            mov_in = mov_map[inliers]
+            ref_in = ref_map[inliers]
+            pred = (M[:, :2] @ mov_in.T).T + M[:, 2]
+            resid = np.linalg.norm(ref_in - pred, axis=1)
+            debug["rmse_map_units"] = float(np.sqrt(np.mean(resid**2))) if resid.size else float("nan")
+
+            params = (float(M[0, 0]), float(M[0, 1]), float(M[1, 0]), float(M[1, 1]), float(M[0, 2]), float(M[1, 2]))
+            return params, debug
+        except Exception as e:
+            debug["error"] = f"exception: {e}"
+            return None, debug
+
+    def _centroid_alignment_subset(self, om_id: int, threshold_tag: Optional[str]) -> np.ndarray:
+        gdf = self.crowns_gdfs.get(om_id)
+        if gdf is None or gdf.empty:
+            return np.zeros((0, 2), dtype=float)
+
+        if threshold_tag and "threshold_tag" in gdf.columns:
+            sub = gdf[gdf["threshold_tag"] == threshold_tag]
+            if not sub.empty:
+                gdf = sub
+        geoms = [g for g in gdf.geometry if g is not None and not g.is_empty]
+        if not geoms:
+            return np.zeros((0, 2), dtype=float)
+        return np.array([[g.centroid.x, g.centroid.y] for g in geoms], dtype=float)
+
+    @staticmethod
+    def _robust_median_shift(prev_xy: np.ndarray, curr_xy: np.ndarray, max_match_dist: float = 30.0, min_pairs: int = 15) -> Optional[Tuple[float, float]]:
+        if prev_xy.size == 0 or curr_xy.size == 0:
+            return None
+        if prev_xy.shape[0] < min_pairs or curr_xy.shape[0] < min_pairs:
+            return None
+
+        nn = NearestNeighbors(n_neighbors=1).fit(prev_xy)
+        dists, idxs = nn.kneighbors(curr_xy)
+        dists = dists.reshape(-1)
+        idxs = idxs.reshape(-1)
+
+        good = np.isfinite(dists) & (dists <= max_match_dist)
+        if good.sum() < min_pairs:
+            return None
+
+        matched_prev = prev_xy[idxs[good]]
+        matched_curr = curr_xy[good]
+        deltas = matched_prev - matched_curr
+        dx = float(np.median(deltas[:, 0]))
+        dy = float(np.median(deltas[:, 1]))
+        return dx, dy
+
+    def align_to_reference_with_method(
+        self,
+        reference_om_id: Optional[int] = None,
+        max_preview: int = 1200,
+        method: str = "pcc",
+        align_threshold_tag: Optional[str] = "conf_0p65",
+        max_match_dist: float = 30.0,
+        min_pairs: int = 15,
+    ) -> Dict[int, Tuple[float, float]]:
+        method = (method or "pcc").lower().strip()
         if reference_om_id is None and self.om_ids:
             reference_om_id = self.om_ids[0]
         if reference_om_id is None:
             return {}
 
-        ortho_gray = {}
-        ortho_transform = {}
-        for om_id, (_, ortho_file) in zip(self.om_ids, self.file_pairs):
-            if ortho_file and os.path.exists(ortho_file):
-                gray, transform = self._read_ortho_lowres(ortho_file, max_preview)
-                ortho_gray[om_id] = gray
-                ortho_transform[om_id] = transform
-            else:
-                ortho_gray[om_id] = None
-                ortho_transform[om_id] = None
+        if method not in {"pcc", "pcc_tiled", "ecc", "crowns", "orb_affine"}:
+            raise ValueError(
+                f"Unknown alignment method: {method!r}. Use 'pcc', 'pcc_tiled', 'ecc', 'crowns', or 'orb_affine'."
+            )
 
-        shifts = {reference_om_id: (0.0, 0.0)}
-        for idx in range(1, len(self.om_ids)):
-            prev_id = self.om_ids[idx - 1]
-            curr_id = self.om_ids[idx]
-            ref_gray = ortho_gray.get(prev_id)
-            mov_gray = ortho_gray.get(curr_id)
-            ref_transform = ortho_transform.get(prev_id)
-            mov_transform = ortho_transform.get(curr_id)
-            if ref_gray is None or mov_gray is None or ref_transform is None or mov_transform is None:
-                shifts[curr_id] = shifts.get(prev_id, (0.0, 0.0))
-                continue
-            shift = self._phase_corr_shift(ref_gray, mov_gray, ref_transform, mov_transform)
-            if shift is None:
-                shifts[curr_id] = shifts.get(prev_id, (0.0, 0.0))
-                continue
-            dx, dy = shift
-            prev_dx, prev_dy = shifts.get(prev_id, (0.0, 0.0))
-            shifts[curr_id] = (prev_dx + dx, prev_dy + dy)
+        self.alignment_debug = {}
+
+        if method in {"pcc", "pcc_tiled", "ecc"}:
+            if not SKIMAGE_AVAILABLE:
+                return {om_id: (0.0, 0.0) for om_id in self.om_ids}
+
+            ortho_gray = {}
+            ortho_transform = {}
+            for om_id, (_, ortho_file) in zip(self.om_ids, self.file_pairs):
+                if ortho_file and os.path.exists(ortho_file):
+                    gray, transform = self._read_ortho_lowres(ortho_file, max_preview)
+                    ortho_gray[om_id] = gray
+                    ortho_transform[om_id] = transform
+                else:
+                    ortho_gray[om_id] = None
+                    ortho_transform[om_id] = None
+
+            shifts = {reference_om_id: (0.0, 0.0)}
+            for idx in range(1, len(self.om_ids)):
+                prev_id = self.om_ids[idx - 1]
+                curr_id = self.om_ids[idx]
+                ref_gray = ortho_gray.get(prev_id)
+                mov_gray = ortho_gray.get(curr_id)
+                ref_transform = ortho_transform.get(prev_id)
+                mov_transform = ortho_transform.get(curr_id)
+                if ref_gray is None or mov_gray is None or ref_transform is None or mov_transform is None:
+                    shifts[curr_id] = shifts.get(prev_id, (0.0, 0.0))
+                    continue
+                shift = None
+                if method == "ecc":
+                    shift = self._ecc_shift(ref_gray, mov_gray, ref_transform, mov_transform, motion="euclidean")
+                    if shift is None:
+                        shift = self._ecc_shift(ref_gray, mov_gray, ref_transform, mov_transform, motion="translation")
+                elif method == "pcc_tiled":
+                    shift, dbg = self._phase_corr_shift_tiled_debug(ref_gray, mov_gray, ref_transform, mov_transform)
+                    self.alignment_debug[curr_id] = dbg
+                if shift is None:
+                    shift = self._phase_corr_shift(ref_gray, mov_gray, ref_transform, mov_transform)
+                if shift is None:
+                    shifts[curr_id] = shifts.get(prev_id, (0.0, 0.0))
+                    continue
+                dx, dy = shift
+                prev_dx, prev_dy = shifts.get(prev_id, (0.0, 0.0))
+                shifts[curr_id] = (prev_dx + dx, prev_dy + dy)
+
+            transforms = {om_id: (1.0, 0.0, 0.0, 1.0, float(dx), float(dy)) for om_id, (dx, dy) in shifts.items()}
+
+        elif method == "crowns":
+            if not SKLEARN_AVAILABLE:
+                return {om_id: (0.0, 0.0) for om_id in self.om_ids}
+
+            shifts = {reference_om_id: (0.0, 0.0)}
+            for idx in range(1, len(self.om_ids)):
+                prev_id = self.om_ids[idx - 1]
+                curr_id = self.om_ids[idx]
+
+                prev_xy = self._centroid_alignment_subset(prev_id, align_threshold_tag)
+                curr_xy = self._centroid_alignment_subset(curr_id, align_threshold_tag)
+                delta = self._robust_median_shift(prev_xy, curr_xy, max_match_dist=max_match_dist, min_pairs=min_pairs)
+                if delta is None:
+                    shifts[curr_id] = shifts.get(prev_id, (0.0, 0.0))
+                    continue
+                dx_step, dy_step = delta
+                prev_dx, prev_dy = shifts.get(prev_id, (0.0, 0.0))
+                shifts[curr_id] = (prev_dx + dx_step, prev_dy + dy_step)
+
+            transforms = {om_id: (1.0, 0.0, 0.0, 1.0, float(dx), float(dy)) for om_id, (dx, dy) in shifts.items()}
+
+        else:
+            if not OPENCV_AVAILABLE:
+                return {om_id: (0.0, 0.0) for om_id in self.om_ids}
+
+            ortho_gray: Dict[int, Optional[np.ndarray]] = {}
+            ortho_transform: Dict[int, Optional[rasterio.transform.Affine]] = {}
+            for om_id, (_, ortho_file) in zip(self.om_ids, self.file_pairs):
+                if ortho_file and os.path.exists(ortho_file):
+                    gray, transform = self._read_ortho_lowres(ortho_file, max_preview)
+                    ortho_gray[om_id] = gray
+                    ortho_transform[om_id] = transform
+                else:
+                    ortho_gray[om_id] = None
+                    ortho_transform[om_id] = None
+
+            transforms: Dict[int, Tuple[float, float, float, float, float, float]] = {reference_om_id: (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)}
+            for idx in range(1, len(self.om_ids)):
+                prev_id = self.om_ids[idx - 1]
+                curr_id = self.om_ids[idx]
+                ref_gray = ortho_gray.get(prev_id)
+                mov_gray = ortho_gray.get(curr_id)
+                ref_transform = ortho_transform.get(prev_id)
+                mov_transform = ortho_transform.get(curr_id)
+                if ref_gray is None or mov_gray is None or ref_transform is None or mov_transform is None:
+                    transforms[curr_id] = transforms.get(prev_id, (1.0, 0.0, 0.0, 1.0, 0.0, 0.0))
+                    self.alignment_debug[curr_id] = {"method": "orb_affine", "error": "missing_ortho"}
+                    continue
+
+                step_params, dbg = self._orb_affine_step(ref_gray, mov_gray, ref_transform, mov_transform)
+                self.alignment_debug[curr_id] = dbg
+                if step_params is None:
+                    # fallback: carry previous transform
+                    transforms[curr_id] = transforms.get(prev_id, (1.0, 0.0, 0.0, 1.0, 0.0, 0.0))
+                    continue
+
+                prev_h = self._as_homog(transforms.get(prev_id, (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)))
+                step_h = self._as_homog(step_params)
+                curr_h = prev_h @ step_h
+                transforms[curr_id] = self._from_homog(curr_h)
+
+            shifts = {om_id: (float(params[4]), float(params[5])) for om_id, params in transforms.items()}
+
+        self.alignment_transforms = transforms
 
         for om_id in self.om_ids:
             if om_id == reference_om_id:
                 continue
-            dx, dy = shifts.get(om_id, (0.0, 0.0))
-            gdf = self.crowns_gdfs[om_id].copy()
-            gdf["geometry"] = gdf["geometry"].apply(lambda g: translate(g, xoff=dx, yoff=dy))
-            self.crowns_gdfs[om_id] = gdf
-            self.crown_attrs[om_id] = [self._compute_crown_attributes(row.geometry) for _, row in gdf.iterrows()]
+            params = transforms.get(om_id, (1.0, 0.0, 0.0, 1.0, 0.0, 0.0))
+            aligned_gdf = self._apply_affine_to_gdf(self.crowns_gdfs[om_id], params)
+            self.crowns_gdfs[om_id] = aligned_gdf
+            self.crown_attrs[om_id] = [self._compute_crown_attributes(row.geometry) for _, row in aligned_gdf.iterrows()]
+
         self.alignment_shifts = shifts
         return shifts
 
@@ -659,9 +1144,38 @@ class TreeTrackingGraph:
         }
 
     def _check_crs_consistency(self) -> None:
-        return
+        if not self.crowns_gdfs:
+            return
 
-    def load_data(self, load_images: bool = False, align: bool = False, reference_om_id: Optional[int] = None) -> None:
+        base_crs = None
+        for om_id in self.om_ids:
+            gdf = self.crowns_gdfs.get(om_id)
+            if gdf is not None and gdf.crs is not None:
+                base_crs = gdf.crs
+                break
+        if base_crs is None:
+            return
+
+        for om_id in self.om_ids:
+            gdf = self.crowns_gdfs.get(om_id)
+            if gdf is None or gdf.empty:
+                continue
+            if gdf.crs is None:
+                self.crowns_gdfs[om_id] = gdf.set_crs(base_crs, allow_override=True)
+                self.crown_crs[om_id] = base_crs
+                continue
+            if gdf.crs != base_crs:
+                self.crowns_gdfs[om_id] = gdf.to_crs(base_crs)
+                self.crown_crs[om_id] = base_crs
+
+    def load_data(
+        self,
+        load_images: bool = False,
+        align: bool = False,
+        reference_om_id: Optional[int] = None,
+        align_method: str = "pcc",
+        align_threshold_tag: Optional[str] = "conf_0p65",
+    ) -> None:
         self.crowns_gdfs.clear()
         self.crown_attrs.clear()
         self.crown_images.clear()
@@ -698,7 +1212,11 @@ class TreeTrackingGraph:
 
         self._check_crs_consistency()
         if align:
-            self.align_to_reference(reference_om_id=reference_om_id)
+            self.align_to_reference_with_method(
+                reference_om_id=reference_om_id,
+                method=align_method,
+                align_threshold_tag=align_threshold_tag,
+            )
 
     @staticmethod
     def _threshold_tag_to_float(tag: str) -> float:
@@ -759,6 +1277,8 @@ class TreeTrackingGraph:
         load_images: bool = False,
         align: bool = True,
         include_base_for_non_reference: bool = True,
+        align_method: str = "pcc",
+        align_threshold_tag: Optional[str] = "conf_0p65",
     ) -> None:
         self.crowns_gdfs.clear()
         self.crown_attrs.clear()
@@ -807,13 +1327,18 @@ class TreeTrackingGraph:
             self.crown_attrs[om_id] = [self._compute_crown_attributes(row.geometry) for _, row in gdf.iterrows()]
 
         if align:
-            self.align_to_reference(reference_om_id=min(self.om_ids) if self.om_ids else None)
+            self.align_to_reference_with_method(
+                reference_om_id=min(self.om_ids) if self.om_ids else None,
+                method=align_method,
+                align_threshold_tag=align_threshold_tag,
+            )
 
     def _align_gdf_to_tracker(self, gdf: gpd.GeoDataFrame, om_id: int) -> gpd.GeoDataFrame:
-        dx, dy = self.alignment_shifts.get(om_id, (0.0, 0.0))
-        out = gdf.copy()
-        out["geometry"] = out["geometry"].apply(lambda g: translate(g, xoff=dx, yoff=dy))
-        return out
+        params = self.alignment_transforms.get(om_id)
+        if params is None:
+            dx, dy = self.alignment_shifts.get(om_id, (0.0, 0.0))
+            params = (1.0, 0.0, 0.0, 1.0, float(dx), float(dy))
+        return self._apply_affine_to_gdf(gdf, params)
 
     def build_multithreshold_cache(
         self,
@@ -1491,8 +2016,12 @@ class TreeTrackingGraph:
     def extract_patch_for_polygon(self, om_id: int, polygon_aligned):
         if polygon_aligned is None or polygon_aligned.is_empty:
             return None
-        dx, dy = self.alignment_shifts.get(om_id, (0.0, 0.0))
-        polygon_original = translate(polygon_aligned, xoff=-dx, yoff=-dy)
+        params = self.alignment_transforms.get(om_id)
+        if params is None:
+            dx, dy = self.alignment_shifts.get(om_id, (0.0, 0.0))
+            params = (1.0, 0.0, 0.0, 1.0, float(dx), float(dy))
+        inv_params = self._invert_affine_params(params)
+        polygon_original = affine_transform(polygon_aligned, inv_params)
         ortho_file = None
         for oid, (_, of) in zip(self.om_ids, self.file_pairs):
             if oid == om_id:
