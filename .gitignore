@@ -2,3 +2,6 @@ input/
 output/
 .venv/
 .codebuddy/
+.vscode/
+__pycache__/
+

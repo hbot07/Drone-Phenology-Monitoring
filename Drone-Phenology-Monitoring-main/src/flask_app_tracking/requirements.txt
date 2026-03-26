@@ -1,9 +1,0 @@
-flask
-geopandas
-numpy
-networkx
-plotly
-rasterio
-shapely
-opencv-python
-scipy
