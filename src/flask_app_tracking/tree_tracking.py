@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -2062,6 +2062,190 @@ class TreeTrackingGraph:
             },
             crs=base_crs,
         )
+
+    def deduplicate_crowns(
+        self,
+        crowns: gpd.GeoDataFrame,
+        iou_threshold: float = 0.90,
+        drop_contained: bool = True,
+        containment_buffer: float = 0.0,
+        min_area: float = 0.0,
+        verbose: bool = False,
+    ) -> Tuple[gpd.GeoDataFrame, Dict[str, Any]]:
+        """Drop near-duplicate crowns within a single GeoDataFrame.
+
+        Intended for *consensus* outputs where duplicates show up as highly-overlapping
+        polygons.
+
+        Rules:
+        - If IoU > `iou_threshold`, drop one of the pair.
+        - If one crown is contained within another, drop the smaller crown.
+
+        Tie-breaking is deterministic: we process larger-area crowns first, then prefer
+        longer chains and higher avg_similarity when available.
+        """
+
+        if crowns is None or len(crowns) == 0:
+            return crowns, {
+                "input_count": 0,
+                "output_count": 0,
+                "dropped_iou": 0,
+                "dropped_contained": 0,
+                "iou_threshold": float(iou_threshold),
+                "containment_buffer": float(containment_buffer),
+            }
+
+        gdf = crowns.copy()
+        if "geometry" not in gdf.columns:
+            raise ValueError("deduplicate_crowns: input has no geometry column")
+
+        gdf = gdf[gdf.geometry.notnull() & ~gdf.geometry.is_empty].copy()
+        if gdf.empty:
+            return gdf.reset_index(drop=True), {
+                "input_count": int(len(crowns)),
+                "output_count": 0,
+                "dropped_iou": 0,
+                "dropped_contained": 0,
+                "iou_threshold": float(iou_threshold),
+                "containment_buffer": float(containment_buffer),
+            }
+
+        # Fix minor validity issues without changing topology too much.
+        def _fix_geom(geom):
+            try:
+                return geom.buffer(0)
+            except Exception:
+                return geom
+
+        gdf["geometry"] = gdf.geometry.apply(_fix_geom)
+        try:
+            gdf = gdf[~gdf.is_empty & gdf.is_valid].copy()
+        except Exception:
+            pass
+
+        if min_area and min_area > 0:
+            gdf = gdf[gdf.geometry.area > float(min_area)].copy()
+        gdf = gdf.reset_index(drop=True)
+
+        if gdf.empty:
+            return gdf, {
+                "input_count": int(len(crowns)),
+                "output_count": 0,
+                "dropped_iou": 0,
+                "dropped_contained": 0,
+                "iou_threshold": float(iou_threshold),
+                "containment_buffer": float(containment_buffer),
+            }
+
+        # Deterministic ordering: containment rule becomes stable if we process
+        # larger crowns first.
+        gdf["__area"] = gdf.geometry.area.astype(float)
+        has_chain_len = "chain_length" in gdf.columns
+        has_avg_sim = "avg_similarity" in gdf.columns
+        if not has_chain_len:
+            gdf["__chain_length"] = 0
+        else:
+            gdf["__chain_length"] = pd.to_numeric(gdf["chain_length"], errors="coerce").fillna(0).astype(float)
+        if not has_avg_sim:
+            gdf["__avg_similarity"] = 0.0
+        else:
+            gdf["__avg_similarity"] = pd.to_numeric(gdf["avg_similarity"], errors="coerce").fillna(0).astype(float)
+
+        order = (
+            gdf.sort_values(["__area", "__chain_length", "__avg_similarity"], ascending=[False, False, False])
+            .index
+            .to_list()
+        )
+
+        # Spatial index if available, else fall back to O(n^2).
+        sindex = None
+        try:
+            sindex = gdf.sindex
+        except Exception:
+            sindex = None
+
+        dropped: Set[int] = set()
+        dropped_iou = 0
+        dropped_contained = 0
+
+        def _maybe_buffer(geom):
+            if not containment_buffer:
+                return geom
+            try:
+                return geom.buffer(float(containment_buffer))
+            except Exception:
+                return geom
+
+        for i in order:
+            if i in dropped:
+                continue
+            gi = gdf.at[i, "geometry"]
+            if gi is None or gi.is_empty:
+                dropped.add(i)
+                continue
+
+            if sindex is not None:
+                try:
+                    candidates = list(sindex.intersection(gi.bounds))
+                except Exception:
+                    candidates = list(range(len(gdf)))
+            else:
+                candidates = list(range(len(gdf)))
+
+            for j in candidates:
+                if j == i or j in dropped:
+                    continue
+                gj = gdf.at[j, "geometry"]
+                if gj is None or gj.is_empty:
+                    dropped.add(j)
+                    continue
+
+                # Quick reject.
+                try:
+                    if not gi.intersects(gj):
+                        continue
+                except Exception:
+                    pass
+
+                # Containment: drop the smaller crown.
+                if drop_contained:
+                    bi = _maybe_buffer(gi)
+                    bj = _maybe_buffer(gj)
+                    try:
+                        if bi.covers(gj) or bi.contains(gj):
+                            dropped.add(j)
+                            dropped_contained += 1
+                            continue
+                        if bj.covers(gi) or bj.contains(gi):
+                            dropped.add(i)
+                            dropped_contained += 1
+                            break
+                    except Exception:
+                        pass
+
+                # Near-duplicate overlap.
+                iou = self._compute_iou(gi, gj)
+                if iou > float(iou_threshold):
+                    dropped.add(j)
+                    dropped_iou += 1
+
+        kept = [idx for idx in range(len(gdf)) if idx not in dropped]
+        cleaned = gdf.loc[kept].drop(columns=["__area", "__chain_length", "__avg_similarity"], errors="ignore").reset_index(drop=True)
+
+        summary = {
+            "input_count": int(len(crowns)),
+            "valid_count": int(len(gdf)),
+            "output_count": int(len(cleaned)),
+            "dropped_total": int(len(gdf) - len(cleaned)),
+            "dropped_iou": int(dropped_iou),
+            "dropped_contained": int(dropped_contained),
+            "iou_threshold": float(iou_threshold),
+            "containment_buffer": float(containment_buffer),
+            "min_area": float(min_area),
+        }
+        if verbose:
+            print("deduplicate_crowns:", summary)
+        return cleaned, summary
 
     def visualize_consensus_chain(
         self,
