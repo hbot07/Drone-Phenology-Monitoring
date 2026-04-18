@@ -3,5 +3,7 @@
         "awk": true,
         "/Users/hbot07/anaconda3/envs/detectree/bin/python": true,
         "egrep": true
-    }
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda"
 }
