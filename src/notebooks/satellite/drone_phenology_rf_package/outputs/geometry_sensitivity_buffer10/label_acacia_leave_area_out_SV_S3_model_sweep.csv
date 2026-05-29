@@ -1,0 +1,15 @@
+model,decision,csv,label,split,holdout,n_train,n_test,train_counts,test_counts,accuracy,balanced_accuracy,macro_f1,confusion_matrix,labels,threshold
+rf_balanced,default,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.88,0.8455882352941176,0.8571428571428572,"[[6, 2], [1, 16]]","[0, 1]",
+hist_gradient,default,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.88,0.8125,0.8440748440748441,"[[5, 3], [0, 17]]","[0, 1]",
+rf_deeper,default,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.56,0.6764705882352942,0.5571658615136876,"[[8, 0], [11, 6]]","[0, 1]",
+extra_trees_kbest,default,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.76,0.625,0.625,"[[2, 6], [0, 17]]","[0, 1]",
+rf_balanced,threshold_cv,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.1
+rf_deeper,threshold_cv,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.1
+extra_trees,default,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",
+extra_trees,threshold_cv,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.2
+extra_trees_kbest,threshold_cv,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.15
+logistic_l2,default,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",
+logistic_l2,threshold_cv,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.35
+svc_rbf,default,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",
+svc_rbf,threshold_cv,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.1
+hist_gradient,threshold_cv,exports/geom_s2_2025_buffer10_items4_label_acacia.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 320, 1: 46}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.1

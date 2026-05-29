@@ -1,0 +1,13 @@
+{
+  "name": "yellow_showy_strict_v1",
+  "description": "Binary flower-colour classifier for satellite-visible yellow/showy flowering species.",
+  "label_property": "label_yellow_strict",
+  "classes": {
+    "0": "not_yellow_showy",
+    "1": "yellow_showy",
+    "-1": "ignore"
+  },
+  "positive_species": ["Amaltas", "Kasod", "Caribbean trumpet"],
+  "recommended_first_run": true,
+  "notes": "Best flower-colour starter. Do not include Prosopis here because its yellow flowers are marked small/not useful."
+}

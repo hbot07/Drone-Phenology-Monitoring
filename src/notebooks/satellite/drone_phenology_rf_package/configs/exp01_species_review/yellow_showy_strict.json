@@ -1,0 +1,25 @@
+{
+  "name": "yellow_showy_strict_exp01",
+  "description": "Strictly yellow showy-flower classifier — exp01. Kasod moved to negative: its satellite visibility is ambiguous and it has very few samples.",
+  "label_property": "label_yellow_strict",
+  "classes": {
+    "1": "yellow_showy",
+    "0": "not_yellow_showy",
+    "-1": "ignore"
+  },
+  "positive_species": [
+    "Amaltas", "Caribbean trumpet"
+  ],
+  "negative_species": [
+    "Ashok", "Bamboo clump", "Banana", "Bottlebrush", "Chir pine", "Jamun",
+    "Mango", "Maulsari", "Palm tree", "Saptparni",
+    "Banyan", "Imli", "Karanj", "Native acacia", "Neem", "Peepal",
+    "Prosopis Juliflora", "Subabool",
+    "Amla", "Arjun", "Bakain", "Bel", "Chukrasia", "Frangipani", "Goolar",
+    "Gulmohar", "Kachnar", "Kanju", "Kasod", "Marodphali", "Moringa",
+    "Palash", "Pilkhan", "Sausage tree", "Semal", "Shahtoot",
+    "Sheesham", "Siris", "Teak"
+  ],
+  "recommended_first_run": true,
+  "notes": "Only Amaltas and Caribbean trumpet as positives. Kasod moved to negative — too few samples and ambiguous signal. Compare results against baseline to see if removing Kasod helps or hurts."
+}

@@ -1,0 +1,33 @@
+{
+  "threshold": 0.1,
+  "accuracy": 0.68,
+  "balanced_accuracy": 0.5,
+  "macro_f1": 0.40476190476190477,
+  "positive_recall": 1.0,
+  "positive_precision": 0.68,
+  "confusion_matrix": [
+    [
+      0,
+      8
+    ],
+    [
+      0,
+      17
+    ]
+  ],
+  "csv": "exports/stac_s2_features_2025_buffer20_items4_label_acacia.csv",
+  "label": "label_acacia",
+  "split": "leave_area_out",
+  "holdout": "SV_S3",
+  "n_train": 366,
+  "n_test": 25,
+  "train_label_counts": {
+    "0": 318,
+    "1": 48
+  },
+  "test_label_counts": {
+    "0": 8,
+    "1": 17
+  },
+  "threshold_source": "cv"
+}

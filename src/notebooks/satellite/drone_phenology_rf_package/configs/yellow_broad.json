@@ -1,0 +1,13 @@
+{
+  "name": "yellow_broad_v1",
+  "description": "Exploratory yellow-flower classifier including yellow-flowering species even if flowers may be small/not satellite-visible.",
+  "label_property": "label_yellow_broad",
+  "classes": {
+    "0": "not_yellow",
+    "1": "yellow",
+    "-1": "ignore"
+  },
+  "positive_species": ["Amaltas", "Kasod", "Caribbean trumpet", "Siris", "Prosopis Juliflora"],
+  "recommended_first_run": false,
+  "notes": "Use only as a broad sensitivity experiment; it may learn Acacia/Prosopis structure more than visible flower colour."
+}

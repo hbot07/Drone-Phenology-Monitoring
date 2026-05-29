@@ -1,0 +1,10 @@
+{
+  "best_model": "extra_trees",
+  "balanced_accuracy": 0.56135,
+  "macro_f1": 0.560462,
+  "pixels_per_crown": 8,
+  "min_crown_area_m2": 20.0,
+  "n_train_crowns": 205,
+  "n_train_pixels": 1640,
+  "note": "pixel-level training with crown-level test aggregation"
+}

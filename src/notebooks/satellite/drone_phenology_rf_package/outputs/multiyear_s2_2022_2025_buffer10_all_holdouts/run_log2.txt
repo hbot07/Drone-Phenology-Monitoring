@@ -1,0 +1,574 @@
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_showy_flower --split random --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+      extra_trees threshold_cv          0.663551           0.712919  0.605651       0.25
+          svc_rbf      default          0.682243           0.703648  0.613964        NaN
+      logistic_l2      default          0.728972           0.690789  0.636353        NaN
+extra_trees_kbest      default          0.859813           0.687799  0.717081        NaN
+        rf_deeper threshold_cv          0.542056           0.680323  0.517796       0.15
+    hist_gradient threshold_cv          0.766355           0.651615  0.636203       0.25
+extra_trees_kbest threshold_cv          0.420561           0.647727  0.418070       0.15
+      logistic_l2 threshold_cv          0.485981           0.646232  0.471011       0.10
+    hist_gradient      default          0.813084           0.638756  0.650327        NaN
+      rf_balanced threshold_cv          0.429907           0.632775  0.424883       0.15
+      extra_trees      default          0.841121           0.573266  0.585932        NaN
+      rf_balanced      default          0.831776           0.526316  0.503608        NaN
+        rf_deeper      default          0.822430           0.520634  0.498396        NaN
+          svc_rbf threshold_cv          0.822430           0.500000  0.451282       0.20
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_showy_flower_random_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_showy_flower --split leave_area_out --holdout A1 --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+      rf_balanced      default      A1  0.555556            0.50000  0.357143        NaN
+      extra_trees      default      A1  0.555556            0.50000  0.357143        NaN
+    hist_gradient threshold_cv      A1  0.527778            0.48125  0.392254       0.10
+          svc_rbf threshold_cv      A1  0.500000            0.47500  0.458194       0.15
+        rf_deeper      default      A1  0.527778            0.47500  0.345455        NaN
+    hist_gradient      default      A1  0.527778            0.47500  0.345455        NaN
+          svc_rbf      default      A1  0.500000            0.46875  0.437500        NaN
+extra_trees_kbest      default      A1  0.500000            0.45000  0.333333        NaN
+      logistic_l2 threshold_cv      A1  0.444444            0.43750  0.437500       0.20
+      logistic_l2      default      A1  0.472222            0.43750  0.393079        NaN
+extra_trees_kbest threshold_cv      A1  0.416667            0.43125  0.412587       0.10
+      rf_balanced threshold_cv      A1  0.416667            0.41250  0.412587       0.15
+        rf_deeper threshold_cv      A1  0.388889            0.37500  0.371429       0.15
+      extra_trees threshold_cv      A1  0.361111            0.35625  0.356643       0.15
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_showy_flower_leave_area_out_A1_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_showy_flower --split leave_area_out --holdout SIT --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+extra_trees_kbest threshold_cv     SIT  0.640000           0.638494  0.546878       0.25
+    hist_gradient threshold_cv     SIT  0.693333           0.632102  0.571429       0.10
+        rf_deeper threshold_cv     SIT  0.426667           0.626420  0.411604       0.15
+      rf_balanced threshold_cv     SIT  0.680000           0.624290  0.561404       0.25
+    hist_gradient      default     SIT  0.840000           0.605114  0.621212        NaN
+        rf_deeper      default     SIT  0.866667           0.583097  0.606092        NaN
+      rf_balanced      default     SIT  0.866667           0.545455  0.547101        NaN
+      extra_trees      default     SIT  0.866667           0.545455  0.547101        NaN
+extra_trees_kbest      default     SIT  0.866667           0.545455  0.547101        NaN
+      logistic_l2 threshold_cv     SIT  0.280000           0.540483  0.279872       0.40
+      extra_trees threshold_cv     SIT  0.186667           0.485795  0.181428       0.20
+          svc_rbf      default     SIT  0.546667           0.470881  0.437831        NaN
+      logistic_l2      default     SIT  0.280000           0.465199  0.276786        NaN
+          svc_rbf threshold_cv     SIT  0.506667           0.447443  0.412698       0.20
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_showy_flower_leave_area_out_SIT_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_showy_flower --split leave_area_out --holdout A3 --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+extra_trees_kbest      default      A3  0.828125           0.572041  0.584661        NaN
+      rf_balanced threshold_cv      A3  0.250000           0.547170  0.243350       0.15
+        rf_deeper threshold_cv      A3  0.546875           0.546312  0.479675       0.20
+      rf_balanced      default      A3  0.828125           0.536021  0.529097        NaN
+    hist_gradient      default      A3  0.765625           0.534305  0.536456        NaN
+        rf_deeper      default      A3  0.812500           0.526587  0.518797        NaN
+      extra_trees threshold_cv      A3  0.359375           0.505146  0.351618       0.20
+      extra_trees      default      A3  0.828125           0.500000  0.452991        NaN
+    hist_gradient threshold_cv      A3  0.593750           0.466552  0.458333       0.10
+          svc_rbf      default      A3  0.515625           0.455403  0.428407        NaN
+      logistic_l2      default      A3  0.703125           0.424528  0.412844        NaN
+      logistic_l2 threshold_cv      A3  0.703125           0.424528  0.412844       0.50
+extra_trees_kbest threshold_cv      A3  0.343750           0.423671  0.327327       0.25
+          svc_rbf threshold_cv      A3  0.375000           0.370497  0.333333       0.15
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_showy_flower_leave_area_out_A3_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_showy_flower --split leave_area_out --holdout SV_S1 --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+      rf_balanced      default   SV_S1  0.677419                0.5  0.403846        NaN
+      rf_balanced threshold_cv   SV_S1  0.677419                0.5  0.403846       0.25
+        rf_deeper      default   SV_S1  0.677419                0.5  0.403846        NaN
+        rf_deeper threshold_cv   SV_S1  0.677419                0.5  0.403846       0.20
+      extra_trees      default   SV_S1  0.677419                0.5  0.403846        NaN
+      extra_trees threshold_cv   SV_S1  0.677419                0.5  0.403846       0.25
+extra_trees_kbest      default   SV_S1  0.677419                0.5  0.403846        NaN
+extra_trees_kbest threshold_cv   SV_S1  0.677419                0.5  0.403846       0.30
+      logistic_l2      default   SV_S1  0.677419                0.5  0.403846        NaN
+      logistic_l2 threshold_cv   SV_S1  0.677419                0.5  0.403846       0.35
+          svc_rbf      default   SV_S1  0.677419                0.5  0.403846        NaN
+          svc_rbf threshold_cv   SV_S1  0.677419                0.5  0.403846       0.20
+    hist_gradient      default   SV_S1  0.677419                0.5  0.403846        NaN
+    hist_gradient threshold_cv   SV_S1  0.677419                0.5  0.403846       0.10
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_showy_flower_leave_area_out_SV_S1_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_showy_flower --split leave_area_out --holdout A4 --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+extra_trees_kbest threshold_cv      A4  0.255814           0.567568  0.255411       0.20
+        rf_deeper      default      A4  0.837209           0.556306  0.565657        NaN
+      rf_balanced threshold_cv      A4  0.186047           0.527027  0.178942       0.15
+        rf_deeper threshold_cv      A4  0.186047           0.527027  0.178942       0.10
+      logistic_l2 threshold_cv      A4  0.302326           0.524775  0.298913       0.15
+    hist_gradient threshold_cv      A4  0.744186           0.502252  0.501581       0.25
+      extra_trees threshold_cv      A4  0.139535           0.500000  0.122449       0.15
+      rf_balanced      default      A4  0.837209           0.486486  0.455696        NaN
+    hist_gradient      default      A4  0.813953           0.472973  0.448718        NaN
+          svc_rbf      default      A4  0.325581           0.468468  0.312190        NaN
+      extra_trees      default      A4  0.767442           0.445946  0.434211        NaN
+      logistic_l2      default      A4  0.395349           0.439189  0.353009        NaN
+extra_trees_kbest      default      A4  0.720930           0.418919  0.418919        NaN
+          svc_rbf threshold_cv      A4  0.232558           0.414414  0.230894       0.15
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_showy_flower_leave_area_out_A4_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_showy_flower --split leave_area_out --holdout MITTAL --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+          svc_rbf threshold_cv  MITTAL  0.636364           0.650000  0.633333       0.15
+extra_trees_kbest threshold_cv  MITTAL  0.545455           0.566667  0.529915       0.25
+        rf_deeper threshold_cv  MITTAL  0.545455           0.550000  0.545455       0.15
+      logistic_l2 threshold_cv  MITTAL  0.545455           0.550000  0.545455       0.15
+      extra_trees threshold_cv  MITTAL  0.545455           0.533333  0.529915       0.20
+      rf_balanced      default  MITTAL  0.454545           0.500000  0.312500        NaN
+        rf_deeper      default  MITTAL  0.454545           0.500000  0.312500        NaN
+      extra_trees      default  MITTAL  0.454545           0.500000  0.312500        NaN
+extra_trees_kbest      default  MITTAL  0.454545           0.500000  0.312500        NaN
+    hist_gradient      default  MITTAL  0.454545           0.500000  0.312500        NaN
+          svc_rbf      default  MITTAL  0.454545           0.483333  0.410714        NaN
+    hist_gradient threshold_cv  MITTAL  0.454545           0.483333  0.410714       0.10
+      rf_balanced threshold_cv  MITTAL  0.454545           0.466667  0.450000       0.20
+      logistic_l2      default  MITTAL  0.454545           0.466667  0.450000        NaN
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_showy_flower_leave_area_out_MITTAL_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_yellow_strict --split random --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+extra_trees_kbest threshold_cv          0.420561           0.637281  0.392491       0.10
+        rf_deeper threshold_cv          0.616822           0.602193  0.498342       0.10
+      logistic_l2 threshold_cv          0.616822           0.602193  0.498342       0.10
+    hist_gradient threshold_cv          0.813084           0.567105  0.562193       0.10
+      logistic_l2      default          0.794393           0.556579  0.548003        NaN
+          svc_rbf threshold_cv          0.523364           0.549561  0.436551       0.10
+extra_trees_kbest      default          0.878505           0.531140  0.534003        NaN
+      extra_trees threshold_cv          0.467290           0.517982  0.399291       0.10
+    hist_gradient      default          0.841121           0.510088  0.509042        NaN
+      rf_balanced      default          0.887850           0.500000  0.470297        NaN
+        rf_deeper      default          0.887850           0.500000  0.470297        NaN
+      extra_trees      default          0.878505           0.494737  0.467662        NaN
+      rf_balanced threshold_cv          0.626168           0.461842  0.446170       0.15
+          svc_rbf      default          0.672897           0.451754  0.451282        NaN
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_yellow_strict_random_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_yellow_strict --split leave_area_out --holdout A1 --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+          svc_rbf threshold_cv      A1  0.638889           0.510909  0.499465       0.10
+          svc_rbf      default      A1  0.666667           0.505455  0.467980        NaN
+      rf_balanced      default      A1  0.694444           0.500000  0.409836        NaN
+        rf_deeper      default      A1  0.694444           0.500000  0.409836        NaN
+      extra_trees      default      A1  0.694444           0.500000  0.409836        NaN
+    hist_gradient      default      A1  0.694444           0.500000  0.409836        NaN
+    hist_gradient threshold_cv      A1  0.694444           0.500000  0.409836       0.65
+extra_trees_kbest      default      A1  0.638889           0.460000  0.389831        NaN
+      logistic_l2      default      A1  0.583333           0.445455  0.422460        NaN
+      rf_balanced threshold_cv      A1  0.611111           0.440000  0.379310       0.20
+        rf_deeper threshold_cv      A1  0.611111           0.440000  0.379310       0.20
+      logistic_l2 threshold_cv      A1  0.583333           0.420000  0.368421       0.65
+      extra_trees threshold_cv      A1  0.472222           0.390909  0.393079       0.10
+extra_trees_kbest threshold_cv      A1  0.416667           0.376364  0.377778       0.10
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_yellow_strict_leave_area_out_A1_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_yellow_strict --split leave_area_out --holdout A3 --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+        rf_deeper threshold_cv      A3  0.703125           0.579630  0.554089       0.15
+extra_trees_kbest threshold_cv      A3  0.625000           0.574074  0.519399       0.20
+          svc_rbf threshold_cv      A3  0.687500           0.529630  0.517345       0.10
+      extra_trees threshold_cv      A3  0.593750           0.514815  0.479349       0.15
+      rf_balanced      default      A3  0.843750           0.500000  0.457627        NaN
+        rf_deeper      default      A3  0.843750           0.500000  0.457627        NaN
+      extra_trees      default      A3  0.843750           0.500000  0.457627        NaN
+extra_trees_kbest      default      A3  0.843750           0.500000  0.457627        NaN
+    hist_gradient      default      A3  0.843750           0.500000  0.457627        NaN
+    hist_gradient threshold_cv      A3  0.843750           0.500000  0.457627       0.20
+      logistic_l2      default      A3  0.828125           0.490741  0.452991        NaN
+      logistic_l2 threshold_cv      A3  0.812500           0.481481  0.448276       0.30
+      rf_balanced threshold_cv      A3  0.312500           0.470370  0.306404       0.10
+          svc_rbf      default      A3  0.765625           0.453704  0.433628        NaN
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_yellow_strict_leave_area_out_A3_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_yellow_strict --split leave_area_out --holdout SV_S1 --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+      rf_balanced      default   SV_S1  0.677419            0.50000  0.403846        NaN
+      rf_balanced threshold_cv   SV_S1  0.677419            0.50000  0.403846       0.20
+        rf_deeper      default   SV_S1  0.677419            0.50000  0.403846        NaN
+        rf_deeper threshold_cv   SV_S1  0.677419            0.50000  0.403846       0.15
+      extra_trees      default   SV_S1  0.677419            0.50000  0.403846        NaN
+extra_trees_kbest      default   SV_S1  0.677419            0.50000  0.403846        NaN
+      logistic_l2      default   SV_S1  0.677419            0.50000  0.403846        NaN
+      logistic_l2 threshold_cv   SV_S1  0.677419            0.50000  0.403846       0.25
+          svc_rbf      default   SV_S1  0.677419            0.50000  0.403846        NaN
+          svc_rbf threshold_cv   SV_S1  0.677419            0.50000  0.403846       0.15
+    hist_gradient      default   SV_S1  0.677419            0.50000  0.403846        NaN
+    hist_gradient threshold_cv   SV_S1  0.677419            0.50000  0.403846       0.10
+      extra_trees threshold_cv   SV_S1  0.645161            0.47619  0.392157       0.10
+extra_trees_kbest threshold_cv   SV_S1  0.645161            0.47619  0.392157       0.20
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_yellow_strict_leave_area_out_SV_S1_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_yellow_strict --split leave_area_out --holdout SIT --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+      logistic_l2 threshold_cv     SIT  0.453333           0.614286  0.378662       0.15
+      logistic_l2      default     SIT  0.560000           0.578571  0.428274        NaN
+        rf_deeper threshold_cv     SIT  0.866667           0.557143  0.547101       0.15
+      rf_balanced      default     SIT  0.933333           0.500000  0.482759        NaN
+        rf_deeper      default     SIT  0.933333           0.500000  0.482759        NaN
+      extra_trees      default     SIT  0.933333           0.500000  0.482759        NaN
+extra_trees_kbest      default     SIT  0.933333           0.500000  0.482759        NaN
+extra_trees_kbest threshold_cv     SIT  0.933333           0.500000  0.482759       0.35
+    hist_gradient      default     SIT  0.933333           0.500000  0.482759        NaN
+      rf_balanced threshold_cv     SIT  0.906667           0.485714  0.475524       0.20
+    hist_gradient threshold_cv     SIT  0.906667           0.485714  0.475524       0.10
+      extra_trees threshold_cv     SIT  0.866667           0.464286  0.464286       0.20
+          svc_rbf      default     SIT  0.853333           0.457143  0.460432        NaN
+          svc_rbf threshold_cv     SIT  0.813333           0.435714  0.448529       0.15
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_yellow_strict_leave_area_out_SIT_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_yellow_strict --split leave_area_out --holdout A4 --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+      logistic_l2 threshold_cv      A4  0.302326           0.634146  0.270362       0.20
+          svc_rbf      default      A4  0.279070           0.621951  0.253221        NaN
+        rf_deeper threshold_cv      A4  0.232558           0.597561  0.217319       0.15
+      rf_balanced threshold_cv      A4  0.209302           0.585366  0.198465       0.15
+          svc_rbf threshold_cv      A4  0.162791           0.560976  0.158696       0.10
+      logistic_l2      default      A4  0.558140           0.530488  0.401465        NaN
+      extra_trees threshold_cv      A4  0.093023           0.524390  0.093023       0.10
+      rf_balanced      default      A4  0.953488           0.500000  0.488095        NaN
+        rf_deeper      default      A4  0.953488           0.500000  0.488095        NaN
+    hist_gradient      default      A4  0.953488           0.500000  0.488095        NaN
+      extra_trees      default      A4  0.906977           0.475610  0.475610        NaN
+extra_trees_kbest      default      A4  0.883721           0.463415  0.469136        NaN
+    hist_gradient threshold_cv      A4  0.813953           0.426829  0.448718       0.10
+extra_trees_kbest threshold_cv      A4  0.465116           0.243902  0.317460       0.20
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_yellow_strict_leave_area_out_A4_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_yellow_strict --split leave_area_out --holdout MITTAL --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model     decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+      logistic_l2 threshold_cv  MITTAL  0.727273           0.638889  0.611765       0.10
+      rf_balanced      default  MITTAL  0.818182           0.500000  0.450000        NaN
+        rf_deeper      default  MITTAL  0.818182           0.500000  0.450000        NaN
+      extra_trees      default  MITTAL  0.818182           0.500000  0.450000        NaN
+extra_trees_kbest      default  MITTAL  0.818182           0.500000  0.450000        NaN
+          svc_rbf      default  MITTAL  0.818182           0.500000  0.450000        NaN
+    hist_gradient      default  MITTAL  0.818182           0.500000  0.450000        NaN
+    hist_gradient threshold_cv  MITTAL  0.818182           0.500000  0.450000       0.15
+      logistic_l2      default  MITTAL  0.727273           0.444444  0.421053        NaN
+          svc_rbf threshold_cv  MITTAL  0.727273           0.444444  0.421053       0.10
+        rf_deeper threshold_cv  MITTAL  0.636364           0.388889  0.388889       0.10
+extra_trees_kbest threshold_cv  MITTAL  0.272727           0.361111  0.266667       0.10
+      rf_balanced threshold_cv  MITTAL  0.181818           0.111111  0.153846       0.10
+      extra_trees threshold_cv  MITTAL  0.181818           0.111111  0.153846       0.10
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_yellow_strict_leave_area_out_MITTAL_model_sweep.csv

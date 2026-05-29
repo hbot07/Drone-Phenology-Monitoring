@@ -1,0 +1,56 @@
+{
+  "csv": "exports/stac_s2_features_2025_buffer20_items4_label_acacia.csv",
+  "label": "label_acacia",
+  "split": "leave_area_out",
+  "holdout": "SV_S4",
+  "n_train": 363,
+  "n_test": 28,
+  "train_label_counts": {
+    "0": 318,
+    "1": 45
+  },
+  "test_label_counts": {
+    "0": 8,
+    "1": 20
+  },
+  "accuracy": 0.35714285714285715,
+  "balanced_accuracy": 0.5125,
+  "macro_f1": 0.34375,
+  "confusion_matrix": [
+    [
+      7,
+      1
+    ],
+    [
+      17,
+      3
+    ]
+  ],
+  "classification_report": {
+    "0": {
+      "precision": 0.2916666666666667,
+      "recall": 0.875,
+      "f1-score": 0.4375,
+      "support": 8.0
+    },
+    "1": {
+      "precision": 0.75,
+      "recall": 0.15,
+      "f1-score": 0.25,
+      "support": 20.0
+    },
+    "accuracy": 0.35714285714285715,
+    "macro avg": {
+      "precision": 0.5208333333333334,
+      "recall": 0.5125,
+      "f1-score": 0.34375,
+      "support": 28.0
+    },
+    "weighted avg": {
+      "precision": 0.619047619047619,
+      "recall": 0.35714285714285715,
+      "f1-score": 0.30357142857142855,
+      "support": 28.0
+    }
+  }
+}

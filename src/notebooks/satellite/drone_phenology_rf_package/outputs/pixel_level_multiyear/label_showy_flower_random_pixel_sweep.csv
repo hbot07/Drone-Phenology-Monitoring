@@ -1,0 +1,6 @@
+model,label,split,holdout,min_crown_area_m2,pixels_per_crown,n_train_crowns,n_train_pixels,n_test_crowns,train_label_counts,test_label_counts,balanced_accuracy,macro_f1,confusion_matrix,classes
+rf_balanced,label_showy_flower,random,,20.0,8,213,1704,92,"{0: 1400, 1: 304}","{0: 75, 1: 17}",0.564314,0.570189,"[[67, 8], [13, 4]]","[0, 1]"
+extra_trees,label_showy_flower,random,,20.0,8,213,1704,92,"{0: 1400, 1: 304}","{0: 75, 1: 17}",0.538824,0.535354,"[[72, 3], [15, 2]]","[0, 1]"
+hist_gradient,label_showy_flower,random,,20.0,8,213,1704,92,"{0: 1400, 1: 304}","{0: 75, 1: 17}",0.496078,0.478261,"[[70, 5], [16, 1]]","[0, 1]"
+logistic_l2,label_showy_flower,random,,20.0,8,213,1704,92,"{0: 1400, 1: 304}","{0: 75, 1: 17}",0.576471,0.568854,"[[60, 15], [11, 6]]","[0, 1]"
+svc_rbf,label_showy_flower,random,,20.0,8,213,1704,92,"{0: 1400, 1: 304}","{0: 75, 1: 17}",0.547059,0.543298,"[[60, 15], [12, 5]]","[0, 1]"

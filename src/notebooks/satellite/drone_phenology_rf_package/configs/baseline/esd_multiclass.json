@@ -1,0 +1,30 @@
+{
+  "name": "esd_multiclass_v1",
+  "description": "Three-class phenology classifier: Evergreen (0) / Semi-evergreen (1) / Deciduous (2). All known species are assigned to exactly one class; species not listed get label -1 (excluded).",
+  "label_property": "label_esd",
+  "classes": {
+    "0": "evergreen",
+    "1": "semi_evergreen",
+    "2": "deciduous",
+    "-1": "ignore"
+  },
+  "positive_species_by_class": {
+    "evergreen": [
+      "Ashok", "Bamboo clump", "Banana", "Bottlebrush", "Chir pine", "Jamun",
+      "Mango", "Maulsari", "Palm tree", "Saptparni"
+    ],
+    "semi_evergreen": [
+      "Banyan", "Imli", "Karanj", "Native acacia", "Neem", "Peepal",
+      "Prosopis Juliflora", "Subabool"
+    ],
+    "deciduous": [
+      "Amaltas", "Amla", "Arjun", "Bakain", "Bel", "Caribbean trumpet",
+      "Chukrasia", "Frangipani", "Goolar", "Gulmohar", "Kachnar", "Kanju",
+      "Marodphali", "Moringa", "Palash", "Pilkhan", "Sausage tree",
+      "Semal", "Shahtoot", "Sheesham", "Siris", "Teak"
+    ]
+  },
+  "recommended_first_run": true,
+  "validation": ["random_split", "leave_one_area_out", "leave_one_species_out"],
+  "notes": "Primary spatial phenology classifier. Report balanced accuracy, not overall accuracy."
+}

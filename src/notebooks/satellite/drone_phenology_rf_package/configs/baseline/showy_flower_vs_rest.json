@@ -1,0 +1,26 @@
+{
+  "name": "showy_flower_vs_rest_v1",
+  "description": "Binary classifier: any visibly showy-flowering species (1) vs non-showy identified species (0). Covers yellow, red/orange, and white/pink showy flowers. Species not in either list get label -1 (excluded).",
+  "label_property": "label_showy_flower",
+  "classes": {
+    "1": "showy_flower",
+    "0": "not_showy_flower",
+    "-1": "ignore"
+  },
+  "positive_species": [
+    "Amaltas", "Kasod", "Caribbean trumpet", "Siris",
+    "Gulmohar", "Bottlebrush", "Palash", "Semal", "Sausage tree",
+    "Kachnar", "Frangipani"
+  ],
+  "negative_species": [
+    "Ashok", "Bamboo clump", "Banana", "Chir pine", "Jamun", "Mango",
+    "Maulsari", "Palm tree", "Saptparni",
+    "Banyan", "Imli", "Karanj", "Native acacia", "Neem", "Peepal",
+    "Prosopis Juliflora", "Subabool",
+    "Amla", "Arjun", "Bakain", "Bel", "Chukrasia", "Goolar", "Kanju",
+    "Marodphali", "Moringa", "Pilkhan", "Shahtoot",
+    "Sheesham", "Teak"
+  ],
+  "recommended_first_run": true,
+  "notes": "Probably more stable than exact red/yellow/white multiclass. Bottlebrush omitted from negative since it is in positive."
+}

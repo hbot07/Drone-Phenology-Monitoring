@@ -1,0 +1,24 @@
+{
+  "name": "deciduous_vs_rest_v1",
+  "description": "Binary classifier: deciduous species (1) vs evergreen/semi-evergreen species (0). Species not in either list get label -1 (excluded).",
+  "label_property": "label_deciduous",
+  "classes": {
+    "1": "deciduous",
+    "0": "not_deciduous",
+    "-1": "ignore"
+  },
+  "positive_species": [
+    "Amaltas", "Amla", "Arjun", "Bakain", "Bel", "Caribbean trumpet",
+    "Chukrasia", "Frangipani", "Goolar", "Gulmohar", "Kachnar", "Kanju",
+    "Marodphali", "Moringa", "Palash", "Pilkhan", "Sausage tree",
+    "Semal", "Shahtoot", "Sheesham", "Siris", "Teak"
+  ],
+  "negative_species": [
+    "Ashok", "Bamboo clump", "Banana", "Bottlebrush", "Chir pine", "Jamun",
+    "Mango", "Maulsari", "Palm tree", "Saptparni",
+    "Banyan", "Imli", "Karanj", "Native acacia", "Neem", "Peepal",
+    "Prosopis Juliflora", "Subabool"
+  ],
+  "recommended_first_run": true,
+  "notes": "More stable than the 3-class ESD classifier. Good for first model sanity check."
+}

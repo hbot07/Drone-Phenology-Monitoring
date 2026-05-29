@@ -1,0 +1,6 @@
+model,label,split,holdout,min_crown_area_m2,pixels_per_crown,n_train_crowns,n_train_pixels,n_test_crowns,train_label_counts,test_label_counts,balanced_accuracy,macro_f1,confusion_matrix,classes
+rf_balanced,label_acacia,random,,20.0,8,235,1880,101,"{0: 1576, 1: 304}","{0: 85, 1: 16}",0.712868,0.763577,"[[84, 1], [9, 7]]","[0, 1]"
+extra_trees,label_acacia,random,,20.0,8,235,1880,101,"{0: 1576, 1: 304}","{0: 85, 1: 16}",0.744118,0.794576,"[[84, 1], [8, 8]]","[0, 1]"
+hist_gradient,label_acacia,random,,20.0,8,235,1880,101,"{0: 1576, 1: 304}","{0: 85, 1: 16}",0.738235,0.779283,"[[83, 2], [8, 8]]","[0, 1]"
+logistic_l2,label_acacia,random,,20.0,8,235,1880,101,"{0: 1576, 1: 304}","{0: 85, 1: 16}",0.800735,0.834154,"[[83, 2], [6, 10]]","[0, 1]"
+svc_rbf,label_acacia,random,,20.0,8,235,1880,101,"{0: 1576, 1: 304}","{0: 85, 1: 16}",0.831985,0.859079,"[[83, 2], [5, 11]]","[0, 1]"

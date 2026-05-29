@@ -1,0 +1,13 @@
+{
+  "name": "red_showy_v1",
+  "description": "Exploratory binary red/orange/maroon showy flower classifier.",
+  "label_property": "label_red_showy",
+  "classes": {
+    "0": "not_red_showy",
+    "1": "red_showy",
+    "-1": "ignore"
+  },
+  "positive_species": ["Gulmohar", "Bottlebrush", "Palash", "Semal", "Sausage tree"],
+  "recommended_first_run": false,
+  "notes": "Currently underpowered: only about 12 positives in the prepared data. Run but do not make it the main result."
+}

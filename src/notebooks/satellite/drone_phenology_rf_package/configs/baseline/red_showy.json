@@ -1,0 +1,25 @@
+{
+  "name": "red_showy_v1",
+  "description": "Binary red/orange/maroon showy-flower classifier: red-flowering species (1) vs all other identified species (0). Species not in either list get label -1 (excluded).",
+  "label_property": "label_red_showy",
+  "classes": {
+    "1": "red_showy",
+    "0": "not_red_showy",
+    "-1": "ignore"
+  },
+  "positive_species": [
+    "Gulmohar", "Bottlebrush", "Palash", "Semal", "Sausage tree"
+  ],
+  "negative_species": [
+    "Ashok", "Bamboo clump", "Banana", "Chir pine", "Jamun", "Mango",
+    "Maulsari", "Palm tree", "Saptparni",
+    "Banyan", "Imli", "Karanj", "Native acacia", "Neem", "Peepal",
+    "Prosopis Juliflora", "Subabool",
+    "Amaltas", "Amla", "Arjun", "Bakain", "Bel", "Caribbean trumpet",
+    "Chukrasia", "Frangipani", "Goolar", "Kachnar", "Kanju",
+    "Marodphali", "Moringa", "Pilkhan", "Shahtoot",
+    "Sheesham", "Siris", "Teak", "Kasod"
+  ],
+  "recommended_first_run": false,
+  "notes": "Currently underpowered: only ~12 positives. Run but do not treat as a primary result."
+}

@@ -1,0 +1,71 @@
+{
+  "csv": "exports/stac_s2_features_2025_buffer20_items4_label_esd.csv",
+  "label": "label_esd",
+  "split": "leave_area_out",
+  "holdout": "SIT",
+  "n_train": 267,
+  "n_test": 75,
+  "train_label_counts": {
+    "0": 48,
+    "1": 137,
+    "2": 82
+  },
+  "test_label_counts": {
+    "0": 27,
+    "1": 15,
+    "2": 33
+  },
+  "accuracy": 0.2,
+  "balanced_accuracy": 0.2484848484848485,
+  "macro_f1": 0.16392262708052183,
+  "confusion_matrix": [
+    [
+      0,
+      17,
+      10
+    ],
+    [
+      0,
+      8,
+      7
+    ],
+    [
+      1,
+      25,
+      7
+    ]
+  ],
+  "classification_report": {
+    "0": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1-score": 0.0,
+      "support": 27.0
+    },
+    "1": {
+      "precision": 0.16,
+      "recall": 0.5333333333333333,
+      "f1-score": 0.24615384615384617,
+      "support": 15.0
+    },
+    "2": {
+      "precision": 0.2916666666666667,
+      "recall": 0.21212121212121213,
+      "f1-score": 0.24561403508771928,
+      "support": 33.0
+    },
+    "accuracy": 0.2,
+    "macro avg": {
+      "precision": 0.15055555555555555,
+      "recall": 0.2484848484848485,
+      "f1-score": 0.16392262708052183,
+      "support": 75.0
+    },
+    "weighted avg": {
+      "precision": 0.16033333333333333,
+      "recall": 0.2,
+      "f1-score": 0.15730094466936573,
+      "support": 75.0
+    }
+  }
+}

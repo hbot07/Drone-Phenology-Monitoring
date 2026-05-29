@@ -1,0 +1,12 @@
+{
+  "name": "deciduous_vs_rest_v1",
+  "description": "Binary spatial classifier: deciduous species vs evergreen/semi-evergreen species.",
+  "label_property": "label_deciduous",
+  "classes": {
+    "0": "not_deciduous",
+    "1": "deciduous",
+    "-1": "ignore"
+  },
+  "recommended_first_run": true,
+  "notes": "Usually more stable than the 3-class ESD classifier. Good for first model sanity check."
+}

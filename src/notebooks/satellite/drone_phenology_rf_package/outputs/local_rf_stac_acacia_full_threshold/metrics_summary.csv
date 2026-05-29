@@ -1,0 +1,5 @@
+file,label,split,holdout,n_test,accuracy,balanced_accuracy,macro_f1,threshold,positive_recall,positive_precision,test_counts,confusion_matrix
+label_acacia_leave_area_out_SV_S1_threshold_metrics.json,label_acacia,leave_area_out,SV_S1,37,0.4864864864864865,0.4985380116959064,0.3683737646001797,0.15,0.9444444444444444,0.4857142857142857,"{'0': 19, '1': 18}","[[1, 18], [1, 17]]"
+label_acacia_leave_area_out_SV_S3_threshold_metrics.json,label_acacia,leave_area_out,SV_S3,25,0.68,0.5,0.40476190476190477,0.1,1.0,0.68,"{'0': 8, '1': 17}","[[0, 8], [0, 17]]"
+label_acacia_leave_area_out_SV_S4_threshold_metrics.json,label_acacia,leave_area_out,SV_S4,28,0.7142857142857143,0.5,0.4166666666666667,0.1,1.0,0.7142857142857143,"{'0': 8, '1': 20}","[[0, 8], [0, 20]]"
+label_acacia_random_threshold_metrics.json,label_acacia,random,,118,0.847457627118644,0.888265306122449,0.7892857142857144,0.15,0.95,0.5277777777777778,"{'0': 98, '1': 20}","[[81, 17], [1, 19]]"

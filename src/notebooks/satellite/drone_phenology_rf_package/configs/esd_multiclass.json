@@ -1,0 +1,19 @@
+{
+  "name": "esd_multiclass_v1",
+  "description": "Evergreen / semi-evergreen / deciduous spatial classifier using species-derived labels.",
+  "label_property": "label_esd",
+  "classes": {
+    "0": "evergreen",
+    "1": "semi_evergreen",
+    "2": "deciduous",
+    "-1": "ignore"
+  },
+  "recommended_first_run": true,
+  "positive_species_by_class": {
+    "evergreen": ["Ashok", "Bamboo clump", "Banana", "Bottlebrush", "Chir pine", "Jamun", "Mango", "Maulsari", "Palm tree", "Saptparni"],
+    "semi_evergreen": ["Banyan", "Imli", "Karanj", "Native acacia", "Neem", "Peepal", "Prosopis Juliflora", "Subabool"],
+    "deciduous": ["Amaltas", "Amla", "Arjun", "Bakain", "Bel", "Caribbean trumpet", "Chukrasia", "Frangipani", "Goolar", "Gulmohar", "Kachnar", "Kanju", "Marodphali", "Moringa", "Palash", "Pilkhan", "Sausage tree", "Semal", "Shahtoot", "Sheesham", "Siris", "Teak"]
+  },
+  "validation": ["random_split", "leave_one_area_out", "leave_one_species_out"],
+  "notes": "Use this as the primary spatial classifier. Report balanced accuracy, not only overall accuracy."
+}

@@ -1,0 +1,15 @@
+priority,label_property,task,split_mode,holdout,geometry_mode,buffer_m,year,comment
+1,label_esd,evergreen_semi_deciduous,random,,buffer,20,2025,Main first run
+2,label_esd,evergreen_semi_deciduous,leave_area_out,SIT,buffer,20,2025,Strong validation
+3,label_esd,evergreen_semi_deciduous,leave_area_out,A3,buffer,20,2025,Strong validation
+4,label_esd,evergreen_semi_deciduous,leave_area_out,A4,buffer,20,2025,Strong validation
+5,label_deciduous,deciduous_vs_rest,random,,buffer,20,2025,Stable binary sanity check
+6,label_deciduous,deciduous_vs_rest,leave_species_out,Amaltas,buffer,20,2025,Checks unseen species generalization
+7,label_deciduous,deciduous_vs_rest,leave_species_out,Pilkhan,buffer,20,2025,Checks unseen species generalization
+8,label_acacia,acacia_vs_non_acacia,random,,buffer,20,2025,Now feasible after SV
+9,label_acacia,acacia_vs_non_acacia,leave_area_out,SV_S4,buffer,20,2025,Important because acacia positives are spatially clustered
+10,label_acacia,acacia_vs_non_acacia,leave_area_out,SV_S1,buffer,20,2025,Important because acacia positives are spatially clustered
+11,label_yellow_strict,yellow_showy_vs_rest,random,,buffer,20,2025,Best flower-colour first run
+12,label_yellow_strict,yellow_showy_vs_rest,leave_species_out,Amaltas,buffer,20,2025,Checks whether model generalizes beyond Amaltas
+13,label_showy_flower,showy_flower_vs_rest,random,,buffer,20,2025,Usually better than exact colour
+14,label_red_showy,red_showy_vs_rest,random,,buffer,20,2025,Underpowered exploratory only

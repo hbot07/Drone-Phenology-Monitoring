@@ -1,0 +1,10 @@
+{
+  "best_model": "hist_gradient",
+  "balanced_accuracy": 0.578563,
+  "macro_f1": 0.600789,
+  "pixels_per_crown": 8,
+  "min_crown_area_m2": 20.0,
+  "n_train_crowns": 213,
+  "n_train_pixels": 1704,
+  "note": "pixel-level training with crown-level test aggregation"
+}

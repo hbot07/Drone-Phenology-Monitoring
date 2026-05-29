@@ -1,0 +1,25 @@
+{
+  "name": "yellow_showy_strict_v1",
+  "description": "Binary flower-colour classifier: strictly yellow/showy flowering species (1) vs everything else with a known identity (0). Species not in either list get label -1 (excluded).",
+  "label_property": "label_yellow_strict",
+  "classes": {
+    "1": "yellow_showy",
+    "0": "not_yellow_showy",
+    "-1": "ignore"
+  },
+  "positive_species": [
+    "Amaltas", "Kasod", "Caribbean trumpet"
+  ],
+  "negative_species": [
+    "Ashok", "Bamboo clump", "Banana", "Bottlebrush", "Chir pine", "Jamun",
+    "Mango", "Maulsari", "Palm tree", "Saptparni",
+    "Banyan", "Imli", "Karanj", "Native acacia", "Neem", "Peepal",
+    "Prosopis Juliflora", "Subabool",
+    "Amla", "Arjun", "Bakain", "Bel", "Chukrasia", "Frangipani", "Goolar",
+    "Gulmohar", "Kachnar", "Kanju", "Marodphali", "Moringa",
+    "Palash", "Pilkhan", "Sausage tree", "Semal", "Shahtoot",
+    "Sheesham", "Siris", "Teak"
+  ],
+  "recommended_first_run": true,
+  "notes": "Best flower-colour starter. Do not include Prosopis here — its yellow flowers are small and not satellite-visible."
+}

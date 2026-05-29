@@ -1,0 +1,24 @@
+{
+  "name": "deciduous_vs_rest_exp01",
+  "description": "Binary deciduous (1) vs evergreen/semi-evergreen (0) — exp01 species review. Karanj, Sausage tree, Caribbean trumpet and Frangipani excluded (-1) pending ESD placement confirmation.",
+  "label_property": "label_deciduous",
+  "classes": {
+    "1": "deciduous",
+    "0": "not_deciduous",
+    "-1": "ignore"
+  },
+  "positive_species": [
+    "Amaltas", "Amla", "Arjun", "Bakain", "Bel",
+    "Caribbean trumpet", "Chukrasia", "Goolar", "Gulmohar", "Kachnar", "Kanju",
+    "Karanj", "Marodphali", "Moringa", "Palash", "Pilkhan",
+    "Semal", "Shahtoot", "Sheesham", "Siris", "Teak"
+  ],
+  "negative_species": [
+    "Ashok", "Bamboo clump", "Banana", "Bottlebrush", "Chir pine", "Frangipani", "Jamun",
+    "Mango", "Maulsari", "Palm tree", "Saptparni", "Sausage tree",
+    "Banyan", "Imli", "Native acacia", "Neem", "Peepal",
+    "Prosopis Juliflora", "Subabool"
+  ],
+  "recommended_first_run": true,
+  "notes": "Karanj + Caribbean trumpet confirmed deciduous. Sausage tree + Frangipani confirmed evergreen (not_deciduous). Caribbean trumpet remains excluded from ESD (ambiguous evergreen/semi-evergreen)."
+}

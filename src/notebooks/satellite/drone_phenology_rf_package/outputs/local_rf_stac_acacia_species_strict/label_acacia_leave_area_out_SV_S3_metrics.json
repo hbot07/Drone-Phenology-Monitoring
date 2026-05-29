@@ -1,0 +1,56 @@
+{
+  "csv": "src/notebooks/satellite/drone_phenology_rf_package/exports/stac_s2_features_2025_buffer20_items4_label_acacia_species_strict_as_label_acacia.csv",
+  "label": "label_acacia",
+  "split": "leave_area_out",
+  "holdout": "SV_S3",
+  "n_train": 352,
+  "n_test": 20,
+  "train_label_counts": {
+    "0": 311,
+    "1": 41
+  },
+  "test_label_counts": {
+    "0": 3,
+    "1": 17
+  },
+  "accuracy": 0.6,
+  "balanced_accuracy": 0.7647058823529411,
+  "macro_f1": 0.5604395604395604,
+  "confusion_matrix": [
+    [
+      3,
+      0
+    ],
+    [
+      8,
+      9
+    ]
+  ],
+  "classification_report": {
+    "0": {
+      "precision": 0.2727272727272727,
+      "recall": 1.0,
+      "f1-score": 0.42857142857142855,
+      "support": 3.0
+    },
+    "1": {
+      "precision": 1.0,
+      "recall": 0.5294117647058824,
+      "f1-score": 0.6923076923076923,
+      "support": 17.0
+    },
+    "accuracy": 0.6,
+    "macro avg": {
+      "precision": 0.6363636363636364,
+      "recall": 0.7647058823529411,
+      "f1-score": 0.5604395604395604,
+      "support": 20.0
+    },
+    "weighted avg": {
+      "precision": 0.8909090909090909,
+      "recall": 0.6,
+      "f1-score": 0.6527472527472528,
+      "support": 20.0
+    }
+  }
+}

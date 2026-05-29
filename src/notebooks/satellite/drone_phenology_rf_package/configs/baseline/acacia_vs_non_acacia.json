@@ -1,0 +1,30 @@
+{
+  "name": "acacia_vs_non_acacia_v1",
+  "description": "Binary classifier: Acacia-type crowns (1) vs clean non-acacia crowns (0). Species not in either list get label -1 (excluded). Sanjay Van field tree_type is used as a secondary positive signal when species is unavailable.",
+  "label_property": "label_acacia",
+  "classes": {
+    "1": "acacia",
+    "0": "non_acacia",
+    "-1": "ignore"
+  },
+  "positive_species": [
+    "Native acacia", "Prosopis Juliflora", "Subabool", "Acacia unknown"
+  ],
+  "negative_species": [
+    "Ashok", "Bamboo clump", "Banana", "Bottlebrush", "Chir pine", "Jamun",
+    "Mango", "Maulsari", "Palm tree", "Saptparni",
+    "Banyan", "Imli", "Karanj", "Neem", "Peepal",
+    "Amaltas", "Amla", "Arjun", "Bakain", "Bel", "Caribbean trumpet",
+    "Chukrasia", "Frangipani", "Goolar", "Gulmohar", "Kachnar", "Kanju",
+    "Marodphali", "Moringa", "Palash", "Pilkhan", "Sausage tree",
+    "Semal", "Shahtoot", "Sheesham", "Siris", "Teak"
+  ],
+  "fallback_field": "tree_type_raw",
+  "fallback_map": {
+    "acacia": 1,
+    "non-acacia": 0,
+    "non acacia": 0
+  },
+  "recommended_first_run": true,
+  "notes": "Positives are concentrated in Sanjay Van areas; validate with leave-one-area-out. fallback_field is used only when species_clean is null."
+}

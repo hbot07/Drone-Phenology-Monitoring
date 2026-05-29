@@ -1,0 +1,13 @@
+{
+  "name": "showy_flower_vs_rest_v1",
+  "description": "Binary classifier for visibly/showily flowering species vs non-showy species.",
+  "label_property": "label_showy_flower",
+  "classes": {
+    "0": "not_showy_flower",
+    "1": "showy_flower",
+    "-1": "ignore"
+  },
+  "positive_species": ["Amaltas", "Kasod", "Caribbean trumpet", "Siris", "Gulmohar", "Bottlebrush", "Palash", "Semal", "Sausage tree", "Kachnar", "Frangipani"],
+  "recommended_first_run": true,
+  "notes": "Probably more stable than exact red/yellow/white multiclass."
+}

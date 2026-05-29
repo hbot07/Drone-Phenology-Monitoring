@@ -1,0 +1,130 @@
+area,species_for_count,count
+A1,<unlabelled_or_ambiguous>,122
+A1,Amaltas,9
+A1,Neem,6
+A1,Sheesham,4
+A1,Pilkhan,3
+A1,Banyan,2
+A1,Bottlebrush,2
+A1,Gulmohar,2
+A1,Kasod,2
+A1,Ashok,1
+A1,Bakain,1
+A1,Maulsari,1
+A1,Native acacia,1
+A1,Saptparni,1
+A1,Semal,1
+A2,<unlabelled_or_ambiguous>,120
+A2,Ashok,6
+A2,Neem,4
+A2,Banyan,3
+A2,Mahneem,3
+A2,Goolar,2
+A2,Imli,2
+A2,Jamun,2
+A2,Peepal,2
+A2,Pilkhan,2
+A2,Amla,1
+A2,Bamboo clump,1
+A2,Gulmohar,1
+A2,Maulsari,1
+A2,Sausage tree,1
+A2,Shahtoot,1
+A2,Sheesham,1
+A3,<unlabelled_or_ambiguous>,123
+A3,Peepal,10
+A3,Saptparni,10
+A3,Kasod,9
+A3,Banyan,7
+A3,Shahtoot,7
+A3,Neem,6
+A3,Ashok,5
+A3,Pilkhan,3
+A3,Amaltas,1
+A3,Arjun,1
+A3,Bakain,1
+A3,Jamun,1
+A3,Mango,1
+A3,Moringa,1
+A3,Siris,1
+A4,<unlabelled_or_ambiguous>,121
+A4,Neem,9
+A4,Pilkhan,6
+A4,Arjun,3
+A4,Ashok,3
+A4,Peepal,3
+A4,Banyan,2
+A4,Jamun,2
+A4,Kasod,2
+A4,Maulsari,2
+A4,Saptparni,2
+A4,Siris,2
+A4,Anjan,1
+A4,Banana,1
+A4,Bel,1
+A4,Cassia,1
+A4,Gulmohar,1
+A4,Mahneem,1
+A4,Mango,1
+A4,Semal,1
+A4,Shahtoot,1
+A4,Sheesham,1
+A5,<unlabelled_or_ambiguous>,193
+A5,Neem,4
+A5,Peepal,3
+A5,Gulmohar,1
+MITTAL,<unlabelled_or_ambiguous>,24
+MITTAL,Siris,3
+MITTAL,Amaltas,2
+MITTAL,Ashok,1
+MITTAL,Chukrasia,1
+MITTAL,Frangipani,1
+MITTAL,Jamun,1
+MITTAL,Mahneem,1
+MITTAL,Neem,1
+MITTAL,Pilkhan,1
+SIT,<unlabelled_or_ambiguous>,47
+SIT,Ashok,13
+SIT,Marodphali,13
+SIT,Maulsari,13
+SIT,Neem,11
+SIT,Pilkhan,8
+SIT,Buddha's Coconut,5
+SIT,Amaltas,3
+SIT,Peepal,3
+SIT,Caribbean trumpet,2
+SIT,Chamrod,2
+SIT,Frangipani,2
+SIT,Mahneem,2
+SIT,Arjun,1
+SIT,Kachnar,1
+SIT,Karanj,1
+SIT,Palash,1
+SIT,Palm tree,1
+SIT,Semal,1
+SIT,Siris,1
+SV_S1,<unlabelled_or_ambiguous>,625
+SV_S1,Prosopis Juliflora,11
+SV_S1,Amaltas,10
+SV_S1,Neem,3
+SV_S1,Bamboo clump,2
+SV_S1,Subabool,2
+SV_S1,Teak,2
+SV_S1,Kanju,1
+SV_S2,<unlabelled_or_ambiguous>,703
+SV_S2,Neem,6
+SV_S2,Prosopis Juliflora,6
+SV_S2,Peepal,1
+SV_S2,Subabool,1
+SV_S3,<unlabelled_or_ambiguous>,608
+SV_S3,Prosopis Juliflora,16
+SV_S3,Acacia unknown,1
+SV_S3,Banyan,1
+SV_S3,Neem,1
+SV_S3,Peepal,1
+SV_S4,<unlabelled_or_ambiguous>,154
+SV_S4,Prosopis Juliflora,20
+SV_S4,Bamboo clump,1
+SV_S4,Banyan,1
+SV_S4,Karanj,1
+SV_S4,Peepal,1

@@ -1,0 +1,6 @@
+model,label,split,holdout,min_crown_area_m2,pixels_per_crown,n_train_crowns,n_train_pixels,n_test_crowns,train_label_counts,test_label_counts,balanced_accuracy,macro_f1,confusion_matrix,classes
+rf_balanced,label_acacia,leave_area_out,SV_S1,20.0,8,311,2488,25,"{0: 2144, 1: 344}","{0: 14, 1: 11}",0.448052,0.420677,"[[10, 4], [9, 2]]","[0, 1]"
+extra_trees,label_acacia,leave_area_out,SV_S1,20.0,8,311,2488,25,"{0: 2144, 1: 344}","{0: 14, 1: 11}",0.503247,0.5,"[[9, 5], [7, 4]]","[0, 1]"
+hist_gradient,label_acacia,leave_area_out,SV_S1,20.0,8,311,2488,25,"{0: 2144, 1: 344}","{0: 14, 1: 11}",0.467532,0.466338,"[[8, 6], [7, 4]]","[0, 1]"
+logistic_l2,label_acacia,leave_area_out,SV_S1,20.0,8,311,2488,25,"{0: 2144, 1: 344}","{0: 14, 1: 11}",0.665584,0.666667,"[[11, 3], [5, 6]]","[0, 1]"
+svc_rbf,label_acacia,leave_area_out,SV_S1,20.0,8,311,2488,25,"{0: 2144, 1: 344}","{0: 14, 1: 11}",0.646104,0.632353,"[[13, 1], [7, 4]]","[0, 1]"

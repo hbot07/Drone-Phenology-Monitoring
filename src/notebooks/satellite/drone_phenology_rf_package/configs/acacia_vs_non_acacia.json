@@ -1,0 +1,13 @@
+{
+  "name": "acacia_vs_non_acacia_v1",
+  "description": "Binary spatial classifier: Acacia-type crowns vs clean non-acacia crowns. Sanjay Van field tree_type is used as Acacia positive when available.",
+  "label_property": "label_acacia",
+  "classes": {
+    "0": "non_acacia",
+    "1": "acacia",
+    "-1": "ignore"
+  },
+  "positive_species": ["Native acacia", "Prosopis Juliflora", "Subabool", "Acacia unknown"],
+  "recommended_first_run": true,
+  "notes": "Now trainable after adding Sanjay Van; current package has about 65 positive Acacia crowns. Validate with leave-one-area-out because positives are concentrated in SV areas."
+}

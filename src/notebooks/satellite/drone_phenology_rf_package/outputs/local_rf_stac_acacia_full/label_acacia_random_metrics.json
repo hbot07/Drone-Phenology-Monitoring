@@ -1,0 +1,56 @@
+{
+  "csv": "exports/stac_s2_features_2025_buffer20_items4_label_acacia.csv",
+  "label": "label_acacia",
+  "split": "random",
+  "holdout": null,
+  "n_train": 273,
+  "n_test": 118,
+  "train_label_counts": {
+    "0": 228,
+    "1": 45
+  },
+  "test_label_counts": {
+    "0": 98,
+    "1": 20
+  },
+  "accuracy": 0.8728813559322034,
+  "balanced_accuracy": 0.7642857142857142,
+  "macro_f1": 0.7696212417024599,
+  "confusion_matrix": [
+    [
+      91,
+      7
+    ],
+    [
+      8,
+      12
+    ]
+  ],
+  "classification_report": {
+    "0": {
+      "precision": 0.9191919191919192,
+      "recall": 0.9285714285714286,
+      "f1-score": 0.9238578680203046,
+      "support": 98.0
+    },
+    "1": {
+      "precision": 0.631578947368421,
+      "recall": 0.6,
+      "f1-score": 0.6153846153846154,
+      "support": 20.0
+    },
+    "accuracy": 0.8728813559322034,
+    "macro avg": {
+      "precision": 0.7753854332801702,
+      "recall": 0.7642857142857142,
+      "f1-score": 0.7696212417024599,
+      "support": 118.0
+    },
+    "weighted avg": {
+      "precision": 0.8704439578659026,
+      "recall": 0.8728813559322034,
+      "f1-score": 0.8715742658786624,
+      "support": 118.0
+    }
+  }
+}

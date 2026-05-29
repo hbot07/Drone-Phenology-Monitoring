@@ -1,0 +1,25 @@
+{
+  "name": "red_showy_exp01",
+  "description": "Binary red/orange/maroon showy-flower classifier — exp01. Bottlebrush and Sausage tree moved to negative: Bottlebrush flowers are small spikes often below canopy resolution; Sausage tree flowers are large but hang below the canopy.",
+  "label_property": "label_red_showy",
+  "classes": {
+    "1": "red_showy",
+    "0": "not_red_showy",
+    "-1": "ignore"
+  },
+  "positive_species": [
+    "Gulmohar", "Palash", "Semal"
+  ],
+  "negative_species": [
+    "Ashok", "Bamboo clump", "Banana", "Bottlebrush", "Chir pine", "Jamun",
+    "Mango", "Maulsari", "Palm tree", "Saptparni",
+    "Banyan", "Imli", "Karanj", "Native acacia", "Neem", "Peepal",
+    "Prosopis Juliflora", "Subabool",
+    "Amaltas", "Amla", "Arjun", "Bakain", "Bel", "Caribbean trumpet",
+    "Chukrasia", "Frangipani", "Goolar", "Kachnar", "Kanju",
+    "Kasod", "Marodphali", "Moringa", "Pilkhan", "Sausage tree",
+    "Shahtoot", "Sheesham", "Siris", "Teak"
+  ],
+  "recommended_first_run": false,
+  "notes": "Only 3 high-confidence positives (Gulmohar, Palash, Semal). Very underpowered — treat as exploratory only."
+}

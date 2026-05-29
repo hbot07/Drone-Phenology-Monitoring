@@ -1,0 +1,43 @@
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_esd --split random --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+extra_trees_kbest  default          0.601942           0.579503  0.588501        NaN
+          svc_rbf  default          0.543689           0.555185  0.537655        NaN
+      extra_trees  default          0.572816           0.545304  0.545231        NaN
+        rf_deeper  default          0.533981           0.506136  0.512521        NaN
+      rf_balanced  default          0.533981           0.503858  0.505169        NaN
+    hist_gradient  default          0.533981           0.501581  0.503640        NaN
+      logistic_l2  default          0.495146           0.492961  0.483889        NaN
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_esd_random_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_esd --split leave_area_out --holdout SIT --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+    hist_gradient  default     SIT  0.293333           0.359147  0.291195        NaN
+        rf_deeper  default     SIT  0.226667           0.317172  0.178862        NaN
+      logistic_l2  default     SIT  0.413333           0.315376  0.217584        NaN
+          svc_rbf  default     SIT  0.373333           0.298541  0.258039        NaN
+extra_trees_kbest  default     SIT  0.213333           0.285073  0.188714        NaN
+      extra_trees  default     SIT  0.226667           0.253423  0.230167        NaN
+      rf_balanced  default     SIT  0.200000           0.240853  0.192424        NaN
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_esd_leave_area_out_SIT_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_esd --split leave_area_out --holdout A3 --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:112: UserWarning: Features [ 97  98  99 197 198 199 297 298 299 397 398 399] are constant.
+  warnings.warn("Features %s are constant." % constant_features_idx, UserWarning)
+/Users/hbot07/anaconda3/lib/python3.10/site-packages/sklearn/feature_selection/_univariate_selection.py:113: RuntimeWarning: invalid value encountered in divide
+  f = msb / msw
+            model decision holdout  accuracy  balanced_accuracy  macro_f1  threshold
+      logistic_l2  default      A3  0.327273           0.327593  0.322650        NaN
+          svc_rbf  default      A3  0.254545           0.274851  0.253789        NaN
+      rf_balanced  default      A3  0.254545           0.264734  0.204082        NaN
+    hist_gradient  default      A3  0.254545           0.262120  0.228986        NaN
+      extra_trees  default      A3  0.254545           0.257005  0.211161        NaN
+        rf_deeper  default      A3  0.236364           0.227053  0.188630        NaN
+extra_trees_kbest  default      A3  0.181818           0.209264  0.170753        NaN
+Wrote outputs/multiyear_s2_2022_2025_buffer10_all_holdouts/label_esd_leave_area_out_A3_model_sweep.csv
+/Users/hbot07/anaconda3/bin/python /Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/drone_phenology_rf_package/python/06_model_sweep.py --csv exports/stac_s2_features_2022_2025_buffer10_items4_label_acacia.csv --label label_esd --split leave_area_out --holdout A4 --trees 500 --outdir outputs/multiyear_s2_2022_2025_buffer10_all_holdouts

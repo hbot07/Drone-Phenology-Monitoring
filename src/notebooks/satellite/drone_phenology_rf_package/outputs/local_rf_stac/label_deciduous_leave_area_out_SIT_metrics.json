@@ -1,0 +1,56 @@
+{
+  "csv": "exports/stac_s2_features_2025_buffer20_items4_label_esd.csv",
+  "label": "label_deciduous",
+  "split": "leave_area_out",
+  "holdout": "SIT",
+  "n_train": 267,
+  "n_test": 75,
+  "train_label_counts": {
+    "0": 185,
+    "1": 82
+  },
+  "test_label_counts": {
+    "0": 42,
+    "1": 33
+  },
+  "accuracy": 0.5733333333333334,
+  "balanced_accuracy": 0.5216450216450216,
+  "macro_f1": 0.43609022556390975,
+  "confusion_matrix": [
+    [
+      40,
+      2
+    ],
+    [
+      30,
+      3
+    ]
+  ],
+  "classification_report": {
+    "0": {
+      "precision": 0.5714285714285714,
+      "recall": 0.9523809523809523,
+      "f1-score": 0.7142857142857143,
+      "support": 42.0
+    },
+    "1": {
+      "precision": 0.6,
+      "recall": 0.09090909090909091,
+      "f1-score": 0.15789473684210525,
+      "support": 33.0
+    },
+    "accuracy": 0.5733333333333334,
+    "macro avg": {
+      "precision": 0.5857142857142856,
+      "recall": 0.5216450216450216,
+      "f1-score": 0.43609022556390975,
+      "support": 75.0
+    },
+    "weighted avg": {
+      "precision": 0.584,
+      "recall": 0.5733333333333334,
+      "f1-score": 0.4694736842105263,
+      "support": 75.0
+    }
+  }
+}
