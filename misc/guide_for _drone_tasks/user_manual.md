@@ -4,6 +4,7 @@
 - [Section 3: Flying the drone](#section-3-flying-the-drone)
   * [DJI Mini 3](#dji-mini-3)
 - [Section 4: Creation of orthomosaic in WebODM](#section-4-creation-of-orthomosaic-in-webodm)
+- [Section 5: Getting printoutof the orthmosaic witht he crowns labelled with IDs](#section-4-orthomosaic-printout-and-crowns-labelled-with-IDs)
 
 <br>
 
@@ -318,6 +319,10 @@ You can download the orthophoto, quality report, point cloud (for 3D imagery) et
 <img width="1603" height="536" alt="image" src="https://github.com/user-attachments/assets/81245006-1bfc-402b-a071-ece9492bbc50" />
 
 You can download the data log (Task Output log on the console) by clicking on the download icon underneath the 'Task Output' console. This will be useful for troubleshooting any issues.
+
+## Section 5: orthomosaic printout and crowns labelled with IDs
+
+**Step 1:** Run the ID Creation script on the Orthomosaic(you should have either gpkg file or geojson file of the detected crowns) and it will give the output somewhat like below 
 
 
 
