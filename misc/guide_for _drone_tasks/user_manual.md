@@ -323,6 +323,8 @@ You can download the data log (Task Output log on the console) by clicking on th
 ## Section 5: orthomosaic printout and crowns labelled with IDs
 
 **Step 1:** Run the ID Creation script on the Orthomosaic(you should have either gpkg file or geojson file of the detected crowns) and it will give the output somewhat like below 
+<img src="images/numbered_crowns.png" width="600"> <br>
+**Step 2:** Take the printout of the numbered crowns overlayed with lebelled ids and then you can go to the ground to label the species or whatever feature you wish to addon.For help with the location of the tree you can upload the numbered crowns jeojson to the qgis and then sync it with the qfield app on mobile and then locate the actual location of the tree.
 
 
 
