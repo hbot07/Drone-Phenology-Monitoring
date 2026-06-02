@@ -322,7 +322,7 @@ You can download the data log (Task Output log on the console) by clicking on th
 
 ## Section 5: orthomosaic printout and crowns labelled with IDs
 
-**Step 1:** Run the ID Creation script on the Orthomosaic(you should have either gpkg file or geojson file of the detected crowns) and it will give the output somewhat like below:
+**Step 1:** Run the ID Creation script(Drone-Phenology-Monitoring/src/utility/overlap_numbered_crowns.ipynb) on the Orthomosaic(you should have either gpkg file or geojson file of the detected crowns) and it will give the output somewhat like below:
 
 <img src="images/numbered_crowns.png" width="600"> <br>
 
