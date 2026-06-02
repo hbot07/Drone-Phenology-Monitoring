@@ -4,7 +4,7 @@
 - [Section 3: Flying the drone](#section-3-flying-the-drone)
   * [DJI Mini 3](#dji-mini-3)
 - [Section 4: Creation of orthomosaic in WebODM](#section-4-creation-of-orthomosaic-in-webodm)
-- [Section 5: Getting printoutof the orthmosaic witht he crowns labelled with IDs](#section-4-orthomosaic-printout-and-crowns-labelled-with-IDs)
+- [Section 5: Getting printoutof the orthmosaic with the crowns labelled with IDs](#section-4-orthomosaic-printout-and-crowns-labelled-with-IDs)
 
 <br>
 
