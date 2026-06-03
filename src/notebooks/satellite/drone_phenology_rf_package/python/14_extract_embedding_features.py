@@ -100,8 +100,8 @@ def patch_from_arrays(
 ) -> np.ndarray:
     """
     Crop a square patch centred on the crown mask bounding box.
-    Returns float32 array of shape (3, patch_px, patch_px) in RGB order,
-    normalised to [0, 1] from the Sentinel-2 reflectance range (0–10000).
+    Returns float32 array of shape (3, patch_px, patch_px) in RGB order.
+    The Sentinel-2 reader used here already returns surface reflectance in [0, 1].
     """
     import cv2
 
@@ -123,8 +123,8 @@ def patch_from_arrays(
     green = safe_slice(arrays.get("B3", np.zeros_like(crown_mask, dtype=float)), cy, cx, half, h, w)
     blue  = safe_slice(arrays.get("B2", np.zeros_like(crown_mask, dtype=float)), cy, cx, half, h, w)
 
-    # Sentinel-2 L2A surface reflectance is 0–10000; normalise to [0,1]
-    rgb = np.stack([red, green, blue], axis=0).astype(np.float32) / 10000.0
+    # read_item_stack already scales Sentinel-2 L2A reflectance from 0-10000 to [0, 1].
+    rgb = np.stack([red, green, blue], axis=0).astype(np.float32)
     rgb = np.nan_to_num(rgb, nan=0.0).clip(0, 1)
 
     # Resize to patch_px × patch_px using cv2 if not already correct size
@@ -152,6 +152,7 @@ def extract_embeddings_for_season(
     dino_model,
     torch,
     embed_dim: int,
+    batch_size: int,
 ) -> np.ndarray:
     """
     Returns array of shape (n_crowns, embed_dim).
@@ -201,9 +202,13 @@ def extract_embeddings_for_season(
             p = patch_from_arrays(arrays, mask, patch_px)
             patches.append(p)
 
-        patches_tensor = torch.tensor(np.stack(patches, axis=0))  # (N, 3, patch_px, patch_px)
+        patches_array = np.stack(patches, axis=0)
+        batches = []
         with torch.no_grad():
-            emb = dino_model(patches_tensor).cpu().numpy()  # (N, embed_dim)
+            for start in range(0, len(patches_array), batch_size):
+                patches_tensor = torch.tensor(patches_array[start: start + batch_size])
+                batches.append(dino_model(patches_tensor).cpu().numpy())
+        emb = np.concatenate(batches, axis=0)  # (N, embed_dim)
         all_embeddings.append(emb)
 
     if not all_embeddings:
@@ -229,6 +234,19 @@ def main() -> None:
     ap.add_argument("--max-cloud", type=float, default=70.0)
     ap.add_argument("--max-items-per-season", type=int, default=3)
     ap.add_argument("--pad-pixels", type=int, default=40)
+    ap.add_argument("--batch-size", type=int, default=32)
+    ap.add_argument(
+        "--label-filter",
+        nargs="+",
+        default=None,
+        help="Optional label column(s); keep rows where any listed label is not -1 before extracting embeddings.",
+    )
+    ap.add_argument(
+        "--limit-crowns",
+        type=int,
+        default=None,
+        help="Optional first-N crown limit for a quick plumbing smoke test.",
+    )
     ap.add_argument("--fuse-csv", default=None,
                     help="If given, merge embeddings with this existing spectral feature CSV.")
     ap.add_argument("--min-crown-area-m2", type=float, default=None,
@@ -249,6 +267,23 @@ def main() -> None:
     crowns_path = args.crowns or str(DATA_DIR / "iitd_sv_crowns_master_wgs84.geojson")
     crowns = gpd.read_file(crowns_path)
     crowns = crowns[crowns.geometry.notnull() & ~crowns.geometry.is_empty].reset_index(drop=True)
+
+    if args.label_filter:
+        missing = [label for label in args.label_filter if label not in crowns.columns]
+        if missing:
+            raise KeyError(f"--label-filter missing columns: {missing!r}")
+        before = len(crowns)
+        keep = np.zeros(len(crowns), dtype=bool)
+        for label in args.label_filter:
+            keep |= crowns[label].astype(int).to_numpy() != -1
+        crowns = crowns[keep].reset_index(drop=True)
+        label_list = ", ".join(args.label_filter)
+        print(f"[INFO] Label filter [{label_list}]: kept {len(crowns)}/{before} crowns")
+
+    if args.limit_crowns is not None:
+        before = len(crowns)
+        crowns = crowns.head(args.limit_crowns).reset_index(drop=True)
+        print(f"[INFO] Crown limit: kept first {len(crowns)}/{before} crowns")
 
     if args.min_crown_area_m2 is not None:
         crowns_proj = crowns.to_crs("EPSG:32643")
@@ -278,10 +313,14 @@ def main() -> None:
         emb = extract_embeddings_for_season(
             crowns, catalog, args.year, season,
             patch_px, args.max_cloud, args.max_items_per_season, args.pad_pixels,
-            dino_model, torch, embed_dim,
+            dino_model, torch, embed_dim, args.batch_size,
         )
-        for d in range(embed_dim):
-            result[f"dino_{season}_d{d:04d}"] = emb[:, d]
+        emb_cols = pd.DataFrame(
+            emb,
+            columns=[f"dino_{season}_d{d:04d}" for d in range(embed_dim)],
+            index=result.index,
+        )
+        result = pd.concat([result, emb_cols], axis=1)
         print(f"[INFO] Season {season}: embeddings added ({embed_dim} dims)", flush=True)
 
     if args.fuse_csv:

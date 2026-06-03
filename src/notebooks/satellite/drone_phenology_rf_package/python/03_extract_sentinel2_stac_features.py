@@ -219,7 +219,7 @@ def extraction_geometries(crowns: gpd.GeoDataFrame, dst_crs: str, mode: str, buf
         geoms = gdf.geometry.centroid
     elif mode == "buffer":
         geoms = gdf.geometry.centroid.buffer(float(buffer_meters))
-    elif mode == "polygon":
+    elif mode in ("polygon", "fractional_crown"):
         geoms = gdf.geometry
     else:
         raise ValueError(f"Unknown geometry mode: {mode}")
@@ -231,6 +231,49 @@ def build_masks(geometries: list[dict], transform, shape: tuple[int, int], all_t
         geometry_mask([geom], out_shape=shape, transform=transform, invert=True, all_touched=all_touched)
         for geom in geometries
     ]
+
+
+def build_fractional_weights(geometries: list[dict], transform, shape: tuple[int, int]) -> list[np.ndarray]:
+    """For each polygon geometry, compute per-pixel weights = crown_area_in_pixel / total_crown_area.
+
+    Weights across all pixels sum to 1.0 (or slightly below if any fringe falls outside the raster).
+    Pixels that have no intersection are 0.  Uses exact Shapely polygon intersection.
+    """
+    from shapely.geometry import shape as shapely_shape, box as shapely_box
+
+    nrows, ncols = shape
+    weight_maps: list[np.ndarray] = []
+
+    for geom_dict in geometries:
+        geom = shapely_shape(geom_dict)
+        crown_area = geom.area
+        weights = np.zeros(shape, dtype=np.float32)
+
+        if crown_area <= 0:
+            weight_maps.append(weights)
+            continue
+
+        # Tight pixel bounding box around the crown (1-pixel margin)
+        minx, miny, maxx, maxy = geom.bounds
+        col_min = max(0, int((minx - transform.c) / transform.a) - 1)
+        col_max = min(ncols - 1, int((maxx - transform.c) / transform.a) + 1)
+        # transform.e is negative (y decreases downward)
+        row_min = max(0, int((maxy - transform.f) / transform.e) - 1)
+        row_max = min(nrows - 1, int((miny - transform.f) / transform.e) + 1)
+
+        for r in range(row_min, row_max + 1):
+            for c in range(col_min, col_max + 1):
+                px_left   = transform.c + c * transform.a
+                py_top    = transform.f + r * transform.e
+                px_right  = px_left + transform.a
+                py_bottom = py_top  + transform.e  # e < 0, so py_bottom < py_top
+                pixel_box = shapely_box(px_left, py_bottom, px_right, py_top)
+                isect = geom.intersection(pixel_box)
+                if not isect.is_empty:
+                    weights[r, c] = float(isect.area / crown_area)
+
+        weight_maps.append(weights)
+    return weight_maps
 
 
 def summarize_item(arrays: dict[str, np.ndarray], valid: np.ndarray, masks: list[np.ndarray], min_pixels: int) -> pd.DataFrame:
@@ -250,6 +293,33 @@ def summarize_item(arrays: dict[str, np.ndarray], valid: np.ndarray, masks: list
     return pd.DataFrame(rows)
 
 
+def summarize_item_fractional(arrays: dict[str, np.ndarray], valid: np.ndarray, weight_maps: list[np.ndarray]) -> pd.DataFrame:
+    """Area-weighted mean per crown using fractional pixel weights.
+
+    Only pixels that are both valid (SCL-clean) and have non-zero crown weight are used.
+    Falls back to np.nan when no valid weighted pixels exist.
+    """
+    rows = []
+    for weights in weight_maps:
+        use = (weights > 0) & valid
+        w = weights[use]
+        total_w = float(w.sum())
+        n = int(use.sum())
+        row = {"valid_pixels": n, "fractional_coverage": float(weights.sum())}
+        for band in ALL_BANDS:
+            if n >= 1 and total_w > 0:
+                vals = arrays[band][use]
+                finite = np.isfinite(vals)
+                if finite.any():
+                    row[band] = float(np.average(vals[finite], weights=w[finite]))
+                else:
+                    row[band] = np.nan
+            else:
+                row[band] = np.nan
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def add_amplitude_features(df: pd.DataFrame) -> pd.DataFrame:
     for band in ["NDVI", "GNDVI", "NDRE", "NDMI", "NBR", "EVI", "green_ratio", "red_ratio", "yellow_proxy"]:
         cols = [f"{season}_{band}" for season in ["winter", "premonsoon", "monsoon", "postmonsoon"]]
@@ -261,7 +331,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--crowns", default=str(DATA_DIR / "iitd_sv_crowns_master_wgs84.geojson"))
     ap.add_argument("--year", type=int, default=2025)
-    ap.add_argument("--geometry-mode", default="buffer", choices=["polygon", "point", "buffer"])
+    ap.add_argument("--geometry-mode", default="buffer", choices=["polygon", "point", "buffer", "fractional_crown"])
     ap.add_argument("--buffer-meters", type=float, default=20.0)
     ap.add_argument("--max-cloud", type=float, default=70.0)
     ap.add_argument("--max-items-per-season", type=int, default=12)
@@ -317,6 +387,7 @@ def main() -> None:
     dst_crs = f"EPSG:{epsg}"
     bounds = transform_bbox_wgs84(bbox, dst_crs)
     geoms = extraction_geometries(crowns, dst_crs, args.geometry_mode, args.buffer_meters)
+    use_fractional = args.geometry_mode == "fractional_crown"
 
     prop_cols = [c for c in crowns.columns if c != "geometry"]
     features = crowns[prop_cols].copy()
@@ -324,7 +395,8 @@ def main() -> None:
 
     for season_name, items in season_items.items():
         per_item = []
-        masks = None
+        weight_cache = None  # fractional
+        masks = None         # binary
         mask_signature = None
         for idx, item in enumerate(items, start=1):
             print(f"[{season_name} {idx:02d}/{len(items):02d}] {item.id} cloud={item.properties.get('eo:cloud_cover')}", flush=True)
@@ -335,17 +407,24 @@ def main() -> None:
             ):
                 arrays, valid, transform = read_item_stack(item, bounds, args.pad_pixels)
             signature = (transform.a, transform.b, transform.c, transform.d, transform.e, transform.f, valid.shape)
-            if masks is None or signature != mask_signature:
-                print(f"  Building masks for {len(geoms)} crowns over raster shape {valid.shape}", flush=True)
-                masks = build_masks(geoms, transform, valid.shape, args.all_touched)
+            if signature != mask_signature:
+                print(f"  Building {'fractional weights' if use_fractional else 'masks'} for {len(geoms)} crowns over raster shape {valid.shape}", flush=True)
+                if use_fractional:
+                    weight_cache = build_fractional_weights(geoms, transform, valid.shape)
+                else:
+                    masks = build_masks(geoms, transform, valid.shape, args.all_touched)
                 mask_signature = signature
-            stats = summarize_item(arrays, valid, masks, args.min_pixels)
+            if use_fractional:
+                stats = summarize_item_fractional(arrays, valid, weight_cache)
+            else:
+                stats = summarize_item(arrays, valid, masks, args.min_pixels)
             stats["item_id"] = item.id
             per_item.append(stats)
 
         stacked = pd.concat(per_item, keys=range(len(per_item)), names=["item_no", "row_no"]).reset_index(level=0)
         grouped = stacked.groupby(stacked.index)
         for band in ALL_BANDS:
+            # fractional mode: weighted mean already applied per item; take median across items
             features[f"{season_name}_{band}"] = grouped[band].median().to_numpy()
         cov = grouped["valid_pixels"].agg(["median", "max"]).rename(
             columns={"median": f"{season_name}_valid_pixels_median", "max": f"{season_name}_valid_pixels_max"}
@@ -353,6 +432,10 @@ def main() -> None:
         for col in cov.columns:
             features[col] = cov[col].to_numpy()
             coverage_cols.append(col)
+        if use_fractional and "fractional_coverage" in stacked.columns:
+            fc_col = f"{season_name}_fractional_coverage"
+            features[fc_col] = grouped["fractional_coverage"].median().to_numpy()
+            coverage_cols.append(fc_col)
 
     features = add_amplitude_features(features)
     features["stac_year"] = args.year

@@ -1,0 +1,47 @@
+[
+  {
+    "label": "label_acacia",
+    "model": "extra_trees_kbest",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar-apr-may/label_acacia_extra_trees_kbest.joblib",
+    "n_train": 362,
+    "n_features": 1152,
+    "random_balanced_accuracy": 0.95,
+    "random_macro_f1": 0.877939529675252
+  },
+  {
+    "label": "label_deciduous",
+    "model": "rf_balanced",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar-apr-may/label_deciduous_rf_balanced.joblib",
+    "n_train": 342,
+    "n_features": 1152,
+    "random_balanced_accuracy": 0.6794543904518329,
+    "random_macro_f1": 0.6429121725731896
+  },
+  {
+    "label": "label_esd",
+    "model": "svc_rbf",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar-apr-may/label_esd_svc_rbf.joblib",
+    "n_train": 342,
+    "n_features": 1152,
+    "random_balanced_accuracy": 0.5716775599128541,
+    "random_macro_f1": 0.5558265582655827
+  },
+  {
+    "label": "label_showy_flower",
+    "model": "extra_trees",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar-apr-may/label_showy_flower_extra_trees.joblib",
+    "n_train": 355,
+    "n_features": 1152,
+    "random_balanced_accuracy": 0.7066284779050737,
+    "random_macro_f1": 0.6310344827586207
+  },
+  {
+    "label": "label_yellow_strict",
+    "model": "svc_rbf",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar-apr-may/label_yellow_strict_svc_rbf.joblib",
+    "n_train": 355,
+    "n_features": 1152,
+    "random_balanced_accuracy": 0.6944444444444444,
+    "random_macro_f1": 0.6346460277714546
+  }
+]

@@ -1,0 +1,65 @@
+[
+  {
+    "label": "label_acacia",
+    "model": "rf_balanced",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar/label_acacia_rf_balanced.joblib",
+    "n_train": 362,
+    "n_features": 384,
+    "random_balanced_accuracy": 0.9722222222222222,
+    "random_macro_f1": 0.9275747508305648
+  },
+  {
+    "label": "label_deciduous",
+    "model": "rf_balanced",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar/label_deciduous_rf_balanced.joblib",
+    "n_train": 342,
+    "n_features": 384,
+    "random_balanced_accuracy": 0.6511082693947143,
+    "random_macro_f1": 0.5823668081093824
+  },
+  {
+    "label": "label_esd",
+    "model": "extra_trees_kbest",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar/label_esd_extra_trees_kbest.joblib",
+    "n_train": 342,
+    "n_features": 384,
+    "random_balanced_accuracy": 0.5465141612200436,
+    "random_macro_f1": 0.5401697414320136
+  },
+  {
+    "label": "label_red_showy",
+    "model": "rf_balanced",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar/label_red_showy_rf_balanced.joblib",
+    "n_train": 355,
+    "n_features": 384,
+    "random_balanced_accuracy": 0.5,
+    "random_macro_f1": 0.4928909952606635
+  },
+  {
+    "label": "label_showy_flower",
+    "model": "rf_balanced",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar/label_showy_flower_rf_balanced.joblib",
+    "n_train": 355,
+    "n_features": 384,
+    "random_balanced_accuracy": 0.7463175122749591,
+    "random_macro_f1": 0.6162028447742733
+  },
+  {
+    "label": "label_yellow_broad",
+    "model": "svc_rbf",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar/label_yellow_broad_svc_rbf.joblib",
+    "n_train": 302,
+    "n_features": 384,
+    "random_balanced_accuracy": 0.7574074074074073,
+    "random_macro_f1": 0.6587500000000001
+  },
+  {
+    "label": "label_yellow_strict",
+    "model": "logistic_l2",
+    "artifact": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/src/notebooks/satellite/embeddings/models/dino_default_labels_2025_mar/label_yellow_strict_logistic_l2.joblib",
+    "n_train": 355,
+    "n_features": 384,
+    "random_balanced_accuracy": 0.7367424242424243,
+    "random_macro_f1": 0.630184331797235
+  }
+]

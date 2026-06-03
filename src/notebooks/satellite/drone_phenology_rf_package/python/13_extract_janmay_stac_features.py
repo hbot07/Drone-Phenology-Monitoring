@@ -160,6 +160,8 @@ def main() -> None:
     ap.add_argument("--min-pixels", type=int, default=1)
     ap.add_argument("--all-touched", action=argparse.BooleanOptionalAction, default=True)
     ap.add_argument("--crowns", default=None)
+    ap.add_argument("--label-filter", default=None,
+                    help="Only extract crowns where this column value != -1 (e.g. label_acacia)")
     ap.add_argument("--out-csv", required=True)
     args = ap.parse_args()
 
@@ -174,6 +176,13 @@ def main() -> None:
     crowns_path = args.crowns or str(DATA_DIR / "iitd_sv_crowns_master_wgs84.geojson")
     crowns = gpd.read_file(crowns_path)
     crowns = crowns[crowns.geometry.notnull() & ~crowns.geometry.is_empty].reset_index(drop=True)
+
+    if args.label_filter:
+        if args.label_filter not in crowns.columns:
+            raise KeyError(f"--label-filter {args.label_filter!r} not found in crowns columns")
+        before = len(crowns)
+        crowns = crowns[crowns[args.label_filter].astype(int) != -1].reset_index(drop=True)
+        print(f"Label filter {args.label_filter}: kept {len(crowns)} of {before} crowns", flush=True)
 
     catalog = Client.open(_s2.STAC_API)
 

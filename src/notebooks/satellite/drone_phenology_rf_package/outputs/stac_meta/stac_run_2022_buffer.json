@@ -1,6 +1,6 @@
 {
-  "out_csv": "exports/stac_s2_features_2022_buffer10_items4_label_acacia.csv",
-  "n_crowns": 391,
+  "out_csv": "exports/sv_aug_s2_2022_buffer10_items4.csv",
+  "n_crowns": 2179,
   "year": 2022,
   "geometry_mode": "buffer",
   "buffer_meters": 10.0,
