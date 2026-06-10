@@ -99,37 +99,100 @@ If crowns already exist and you do not want to rerun detection, the pipeline als
 
 It is also worth remembering that later tracking does not need to use the same threshold layer for every dataset. The point of exporting multiple layers is that you can later choose a denser or cleaner crown set depending on the site.
 
-Current parameter listing to fill later.
+## Model choice
+
+By default, use:
+
+```text
+input/detectree_models/250312_flexi.pth
+```
+
+This is an RGB generalist model trained across both closed-canopy forests and urban environments. It is a good first choice when the site type is mixed or uncertain because it is less likely to over-detect trees in non-forested urban areas while still separating crowns in closed canopy. If the use case is clearly urban or clearly closed-canopy forest, use the more specialised model for that site type because it should usually be more accurate in its target setting.
+
+`250312_flexi.pth` details:
+
+- Training sites: Harapan, Danum, Paracou, Cambridge, and Sepilok
+- Appropriate tile size: about `100 m`, with some tolerance
+- Base learning rate: `0.001`
+- Weight decay: `0.001`
+- Momentum: `0.9`
+- Batch size per image: `1024`
+- Gamma: `0.1`
+- Backbone freeze at: `2` until convergence, then `0` for 200 steps
+- Warmup iterations: `120`
+- Augmentations: random flipping, resize, rotation, lighting, brightness, contrast, and saturation
 
 ## Urban areas
 
+For IITD campus or other urban tree-mapping runs, start with the default `250312_flexi.pth`. If the campus crowns need a more urban-specific model, use:
+
+```text
+input/detectree_models/urban_trees_Cambridge20230630.pth
+```
+
+This model was trained for mapping urban trees in Cambridge, UK.
+
 | Parameter | Value |
 |---|---|
-| Detectree2 model path | TODO |
-| Device | TODO |
-| Threads | TODO |
-| Tile width | TODO |
-| Tile height | TODO |
-| Tile buffer | TODO |
-| Confidence thresholds | TODO |
-| Fixed IoU | TODO |
-| Simplify tolerance | TODO |
+| Detectree2 model path | Default: `input/detectree_models/250312_flexi.pth`; urban-specific option: `input/detectree_models/urban_trees_Cambridge20230630.pth` |
+| Device | `cpu`, or `cuda` if available |
+| Threads | `6` for the documented examples; otherwise set based on available CPU |
+| Tile width | `25` |
+| Tile height | `25` |
+| Tile buffer | `15` |
+| Confidence thresholds | `0.15` to `0.65` in steps of `0.05` |
+| Fixed IoU | `0.7` |
+| Simplify tolerance | `0.3` |
 
-When these values are finalized, this section can be updated with the exact model path, thresholds, device, and any site-specific overrides actually used in those runs.
+`urban_trees_Cambridge20230630.pth` details:
+
+- Training site: Cambridge, UK
+- Appropriate tile size: about `200 m`
+- Learning rate: `0.01709`
+- Data loader workers: `6`
+- Gamma: `0.08866`
+- Backbone freeze at: `2`
+- Warmup iterations: `184`
+- Batch size per image: `623`
+- Weight decay: `0.006519`
+- AP50: `62.0`
 
 ## Sanjay Van
 
+For Sanjay Van, start with the default `250312_flexi.pth`. If the site should be treated as tropical closed canopy, use:
+
+```text
+input/detectree_models/230717_base.pth
+```
+
+This model maps trees in tropical closed-canopy systems from aerial RGB imagery and is the base model from "Harnessing temporal and spectral dimensionality to map and identify species of individual trees in diverse tropical forests."
+
 | Parameter | Value |
 |---|---|
-| Detectree2 model path | TODO |
-| Device | TODO |
-| Threads | TODO |
-| Tile width | TODO |
-| Tile height | TODO |
-| Tile buffer | TODO |
-| Confidence thresholds | TODO |
-| Fixed IoU | TODO |
-| Simplify tolerance | TODO |
+| Detectree2 model path | Default: `input/detectree_models/250312_flexi.pth`; closed-canopy option: `input/detectree_models/230717_base.pth` |
+| Device | `cpu`, or `cuda` if available |
+| Threads | `6` for the documented examples; otherwise set based on available CPU |
+| Tile width | `25` |
+| Tile height | `25` |
+| Tile buffer | `15` |
+| Confidence thresholds | `0.15` to `0.65` in steps of `0.05` |
+| Fixed IoU | `0.7` |
+| Simplify tolerance | `0.3` |
+
+`230717_base.pth` details:
+
+- Training sites: Danum, Sepilok, and Paracou
+- Appropriate tile size: about `100 m`, with some tolerance
+- Most suitable for aeroplane-collected RGB data at about `1 m` resolution
+- Initial model: `COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml`
+- Base learning rate: `0.0003389`
+- Weight decay: `0.001`
+- Momentum: `0.9`
+- Batch size per image: `1024`
+- Gamma: `0.1`
+- Backbone freeze at: `3`
+- Warmup iterations: `120`
+- Augmentations: random flipping, resize, rotation, lighting, brightness, contrast, and saturation
 
 Troubleshooting:
 
