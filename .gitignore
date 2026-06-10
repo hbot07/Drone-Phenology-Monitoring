@@ -1,5 +1,6 @@
 input/
 output/
+misc/ODM/*.tar
 .venv/
 .codebuddy/
 .vscode/
