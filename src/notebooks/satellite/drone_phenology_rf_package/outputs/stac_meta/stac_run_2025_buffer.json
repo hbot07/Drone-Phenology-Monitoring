@@ -1,6 +1,6 @@
 {
-  "out_csv": "exports/geom_s2_2025_buffer10_items4_label_acacia.csv",
-  "n_crowns": 391,
+  "out_csv": "exports/sv_aug_s2_2025_buffer10_items4.csv",
+  "n_crowns": 2179,
   "year": 2025,
   "geometry_mode": "buffer",
   "buffer_meters": 10.0,

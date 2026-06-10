@@ -1,0 +1,5 @@
+regime,model,crown_bal_acc_mean,crown_bal_acc_std,crown_f1_mean,crown_f1_std,pixel_bal_acc_mean,pixel_bal_acc_std,pixel_f1_mean,pixel_f1_std,n_runs
+augmented,extra_trees,0.6697,0.1632,0.5559,0.2867,0.6035,0.1027,0.3039,0.2835,15
+augmented,rf_balanced,0.7004,0.1485,0.5431,0.2928,0.5018,0.0068,0.0067,0.0258,15
+baseline,extra_trees,0.7009,0.1433,0.707,0.167,0.6861,0.1732,0.6011,0.257,15
+baseline,rf_balanced,0.6364,0.153,0.5951,0.2012,0.5685,0.1122,0.1904,0.2687,15

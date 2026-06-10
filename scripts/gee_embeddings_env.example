@@ -1,0 +1,5 @@
+GOOGLE_CLOUD_PROJECT_ID=your-google-cloud-project-id
+EE_CROWNS_ASSET=projects/your-google-cloud-project-id/assets/drone_phenology/iitd_sv_crowns_master
+EE_EMBEDDING_YEAR=2024
+EE_BUFFER_METERS=20
+EE_DRIVE_FOLDER=drone_phenology_gee_exports
