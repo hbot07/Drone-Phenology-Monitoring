@@ -1,0 +1,9 @@
+eval_label,holdout,y_true,count,mean
+label_acacia_species_or_clustering,SV_S1,0,479,0.6283924843423799
+label_acacia_species_or_clustering,SV_S1,1,177,0.6836158192090396
+label_acacia_species_or_clustering,SV_S2,0,433,0.5311778290993071
+label_acacia_species_or_clustering,SV_S2,1,284,0.7359154929577465
+label_acacia_species_or_clustering,SV_S3,0,289,0.370242214532872
+label_acacia_species_or_clustering,SV_S3,1,339,0.7876106194690266
+label_acacia_species_or_clustering,SV_S4,0,66,0.9090909090909091
+label_acacia_species_or_clustering,SV_S4,1,112,0.3482142857142857

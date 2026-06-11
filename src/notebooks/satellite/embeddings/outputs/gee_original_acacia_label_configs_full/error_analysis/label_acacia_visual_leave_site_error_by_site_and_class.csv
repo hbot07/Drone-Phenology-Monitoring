@@ -1,0 +1,9 @@
+eval_label,holdout,y_true,count,mean
+label_acacia_visual,SV_S1,0,86,0.8255813953488372
+label_acacia_visual,SV_S1,1,47,0.40425531914893614
+label_acacia_visual,SV_S2,0,76,0.6447368421052632
+label_acacia_visual,SV_S2,1,62,0.7096774193548387
+label_acacia_visual,SV_S3,0,29,0.5862068965517241
+label_acacia_visual,SV_S3,1,64,0.546875
+label_acacia_visual,SV_S4,0,16,0.625
+label_acacia_visual,SV_S4,1,20,1.0

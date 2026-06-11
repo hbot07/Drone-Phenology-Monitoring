@@ -1,0 +1,65 @@
+[
+  {
+    "label": "label_acacia_all_priority",
+    "model": "svc_rbf",
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_all_priority_svc_rbf.joblib",
+    "n_train": 2462,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.7209558017967259,
+    "random_macro_f1": 0.7054823867963185
+  },
+  {
+    "label": "label_acacia_clustering",
+    "model": "hist_gradient",
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_clustering_hist_gradient.joblib",
+    "n_train": 2179,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.6959490740740741,
+    "random_macro_f1": 0.6894007234888133
+  },
+  {
+    "label": "label_acacia_species_or_clustering",
+    "model": "svc_rbf",
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_species_or_clustering_svc_rbf.joblib",
+    "n_train": 2462,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.7251157679930932,
+    "random_macro_f1": 0.7014196752909778
+  },
+  {
+    "label": "label_acacia_species",
+    "model": "extra_trees",
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_species_extra_trees.joblib",
+    "n_train": 391,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.9341836734693878,
+    "random_macro_f1": 0.8804457953394125
+  },
+  {
+    "label": "label_acacia_visual_or_clustering",
+    "model": "svc_rbf",
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_visual_or_clustering_svc_rbf.joblib",
+    "n_train": 2179,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.6868613138686132,
+    "random_macro_f1": 0.6725869087166051
+  },
+  {
+    "label": "label_acacia_visual_or_species",
+    "model": "logistic_l2",
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_visual_or_species_logistic_l2.joblib",
+    "n_train": 767,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.8370903415987515,
+    "random_macro_f1": 0.8087323545449039
+  },
+  {
+    "label": "label_acacia_visual",
+    "model": "rf_balanced",
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_visual_rf_balanced.joblib",
+    "n_train": 400,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.7761401557285873,
+    "random_macro_f1": 0.7749843739148552
+  }
+]

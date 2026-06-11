@@ -39,7 +39,10 @@ NON_FEATURE_COLS = {
 }
 LABEL_COLS = {
     'label_esd', 'label_deciduous', 'label_acacia', 'label_yellow_strict', 'label_yellow_broad',
-    'label_red_showy', 'label_showy_flower'
+    'label_red_showy', 'label_showy_flower', 'label_acacia_visual', 'label_acacia_clustering',
+    'label_acacia_species', 'label_acacia_visual_or_species',
+    'label_acacia_visual_or_clustering', 'label_acacia_species_or_clustering',
+    'label_acacia_all_priority'
 }
 
 
@@ -48,6 +51,8 @@ def infer_feature_cols(df: pd.DataFrame, label: str) -> list[str]:
     cols = []
     for c in df.columns:
         if c in drop:
+            continue
+        if c.startswith('label_'):
             continue
         if pd.api.types.is_numeric_dtype(df[c]):
             cols.append(c)

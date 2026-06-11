@@ -1,0 +1,5 @@
+eval_label,crown_area_quartile,count,mean
+label_acacia_visual,"(7.42, 16.214]",100,0.69
+label_acacia_visual,"(16.214, 22.646]",100,0.56
+label_acacia_visual,"(22.646, 34.003]",100,0.71
+label_acacia_visual,"(34.003, 128.99]",100,0.69

@@ -1,0 +1,9 @@
+eval_label,holdout,y_true,count,mean
+label_acacia_visual_or_species,SV_S1,0,102,0.9215686274509803
+label_acacia_visual_or_species,SV_S1,1,58,0.27586206896551724
+label_acacia_visual_or_species,SV_S2,0,85,0.24705882352941178
+label_acacia_visual_or_species,SV_S2,1,68,0.8970588235294118
+label_acacia_visual_or_species,SV_S3,0,37,0.3783783783783784
+label_acacia_visual_or_species,SV_S3,1,75,0.84
+label_acacia_visual_or_species,SV_S4,0,20,0.4
+label_acacia_visual_or_species,SV_S4,1,39,1.0

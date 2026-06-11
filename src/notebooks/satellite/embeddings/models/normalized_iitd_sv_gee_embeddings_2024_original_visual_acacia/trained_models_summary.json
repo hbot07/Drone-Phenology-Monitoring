@@ -1,0 +1,11 @@
+[
+  {
+    "label": "label_acacia_visual",
+    "model": "rf_balanced",
+    "artifact": "src/notebooks/satellite/embeddings/models/normalized_iitd_sv_gee_embeddings_2024_original_visual_acacia/label_acacia_visual_rf_balanced.joblib",
+    "n_train": 400,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.7761401557285873,
+    "random_macro_f1": 0.7749843739148552
+  }
+]

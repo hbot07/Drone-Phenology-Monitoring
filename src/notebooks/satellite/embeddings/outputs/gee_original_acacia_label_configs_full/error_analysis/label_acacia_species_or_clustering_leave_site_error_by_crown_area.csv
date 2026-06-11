@@ -1,0 +1,5 @@
+eval_label,crown_area_quartile,count,mean
+label_acacia_species_or_clustering,"(2.02, 16.11]",545,0.5798165137614679
+label_acacia_species_or_clustering,"(16.11, 22.287]",545,0.6330275229357798
+label_acacia_species_or_clustering,"(22.287, 34.712]",544,0.6231617647058824
+label_acacia_species_or_clustering,"(34.712, 423.807]",545,0.6128440366972477
