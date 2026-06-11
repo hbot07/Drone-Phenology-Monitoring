@@ -44,15 +44,17 @@
 
 ### 3.3 Orthomosaic Generation
 
-### 3.4 Crown Annotation and Field-Verified Labels
+### 3.4 Crowns Generation for every orthomosaic
 
-### 3.5 Satellite and Embedding Data
+### 3.5 Crown Annotation and Field-Verified Labels
 
-#### 3.5.1 Sentinel-2 Seasonal and Harmonic Data
+### 3.6 Satellite and Embedding Data
 
-#### 3.5.2 Google Earth Engine Embedding Data
+#### 3.6.1 Sentinel-2 Seasonal and Harmonic Data
 
-#### 3.5.3 Crown Size and Satellite Pixel Scale
+#### 3.6.2 Google Earth Engine Embedding Data
+
+#### 3.6.3 Crown Size and Satellite Pixel Scale
 
 ## 4. Methodology
 
