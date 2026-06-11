@@ -48,6 +48,12 @@
 
 ### 3.5 Satellite and Embedding Data
 
+#### 3.5.1 Sentinel-2 Seasonal and Harmonic Data
+
+#### 3.5.2 Google Earth Engine Embedding Data
+
+#### 3.5.3 Crown Size and Satellite Pixel Scale
+
 ## 4. Methodology
 
 ### 4.1 Workflow Overview
@@ -124,6 +130,8 @@
 
 #### 4.8.3 Per-Date Phenophase Assignment
 
+#### 4.8.4 Flowering and Color-Trait Indices
+
 ### 4.9 Field Label Integration
 
 #### 4.9.1 Crown IDs and Field-Verified Labels
@@ -134,13 +142,27 @@
 
 ### 4.10 Cross-Scale Species and Trait Inference
 
-#### 4.10.1 Google Earth Engine Embedding Features
+#### 4.10.1 Sentinel-2 Seasonal and Harmonic Features
 
-#### 4.10.2 Crown-Level Training Units
+#### 4.10.2 Google Earth Engine Embedding Features
 
-#### 4.10.3 Classification Tasks
+#### 4.10.3 Crown Geometry Sampling Strategies
 
-#### 4.10.4 Validation Strategy
+#### 4.10.4 Crown Size and Satellite Pixel-Scale Analysis
+
+#### 4.10.5 Crown-Level Training Units
+
+#### 4.10.6 Classification Tasks
+
+#### 4.10.7 Validation Strategy
+
+### 4.11 Interactive Visualization and Quality Assurance
+
+#### 4.11.1 Tracking Viewer
+
+#### 4.11.2 Crown Crop Review
+
+#### 4.11.3 Google Earth and Field Review Exports
 
 ## 5. Experiments and Evaluation
 
@@ -164,6 +186,8 @@
 
 ### 5.7 Cross-Scale Species and Trait Classification
 
+### 5.8 Visualization-Based Quality Assurance
+
 ## 6. Results
 
 ### 6.1 Crown Detection Results
@@ -180,6 +204,12 @@
 
 ### 6.7 Google Earth Engine Embedding Classification Results
 
+### 6.8 Sentinel-2 Seasonal Baseline Results
+
+### 6.9 Crown Size and Scale-Mismatch Results
+
+### 6.10 Interactive Visualization and Error Analysis
+
 ## 7. Discussion
 
 ### 7.1 Tree Identity as the Core Unit of UAV Phenology
@@ -194,9 +224,11 @@
 
 ### 7.6 Linking Drone-Scale Crowns to Field and Satellite Data
 
-### 7.7 Operational Considerations
+### 7.7 Satellite Scale Mismatch and Cross-Site Generalization
 
-### 7.8 Limitations and Future Work
+### 7.8 Operational Considerations
+
+### 7.9 Limitations and Future Work
 
 ## 8. Conclusion
 
@@ -211,4 +243,3 @@
 ## Appendix C. Additional Phenology Visualizations
 
 ## Appendix D. Additional Species and Trait Classification Results
-

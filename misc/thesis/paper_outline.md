@@ -345,14 +345,17 @@ Write:
 
 - Satellite/species work is still in progress and should currently be represented by headings and planned result slots.
 - The most trusted current direction is the **Google Earth Engine embeddings** experiment.
-- Other Sentinel-2/Sentinel-1, random-forest, and visual-embedding experiments can remain in the method/result hierarchy, but detailed claims should wait until the final results are selected.
+- Sentinel-2 seasonal and harmonic features should remain as the main interpretable satellite baseline, while Google Earth Engine embeddings should be treated as the strongest current feature representation.
+- Other Sentinel-1, random-forest, pixel-level, and visual-embedding experiments can remain in the method/result hierarchy, but detailed claims should wait until the final results are selected.
 - Features will be linked to field-verified crown labels to test species/trait inference.
+- The weekly meetings show that crown size versus satellite pixel size is not a side detail. It should be reported explicitly because many crowns are sub-pixel at Sentinel-2 resolution.
 
 Need from user:
 
 - final Google Earth Engine embedding workflow details;
 - final classifier tasks and validation strategy;
 - which non-GEE satellite experiments should remain as secondary comparisons.
+- final crown-area filtering policy, if any, for satellite classifier tables.
 
 ---
 
@@ -638,10 +641,14 @@ Make this a full method subsection, not appendix.
 Write:
 
 - Drone-derived consensus crowns provide geospatial training units.
-- Sentinel-2 features are extracted for crown locations or buffered crown geometries.
+- Sentinel-2 features are extracted for crown locations or buffered crown geometries as an interpretable seasonal baseline.
+- Sentinel-2 seasonal features include raw bands, vegetation indices, seasonal medians/amplitudes, and harmonic phenology coefficients where used.
 - Sentinel-1 features provide complementary radar/time-series information.
 - Temporal features are computed across seasonal windows.
-- DINO/embedding features summarize visual crown appearance.
+- Google Earth Engine satellite embedding features provide a learned remote-sensing representation, currently the most trusted direction for the satellite/species section.
+- Compare original crown geometry extraction with centroid-buffer extraction when that choice affects classifier behavior.
+- Report crown area distributions against the 10 m Sentinel-2 pixel footprint to make scale mismatch explicit.
+- DINO/visual crown embeddings can be described as secondary/exploratory if they are not part of the final classifier claim.
 
 Potential extraction strategies:
 
@@ -658,6 +665,7 @@ Need from user/code:
 - which exact features are final;
 - whether GEE or STAC is the final extraction source;
 - which model family is final: random forest, threshold sweeps, pixel classifier, embeddings.
+- whether original crown polygons or 20 m centroid buffers are the final extraction geometry for each task.
 
 ### 4.14 Species and Phenological Trait Classifiers
 
@@ -954,6 +962,7 @@ Report:
 - how crown geometries/points are linked to embedding features;
 - cloud/missing-data handling if relevant;
 - final feature dimensionality.
+- original crown geometry versus buffered centroid extraction, if both are compared.
 
 ### 6.7.2 Classification Tasks
 
@@ -970,6 +979,7 @@ Current stance:
 
 - Keep these as headings/placeholders until the final GEE embedding results are chosen.
 - Do not over-commit to all tasks being paper-ready.
+- The weekly meetings indicate a usable label inventory for this section: clean species labels, ambiguous labels, ESD categories, Acacia labels, and flowering-color/showiness labels. Exact final counts should be regenerated from the current label table before writing the final paper.
 
 ### 6.7.3 Validation Strategy
 
@@ -977,6 +987,7 @@ Prioritize:
 
 - leave-area-out validation as stronger evidence of spatial generalization;
 - random split as an easier baseline, clearly labeled.
+- leave-species-out validation can be reported when the question is trait generalization beyond seen species.
 
 ### 6.7.4 Model Performance
 
@@ -988,6 +999,7 @@ Report:
 - confusion matrix;
 - model comparison only if multiple feature sets are mature enough;
 - feature importance only for interpretable models where applicable.
+- Sentinel-2 seasonal/harmonic baselines should be separated from GEE embedding results so the paper does not mix interpretable baselines with the stronger learned representation.
 
 ### 6.7.5 Interpretation
 
@@ -1000,6 +1012,17 @@ Avoid:
 - claiming operational species mapping if validation is weak;
 - claiming satellite pixels identify individual crowns directly;
 - hiding spatial leakage if random splits perform much better than leave-area-out.
+
+### 6.7.6 Crown Size and Satellite Pixel Scale
+
+Report:
+
+- crown area distribution by site;
+- fraction of crowns smaller than, comparable to, or larger than a 10 m Sentinel-2 pixel;
+- effect of area filtering on retained label count;
+- why sub-pixel crowns make satellite trait inference harder, especially in dense or mixed canopies.
+
+This can be a compact but important result because it explains why some satellite classifiers generalize poorly even when random-split performance looks acceptable.
 
 ---
 
@@ -1053,6 +1076,8 @@ Discuss:
 - satellite features test whether high-resolution crown labels can inform broader mapping;
 - scale mismatch remains a central limitation;
 - strongest evidence should come from leave-area-out validation.
+- GEE embeddings should be framed as a stronger learned representation, while Sentinel-2 seasonal/harmonic features provide an interpretable baseline.
+- crown-area analysis should be used to explain why some sites/tasks are more realistic for satellite inference than others.
 
 ### 7.6 Operational Lessons
 
