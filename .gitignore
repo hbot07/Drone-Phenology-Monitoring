@@ -6,3 +6,4 @@ misc/thesis/weekly meetings/originals/
 .codebuddy/
 .vscode/
 __pycache__/
+.DS_Store
