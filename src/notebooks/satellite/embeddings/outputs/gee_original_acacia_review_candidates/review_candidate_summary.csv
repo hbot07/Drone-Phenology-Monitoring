@@ -1,0 +1,12 @@
+,value
+total_crowns,3212
+visual_labeled,400
+unlabeled_by_visual,2812
+model_predicted_acacia_all,1112
+model_predicted_non_acacia_all,2100
+unlabeled_predicted_acacia,915
+unlabeled_predicted_non_acacia,1897
+unlabeled_uncertain_40_60,1347
+unlabeled_model_cluster_disagreements,683
+high_confidence_unlabeled_0_80_or_more,407
+high_confidence_unlabeled_0_90_or_more,91

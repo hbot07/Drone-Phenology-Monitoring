@@ -256,3 +256,131 @@ Scripts:
 - `src/notebooks/satellite/embeddings/prepare_acacia_label_configs.py`
 - `src/notebooks/satellite/embeddings/analyze_acacia_config_errors.py`
 - `src/notebooks/satellite/embeddings/visual_label_quality_experiments.py`
+
+## Slide 13: Next Practical Output - Annotation Review Queue
+
+After training the visual-only classifier, all 3,212 crowns were scored with Acacia probability.
+
+Purpose:
+
+- Use the classifier as an annotation assistant, not as final ground truth.
+- Identify high-confidence unlabeled crowns for rapid verification.
+- Identify uncertain crowns where new manual labels are most valuable.
+- Identify places where model predictions disagree with clustering labels.
+
+Output files:
+
+- `src/notebooks/satellite/embeddings/outputs/gee_original_acacia_review_candidates/all_crowns_scored.csv`
+- `src/notebooks/satellite/embeddings/outputs/gee_original_acacia_review_candidates/high_confidence_unlabeled.csv`
+- `src/notebooks/satellite/embeddings/outputs/gee_original_acacia_review_candidates/uncertain_unlabeled.csv`
+- `src/notebooks/satellite/embeddings/outputs/gee_original_acacia_review_candidates/model_cluster_disagreements.csv`
+
+## Slide 14: Review Queue Results
+
+Summary from the visual-only model:
+
+| Quantity | Count |
+|---|---:|
+| Total crowns scored | 3,212 |
+| Already visually labelled | 400 |
+| Unlabelled by visual annotation | 2,812 |
+| Unlabelled predicted Acacia | 915 |
+| Unlabelled predicted non-Acacia | 1,897 |
+| Unlabelled uncertain, probability 0.4-0.6 | 1,347 |
+| Model-vs-clustering disagreements | 683 |
+| High-confidence unlabelled, confidence >= 0.80 | 407 |
+| High-confidence unlabelled, confidence >= 0.90 | 91 |
+
+Interpretation:
+
+- The model produces a useful triage list even though it is not final.
+- The 683 model-vs-clustering disagreements are good candidates for manual review because they may reveal clustering label errors or model failure modes.
+- The 1,347 uncertain crowns are ideal targets for additional annotation because they sit near the decision boundary.
+
+## Slide 15: Predicted Acacia Distribution in Unlabelled Crowns
+
+Unlabelled predictions by site:
+
+| Site | Predicted non-Acacia | Predicted Acacia |
+|---|---:|---:|
+| A1 | 158 | 0 |
+| A2 | 147 | 6 |
+| A3 | 184 | 3 |
+| A4 | 166 | 1 |
+| A5 | 201 | 0 |
+| MITTAL | 34 | 2 |
+| SIT | 119 | 12 |
+| SV_S1 | 359 | 164 |
+| SV_S2 | 341 | 238 |
+| SV_S3 | 120 | 415 |
+| SV_S4 | 68 | 74 |
+
+Observation:
+
+- The classifier predicts most Acacia candidates inside the Sanjay Van sub-sites, especially SV_S3.
+- This may reflect real site composition, but it may also reflect site/context learning.
+- These predictions should be used to prioritize annotation, not as final ecological counts.
+
+## Slide 16: Finer-Than-10 m Satellite Data Options
+
+Why needed:
+
+- Many crowns are smaller than a 10 m pixel.
+- GEE embeddings are powerful but may encode surrounding canopy/context instead of the individual crown.
+- Finer imagery should better align with crown polygons.
+
+Candidate data sources:
+
+| Source | Approx. resolution | Access | Notes |
+|---|---:|---|---|
+| Planet NICFI basemaps | about 4.77 m | Available in Earth Engine for eligible tropical regions/non-commercial use | Most practical first test because workflow is similar to GEE embeddings |
+| PlanetScope | about 3-5 m class | Commercial/research access | Daily-to-near-daily optical imagery; useful if we can get access |
+| Planet SkySat | sub-meter class | Commercial/research access | Much closer to crown scale; may be expensive |
+| Maxar WorldView / Legion | about 30 cm class | Commercial | Very high resolution; best crown-scale satellite option but likely costly |
+| Airbus Pleiades Neo | about 30 cm class | Commercial | Similar very-high-resolution option |
+| Indian high-resolution optical products | sub-meter to few-meter class depending product | Check NRSC/Bhuvan availability | Potentially relevant because sites are in Delhi, but access/licensing needs checking |
+
+Recommended order:
+
+1. Try Planet NICFI first because it can be processed in Earth Engine and is finer than 10 m.
+2. If NICFI coverage/access is insufficient, look for institutional access to PlanetScope or SkySat.
+3. For true crown-scale validation, use drone imagery or commercial sub-meter satellite imagery.
+
+Sources:
+
+- Google Earth Engine Planet NICFI dataset: `https://developers.google.com/earth-engine/datasets/catalog/projects_planet-nicfi_assets_basemaps_asia`
+- Planet SkySat documentation: `https://docs.planet.com/data/imagery/skysat/`
+- PlanetScope documentation: `https://docs.planet.com/data/imagery/planetscope/`
+- Maxar/Vantor constellation information: `https://vantor.com/company/constellation/`
+- Airbus Pleiades Neo information: `https://www.intelligence-airbusds.com/imagery/constellation/pleiades-neo/`
+
+## Slide 17: New Finer-Resolution Extraction Path
+
+Added script:
+
+- `scripts/extract_gee_nicfi_features.py`
+
+What it does:
+
+- Uses Planet NICFI basemaps from Earth Engine.
+- Extracts median and standard deviation band features over original crown polygons.
+- Exports one row per crown to Google Drive.
+- Keeps the same crown-level classifier workflow as the GEE embedding experiments.
+
+Example command:
+
+```bash
+python3 scripts/extract_gee_nicfi_features.py \
+  --project adept-vigil-418410 \
+  --crowns-asset projects/adept-vigil-418410/assets/iitd_sv_crowns_master_shapefile_for_gee \
+  --region asia \
+  --start-date 2024-01-01 \
+  --end-date 2025-01-01 \
+  --geometry-mode polygon
+```
+
+Expected next result:
+
+- Compare NICFI crown features against GEE embeddings on the same visual labels.
+- If NICFI improves leave-site-out performance, it suggests spatial resolution is a major limiting factor.
+- If NICFI does not improve much, then label quality/site shift may be the dominant limitation.

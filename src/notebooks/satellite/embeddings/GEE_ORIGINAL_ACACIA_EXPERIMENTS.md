@@ -26,6 +26,7 @@ Scripts:
 - `prepare_acacia_label_configs.py`
 - `analyze_acacia_config_errors.py`
 - `visual_label_quality_experiments.py`
+- `rank_acacia_review_candidates.py`
 - `summarize_results.py`
 - `train_best_classifiers.py`
 
@@ -33,6 +34,7 @@ Outputs:
 
 - `outputs/gee_original_acacia_label_configs_full/`
 - `outputs/gee_original_acacia_visual_quality/`
+- `outputs/gee_original_acacia_review_candidates/`
 
 Models:
 
@@ -89,6 +91,54 @@ Performance is limited by:
 - Noise in clustering-based labels
 
 Adding clustering labels increases the number of training rows but generally does not improve leave-site-out generalization.
+
+## Annotation Review Queue
+
+The visual-only classifier was used to score all 3,212 crowns and create ranked manual-review queues.
+
+Output folder:
+
+- `outputs/gee_original_acacia_review_candidates/`
+
+Summary:
+
+| Quantity | Count |
+|---|---:|
+| Total crowns scored | 3,212 |
+| Already visually labelled | 400 |
+| Unlabelled by visual annotation | 2,812 |
+| Unlabelled predicted Acacia | 915 |
+| Unlabelled predicted non-Acacia | 1,897 |
+| Unlabelled uncertain, probability 0.4-0.6 | 1,347 |
+| Model-vs-clustering disagreements | 683 |
+| High-confidence unlabelled, confidence >= 0.80 | 407 |
+| High-confidence unlabelled, confidence >= 0.90 | 91 |
+
+Regenerate:
+
+```bash
+python3 src/notebooks/satellite/embeddings/rank_acacia_review_candidates.py
+```
+
+## Finer-Resolution Next Step
+
+For imagery finer than 10 m, the first practical next test is Planet NICFI basemaps in Earth Engine because it keeps a similar export workflow while improving nominal spatial resolution.
+
+Script:
+
+- `scripts/extract_gee_nicfi_features.py`
+
+Example:
+
+```bash
+python3 scripts/extract_gee_nicfi_features.py \
+  --project adept-vigil-418410 \
+  --crowns-asset projects/adept-vigil-418410/assets/iitd_sv_crowns_master_shapefile_for_gee \
+  --region asia \
+  --start-date 2024-01-01 \
+  --end-date 2025-01-01 \
+  --geometry-mode polygon
+```
 
 ## Regenerating Results
 
