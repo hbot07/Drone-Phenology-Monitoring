@@ -208,18 +208,18 @@
 
 ## Appendix C. Additional Phenology Visualizations
 
-## Appendix D. Satellite, Species, and Trait Classification Explorations
+## Appendix D. Dataset and Date Inventory
 
-### D.1 Motivation for a Separate Short Paper
+### D.1 UAV Orthomosaic Date Inventory
 
-### D.2 Field Label Inventory
+### D.2 LHC Dataset
 
-### D.3 Sentinel-2 Seasonal and Harmonic Features
+### D.3 SIT Dataset
 
-### D.4 Google Earth Engine Embedding Features
+### D.4 Additional Site Datasets
 
-### D.5 Crown Size and Satellite Pixel-Scale Analysis
+### D.5 Field and Crown Label Dataset
 
-### D.6 Candidate Classification Tasks
+### D.6 Pipeline Input and Output Dataset Manifest
 
-### D.7 Validation Strategy for Future Work
+### D.7 Dataset Versioning and Reproducibility Notes

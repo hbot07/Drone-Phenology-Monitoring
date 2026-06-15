@@ -4,7 +4,7 @@ Working framing:
 
 > Repeated UAV RGB orthomosaics can support individual-tree phenology monitoring if per-date crown detections are converted into temporally stable tree identities through explicit alignment, graph-based temporal association, gap filling, and consensus crown construction.
 
-This outline treats the **tree-identity-preserving temporal pipeline** as the central contribution. Satellite/species experiments should now be kept in an appendix and framed as exploratory follow-on work for a separate short paper once that workflow and its results are complete.
+This outline treats the **tree-identity-preserving temporal pipeline** as the central contribution. Satellite/species experiments should be held for a separate short paper once that workflow and its results are complete. The appendix for this paper should instead document the datasets, dates, labels, and reproducibility metadata behind the UAV tracking/phenology analysis.
 
 ---
 
@@ -14,7 +14,7 @@ This outline treats the **tree-identity-preserving temporal pipeline** as the ce
 
 **Tracking Individual Tree Phenology from Repeated UAV RGB Orthomosaics Using Graph-Based Crown Association and Consensus Crowns**
 
-Updated working title after moving satellite/species work to the appendix.
+Updated working title after moving satellite/species work out of this paper's main structure.
 
 Why this works:
 
@@ -337,21 +337,23 @@ Need from user:
 - details of field verification protocol and who performed it;
 - how QField annotations were joined back to crown geometries.
 
-### 3.5 Deferred Satellite and Embedding Data
+### 3.5 Dataset Inventory Notes
 
-Keep this out of the main data section unless a one-paragraph scope note is useful.
+Keep this focused on UAV/field data, not satellite classifier data.
 
 Write:
 
-- Satellite/species data and Google Earth Engine embedding experiments are being developed as follow-on work.
-- They should be described in Appendix D as exploratory context and as material for a separate short paper.
-- The main paper should not depend on satellite classifier results.
+- The main text should summarize LHC and SIT at a high level.
+- Appendix D should carry the full orthomosaic/date inventory and dataset manifests.
+- The appendix can include dataset versioning and reproducibility metadata.
+- Satellite/species classifier datasets are deferred to the future short paper, not documented in detail here.
 
-Need from user later for Appendix D or the short paper:
+Need from user later:
 
-- final Google Earth Engine embedding workflow details;
-- final classifier tasks and validation strategy;
-- final crown-area filtering policy, if any, for satellite classifier tables.
+- final LHC orthomosaic names and dates;
+- final SIT orthomosaic names and dates;
+- final field-label table schema;
+- final output folders that correspond to thesis results.
 
 ---
 
@@ -833,7 +835,32 @@ Interpretation:
 
 ## 6.4 Consensus Crown Evaluation
 
-Evaluate whether consensus crowns improve sampling stability.
+Evaluate whether consensus crowns improve sampling stability and spatially correspond to hand-annotated crown polygons.
+
+Primary external evaluation:
+
+- Use the hand-annotated polygon ground truth for the SIT area.
+- Compare final SIT consensus crowns against the SIT manual crown polygons.
+- This should be the strongest evaluation for consensus geometry because it checks whether the stable crown objects are not only internally consistent, but also spatially meaningful relative to human annotations.
+
+Matching protocol:
+
+- Use polygon IoU between each consensus crown and each hand-annotated SIT crown.
+- Match predicted consensus crowns to GT crowns using one-to-one assignment, preferably Hungarian matching or greedy matching sorted by IoU.
+- Report results at one or more IoU thresholds, for example `0.3`, `0.5`, and possibly `0.75`.
+- Keep unmatched consensus crowns as false positives and unmatched GT crowns as false negatives.
+- For matched crowns, report the matched-IoU distribution.
+
+GT comparison metrics:
+
+- number of hand-annotated SIT GT crowns;
+- number of final SIT consensus crowns;
+- true positives, false positives, false negatives;
+- precision, recall, and F1 at selected IoU thresholds;
+- mean, median, and percentile matched IoU;
+- centroid distance between matched GT and consensus crowns;
+- area ratio between matched GT and consensus crowns;
+- error categories such as split, merge, missing crown, duplicate consensus, poor boundary overlap, and non-tree false positive.
 
 Possible metrics:
 
@@ -842,14 +869,23 @@ Possible metrics:
 - vegetation feature smoothness;
 - reduced sudden jumps from segmentation area changes;
 - visual examples comparing per-date polygons vs medoid consensus.
+- comparison of consensus-vs-GT IoU against per-date detection-vs-GT IoU, if we want to show that consensus crowns are a better final product than individual-date detections.
 
 Recommended figure:
 
 - one tree row:
   - date-wise crown detections;
   - consensus crown overlay;
+  - hand-annotated SIT GT polygon overlay;
   - crop sequence;
   - GCC/vegetation fraction time series.
+
+Recommended table:
+
+| Site | GT crowns | Consensus crowns | IoU threshold | TP | FP | FN | Precision | Recall | F1 | Mean matched IoU |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| SIT | TBD | TBD | 0.3 | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| SIT | TBD | TBD | 0.5 | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
 
 ## 6.5 Phenology Results
 
@@ -923,7 +959,7 @@ Possible categories:
 - shadow/illumination contaminated crop;
 - non-tree or weak vegetation object.
 
-Keep satellite/species classifier results out of this main results section. Put them in Appendix D as exploratory follow-on material.
+Keep satellite/species classifier results out of this main results section. Save them for the separate short paper.
 
 ---
 
@@ -976,7 +1012,7 @@ Discuss:
 - species labels turn crown tracks into ecological objects;
 - field labels help interpret phenology trajectories;
 - species/trait summaries can be reported descriptively;
-- satellite/species classifiers are better handled in Appendix D and a future short paper.
+- satellite/species classifiers are better handled in a future short paper.
 
 ### 7.6 Operational Lessons
 
@@ -1096,9 +1132,9 @@ Show:
 
 Appendix-only figure:
 
-- satellite feature extraction buffers/pixels;
-- GEE embedding classifier workflow;
-- crown area versus Sentinel-2 pixel scale.
+- dataset timeline;
+- site/date inventory map;
+- example input/output folder manifest.
 
 ---
 
@@ -1165,12 +1201,10 @@ Columns:
 
 Appendix-only table:
 
-- satellite/species classification tasks;
-- features;
-- model;
-- validation split;
-- primary metric;
-- result.
+- full orthomosaic/date inventory;
+- input/output dataset manifest;
+- field-label schema;
+- dataset versioning and reproducibility notes.
 
 ---
 
@@ -1198,16 +1232,16 @@ Move here if too long:
 
 - full code/config tables;
 - all threshold sensitivity results;
-- all satellite/species classifier config JSONs;
-- exploratory embedding experiments;
-- Sentinel-2 seasonal/harmonic baselines;
-- crown-size versus satellite-pixel analysis;
+- full orthomosaic/date inventories;
+- field label schema and label inventory;
+- pipeline input/output manifests;
+- dataset versioning and reproducibility notes;
 - detailed notebook history;
 - failed methods like early DeepForest, unless used as motivation.
 
 Important:
 
-Satellite/species should **not** stay in the main body for this paper. Put it in Appendix D as exploratory follow-on work, and save the full argument for a later short paper once the GEE embedding results and validation are complete.
+Satellite/species should **not** stay in the main body or become Appendix D for this paper. Save the full satellite/species argument for a later short paper once the GEE embedding results and validation are complete. Appendix D in this paper should document datasets and dates.
 
 ---
 
@@ -1236,12 +1270,12 @@ Resolved:
 
 Resolved for this paper:
 
-- Satellite/species work moves to Appendix D.
+- Satellite/species work moves out of this paper's main structure.
 - The main paper should not rely on satellite/species classifier results.
 - The strongest current direction remains Google Earth Engine embeddings, but that will become a separate short paper later.
-- Main-body references should be brief and should frame satellite/species as future work or appendix context.
+- Main-body references should be brief and should frame satellite/species as future work.
 
-Need later for Appendix D or the separate short paper:
+Need later for the separate short paper:
 
 - final embedding feature source;
 - final classifier tasks;
@@ -1283,7 +1317,7 @@ Recommended order:
 2. Fill Table 1 with exact LHC/SIT date ranges and 13/19 OM lists.
 3. Run or ingest final full-data LHC/SIT tracking outputs.
 4. Replace current partial-run result tables with final full-run numbers.
-5. Keep satellite/species in Appendix D only; do not let it drive the main paper.
+5. Fill Appendix D with dataset/date inventories and result-folder manifests.
 6. Write Introduction and Contributions.
 7. Write Method as pipeline.
 8. Write Results around figures/tables.
@@ -1300,78 +1334,88 @@ These are the most important questions to answer next.
 3. Which output folder will contain the latest full-data LHC/SIT results once you share them?
 4. Do we have or want a small manually checked tracking-validation subset?
 5. What exact field-verified label schema should the species section use?
-6. How much satellite/species material should Appendix D preserve before we spin it into the separate short paper?
+6. Which additional project datasets, beyond LHC and SIT, should be listed in Appendix D?
 
 ---
 
-## Appendix D Plan: Satellite, Species, and Trait Classification Explorations
+## Appendix D Plan: Dataset and Date Inventory
 
 Purpose:
 
-- Preserve the satellite/species work without making it a dependency of the main UAV tracking/phenology paper.
-- Document enough context that it can become a separate short paper later.
-- Keep claims exploratory unless final validation results are regenerated and selected.
+- Make the data basis of the thesis transparent without overloading the main paper.
+- Record exactly which orthomosaics, dates, labels, and output folders support the reported results.
+- Preserve enough metadata to make the reported datasets and outputs traceable.
 
 Suggested Appendix D structure:
 
-### D.1 Motivation for a Separate Short Paper
+### D.1 UAV Orthomosaic Date Inventory
 
 Write:
 
-- The tracked consensus crown layer creates clean geospatial training/validation units.
-- Satellite and embedding experiments are a natural follow-on question.
-- The workflow is still maturing, so the main paper should not depend on it.
+- table of every orthomosaic used or available;
+- site name;
+- orthomosaic/date label;
+- acquisition date;
+- whether included in final thesis run;
+- whether excluded, and why.
 
-### D.2 Field Label Inventory
-
-Report:
-
-- final species/trait label counts;
-- clean versus ambiguous labels;
-- ESD, Acacia, flowering color, and showy-flower task definitions if retained.
-
-### D.3 Sentinel-2 Seasonal and Harmonic Features
-
-Keep as the interpretable baseline:
-
-- raw bands and vegetation indices;
-- seasonal medians/amplitudes;
-- harmonic phenology coefficients;
-- random split versus spatial/area holdout behavior.
-
-### D.4 Google Earth Engine Embedding Features
-
-Keep as the strongest current direction:
-
-- embedding source and year/window;
-- original crown geometry versus centroid-buffer extraction;
-- 64-dimensional embedding features if that remains final;
-- classifier tasks and validation splits.
-
-### D.5 Crown Size and Satellite Pixel-Scale Analysis
+### D.2 LHC Dataset
 
 Report:
 
-- crown area distribution by site;
-- fraction of crowns below/above one 10 m Sentinel-2 pixel;
-- effect of area filtering on retained labels;
-- why sub-pixel crowns complicate satellite trait inference.
+- final 13 LHC orthomosaic names/dates;
+- date range;
+- any known quality issues;
+- final output folder used for LHC results;
+- notes on skipped or problematic dates.
 
-### D.6 Candidate Classification Tasks
+### D.3 SIT Dataset
 
-Possible tasks:
+Report:
 
-- Acacia versus non-Acacia;
-- ESD class;
-- showy flower versus non-showy;
-- yellow flowering broad/strict;
-- red showy flowering.
+- final 19 SIT orthomosaic names/dates;
+- date range;
+- any known quality issues;
+- final output folder used for SIT results;
+- notes on skipped or problematic dates.
 
-### D.7 Validation Strategy for Future Work
+### D.4 Additional Site Datasets
 
-Prioritize:
+Use only as inventory/context unless results enter the main paper:
 
-- leave-area-out validation;
-- leave-species-out validation for trait generalization;
-- random split only as an easy baseline;
-- confusion matrices and balanced metrics for imbalanced labels.
+- SAC or other IIT Delhi sites;
+- Sanjay Van sites/spots;
+- any auxiliary orthomosaics not used in the main LHC/SIT results;
+- whether each dataset is used, deferred, or only historical context.
+
+### D.5 Field and Crown Label Dataset
+
+Report:
+
+- label file names;
+- schema/columns;
+- field verification status;
+- number of labeled crowns;
+- join key or spatial-join method to consensus crowns;
+- label-cleaning notes.
+
+### D.6 Pipeline Input and Output Dataset Manifest
+
+Report:
+
+- input orthomosaic folders;
+- crown store folders;
+- tracking output folders;
+- phenology output files;
+- visualization folders;
+- which output files feed each results table/figure.
+
+### D.7 Dataset Versioning and Reproducibility Notes
+
+Report:
+
+- dataset version names or folder names;
+- code/config version used for final runs;
+- date when final outputs were generated;
+- notes on files excluded from the final analysis;
+- checksum or manifest information if available.
