@@ -4,7 +4,7 @@ Working framing:
 
 > Repeated UAV RGB orthomosaics can support individual-tree phenology monitoring if per-date crown detections are converted into temporally stable tree identities through explicit alignment, graph-based temporal association, gap filling, and consensus crown construction.
 
-This outline treats the **tree-identity-preserving temporal pipeline** as the central contribution. Satellite/species experiments are included as a proper part of the paper, but framed as **downstream ecological inference enabled by the drone-derived crown objects**, rather than as an independent main contribution.
+This outline treats the **tree-identity-preserving temporal pipeline** as the central contribution. Satellite/species experiments should now be kept in an appendix and framed as exploratory follow-on work for a separate short paper once that workflow and its results are complete.
 
 ---
 
@@ -12,43 +12,43 @@ This outline treats the **tree-identity-preserving temporal pipeline** as the ce
 
 ### Recommended Main Title
 
-**Tracking Individual Tree Phenology from Repeated UAV RGB Orthomosaics Using Graph-Based Crown Association and Cross-Scale Ecological Inference**
+**Tracking Individual Tree Phenology from Repeated UAV RGB Orthomosaics Using Graph-Based Crown Association and Consensus Crowns**
 
-User selected this as the working title.
+Updated working title after moving satellite/species work to the appendix.
 
 Why this works:
 
 - "Tracking Individual Tree Phenology" immediately states the scientific object.
 - "Repeated UAV RGB Orthomosaics" makes the data modality explicit.
 - "Graph-Based Crown Association" names the central method.
-- "Cross-Scale Ecological Inference" leaves room for satellite/species experiments without making them sound like the whole paper.
+- "Consensus Crowns" names the stable sampling unit that makes repeated crown-level phenology possible.
+- It keeps the paper focused on the UAV tracking/phenology contribution and avoids promising satellite/species results in the title.
 
 ### Shorter Alternative
 
-**From Crown Detection to Tree Identity: A UAV RGB Pipeline for Individual Tree Phenology and Cross-Scale Trait Mapping**
+**From Crown Detection to Tree Identity: A UAV RGB Pipeline for Individual Tree Phenology**
 
 Why this works:
 
 - Strong conceptual transition: detection is not the final goal; identity is.
-- "Trait mapping" gives a defensible place for species/deciduous/flowering/satellite experiments.
+- Shorter and cleaner if the paper target prefers a tighter title.
 
 ### Thesis-Style Alternative
 
-**Drone-Based Individual Tree Phenology Monitoring Through Temporal Crown Tracking, Consensus Geometry, and Satellite-Scale Inference**
+**Drone-Based Individual Tree Phenology Monitoring Through Temporal Crown Tracking and Consensus Geometry**
 
 Why this works:
 
 - Slightly broader and more thesis-friendly.
-- Makes all three major parts visible:
+- Makes the two major parts visible:
   1. drone tree tracking;
-  2. consensus crowns and phenology;
-  3. satellite/species downstream inference.
+  2. consensus crowns and phenology.
 
 ---
 
 ## 2. One-Sentence Thesis Statement
 
-This work presents an end-to-end UAV RGB pipeline that transforms repeated orthomosaics into temporally stable individual-tree crown identities and crown-level phenology trajectories using multi-threshold crown delineation, residual orthomosaic alignment, graph-based temporal crown association, gap filling, consensus crown generation, and downstream species/trait inference using field labels and satellite-scale features.
+This work presents an end-to-end UAV RGB pipeline that transforms repeated orthomosaics into temporally stable individual-tree crown identities and crown-level phenology trajectories using multi-threshold crown delineation, residual orthomosaic alignment, graph-based temporal crown association, gap filling, consensus crown generation, and image-derived crown-level phenology features.
 
 ---
 
@@ -70,21 +70,19 @@ Hungarian-style one-to-one matching is brittle when crowns split, merge, disappe
 
 ### Claim 4: Consensus crowns are the correct unit for phenology sampling
 
-Sampling from noisy per-date polygons produces inconsistent regions of interest. A consensus crown per tracked tree provides a stable spatial object for comparable color, vegetation, texture, and satellite feature extraction across dates.
+Sampling from noisy per-date polygons produces inconsistent regions of interest. A consensus crown per tracked tree provides a stable spatial object for comparable color, vegetation, texture, and visual crop extraction across dates.
 
-### Claim 5: Drone-derived crown identities enable downstream ecological inference
+### Claim 5: Drone-derived crown identities enable crown-level ecological interpretation
 
 Once stable individual-tree crown objects exist, they can support:
 
 - RGB phenology time series;
 - deciduous/evergreen and leaf-on/leaf-off scoring;
 - field/QField species linkage;
-- crown-level species/trait classifiers;
-- Sentinel-2/Sentinel-1 feature extraction;
-- DINO or visual embedding experiments;
-- cross-scale analysis between high-resolution drone observations and coarser satellite signals.
+- crown-level species and trait summaries;
+- interactive visual validation and communication.
 
-This is how satellite/species experiments should enter the paper: not as side experiments, but as evidence that the crown identity layer becomes a reusable ecological data product.
+Satellite/species classifier experiments remain useful, but they should be treated as appendix material and future companion-paper work rather than as a core claim of this paper.
 
 ---
 
@@ -92,15 +90,15 @@ This is how satellite/species experiments should enter the paper: not as side ex
 
 ### Abstract Draft A: Paper-Style
 
-Repeated UAV RGB surveys provide a practical route to monitoring tree phenology at individual-crown resolution, but converting orthomosaic time series into biological tree trajectories remains challenging. Per-date crown detections are affected by georeferencing drift, photogrammetric artifacts, changing illumination, seasonal canopy structure, and segmentation split-merge errors. We present an end-to-end pipeline that converts repeated UAV orthomosaics into temporally stable individual-tree crown identities and crown-level phenology trajectories. The workflow combines Detectree2-based multi-threshold crown delineation, residual orthomosaic alignment using phase-cross-correlation-based image registration, graph-based temporal association of crown polygons, gap filling using lower-confidence detections, and consensus crown construction for stable repeated sampling. For each tracked tree, the system extracts crown-level RGB and texture features across dates and derives interpretable phenology indicators such as green chromatic coordinate, red chromatic coordinate, vegetation fraction, shadow fraction, and leaf-on/leaf-off state. Field and QField annotations are linked to the resulting crown objects, enabling species-aware analysis. We further evaluate how these drone-derived crown identities support downstream ecological inference using Sentinel-2, Sentinel-1, and visual embedding features for species and phenological trait classification. The resulting framework reframes UAV crown delineation as a temporal identity problem and provides a practical bridge between high-resolution drone monitoring, field validation, and satellite-scale vegetation analysis.
+Repeated UAV RGB surveys provide a practical route to monitoring tree phenology at individual-crown resolution, but converting orthomosaic time series into biological tree trajectories remains challenging. Per-date crown detections are affected by georeferencing drift, photogrammetric artifacts, changing illumination, seasonal canopy structure, and segmentation split-merge errors. We present an end-to-end pipeline that converts repeated UAV orthomosaics into temporally stable individual-tree crown identities and crown-level phenology trajectories. The workflow combines Detectree2-based multi-threshold crown delineation, residual orthomosaic alignment using phase-cross-correlation-based image registration, graph-based temporal association of crown polygons, gap filling using lower-confidence detections, and consensus crown construction for stable repeated sampling. For each tracked tree, the system extracts crown-level RGB and texture features across dates and derives interpretable phenology indicators such as green chromatic coordinate, red chromatic coordinate, vegetation fraction, shadow fraction, and leaf-on/leaf-off state. Field and QField annotations are linked to the resulting crown objects, enabling species-aware inspection and ecological interpretation. The resulting framework reframes UAV crown delineation as a temporal identity problem and provides a practical workflow for transforming repeated orthomosaics into crown-level phenology records.
 
 ### Abstract Draft B: More Conservative
 
-Repeated UAV RGB orthomosaics can capture fine-scale seasonal changes in tree canopies, but individual-tree phenology monitoring requires stable tree identities across dates. This is difficult because crown detections vary with illumination, leaf state, orthomosaic reconstruction quality, residual spatial misalignment, and segmentation ambiguity. This thesis develops a UAV-based workflow for transforming repeated orthomosaics into individual-tree phenology records. The workflow detects crown polygons using Detectree2, stores detections across multiple confidence thresholds, aligns orthomosaics into a common frame, constructs a temporal graph of plausible crown correspondences, fills gaps using lower-confidence candidates, and generates consensus crown geometries for repeated feature extraction. Crown-level RGB and texture metrics are then used to characterize phenological change, including canopy greenness, reddishness, vegetation fraction, shadow contamination, and deciduousness. The tracked crown layer is also linked with field species labels and satellite-derived features to examine how drone-scale observations can support broader species and trait mapping. The work demonstrates that the key step in operational UAV phenology monitoring is the conversion of unstable per-date detections into persistent crown identities that can be sampled, validated, and analyzed across scales.
+Repeated UAV RGB orthomosaics can capture fine-scale seasonal changes in tree canopies, but individual-tree phenology monitoring requires stable tree identities across dates. This is difficult because crown detections vary with illumination, leaf state, orthomosaic reconstruction quality, residual spatial misalignment, and segmentation ambiguity. This thesis develops a UAV-based workflow for transforming repeated orthomosaics into individual-tree phenology records. The workflow detects crown polygons using Detectree2, stores detections across multiple confidence thresholds, aligns orthomosaics into a common frame, constructs a temporal graph of plausible crown correspondences, fills gaps using lower-confidence candidates, and generates consensus crown geometries for repeated feature extraction. Crown-level RGB and texture metrics are then used to characterize phenological change, including canopy greenness, reddishness, vegetation fraction, shadow contamination, and deciduousness. Field labels and visual review tools are linked to the tracked crown layer for interpretation and quality assurance. The work demonstrates that the key step in operational UAV phenology monitoring is the conversion of unstable per-date detections into persistent crown identities that can be sampled, validated, and analyzed through time.
 
 ### Abstract Draft C: Thesis-Plus-Paper Hybrid
 
-Monitoring tree phenology at the level of individual crowns can improve ecological interpretation of seasonal canopy change and provide high-resolution ground truth for satellite models. This thesis presents a drone-based system for individual tree phenology monitoring from repeated UAV RGB orthomosaics. The central challenge is temporal identity: crown polygons detected independently on each date do not directly correspond to stable biological trees because of orthomosaic drift, photogrammetric artifacts, changing illumination, leaf shedding, and segmentation split-merge errors. To address this, the system combines multi-threshold Detectree2 crown detection, phase-cross-correlation-based alignment, graph-based temporal crown association, missing-detection recovery, and medoid consensus crown generation. These stable crown objects are used to extract per-date crown crops and RGB/texture phenology features. The resulting trajectories support rule-based deciduousness and leaf-state scoring, manual validation, field species linkage, and interactive visualization. A downstream set of satellite and species experiments evaluates whether the drone-derived crown identities can act as training and validation units for Sentinel-2, Sentinel-1, and visual embedding classifiers. Together, the work shows how repeated drone surveys can be transformed from independent orthomosaics into a temporally structured, crown-level ecological monitoring dataset.
+Monitoring tree phenology at the level of individual crowns can improve ecological interpretation of seasonal canopy change. This thesis presents a drone-based system for individual tree phenology monitoring from repeated UAV RGB orthomosaics. The central challenge is temporal identity: crown polygons detected independently on each date do not directly correspond to stable biological trees because of orthomosaic drift, photogrammetric artifacts, changing illumination, leaf shedding, and segmentation split-merge errors. To address this, the system combines multi-threshold Detectree2 crown detection, phase-cross-correlation-based alignment, graph-based temporal crown association, missing-detection recovery, and medoid consensus crown generation. These stable crown objects are used to extract per-date crown crops and RGB/texture phenology features. The resulting trajectories support rule-based deciduousness and leaf-state scoring, manual validation, field species linkage, and interactive visualization. Together, the work shows how repeated drone surveys can be transformed from independent orthomosaics into a temporally structured, crown-level ecological monitoring dataset.
 
 Recommended starting abstract: **Draft C** for thesis, then tighten later into **Draft A** for paper submission.
 
@@ -115,7 +113,7 @@ Recommended starting abstract: **Draft C** for thesis, then tighten later into *
 Write:
 
 - Phenology is a sensitive indicator of climate, water stress, deciduousness, flowering, and ecosystem change.
-- Satellite phenology provides broad coverage but often mixes multiple trees/species within one pixel.
+- Satellite phenology provides broad coverage but often mixes multiple trees/species within one pixel; this motivates UAV-scale monitoring, while satellite classifier experiments are left for future companion work.
 - Field phenology is accurate but difficult to scale.
 - UAV imagery fills a scale gap: high spatial resolution, repeatable surveys, and crown-level observation.
 
@@ -145,7 +143,7 @@ Frame the gap carefully:
 - Many works focus on individual tree crown delineation from UAV imagery.
 - Many works extract vegetation indices or phenology from UAV images.
 - Fewer works address the operational problem of preserving individual tree identities across a long sequence of repeated UAV orthomosaics under imperfect segmentation and residual misalignment.
-- Even fewer connect the resulting crown identities to field labels and satellite-scale feature experiments.
+- Even fewer connect the resulting crown identities to field labels, visual validation, and repeated crown-level phenology extraction.
 
 Avoid saying "no one has done this" unless we verify literature very carefully. Say "this remains an operational bottleneck" or "less attention has been given to".
 
@@ -159,7 +157,7 @@ Suggested contribution wording:
 2. We introduce a practical multi-threshold crown-detection and graph-association strategy for handling confidence variation, missing detections, and split-merge crown segmentation errors.
 3. We incorporate residual orthomosaic alignment using phase-cross-correlation-based translation estimation to improve crown correspondence across dates.
 4. We construct consensus crown geometries from temporal chains, enabling stable repeated sampling of crown-level RGB and texture phenology features.
-5. We connect drone-derived crown identities with field species labels and satellite/embedding features to evaluate downstream species and phenological trait inference across spatial scales.
+5. We connect drone-derived crown identities with field species labels and interactive visualization outputs for ecological interpretation and quality assurance.
 
 ### 1.5 Paper Roadmap
 
@@ -168,7 +166,7 @@ One short paragraph:
 - data and study sites;
 - crown detection and tracking pipeline;
 - phenology extraction;
-- satellite/species inference;
+- field label integration and visualization;
 - evaluation and discussion.
 
 ---
@@ -246,21 +244,21 @@ Connect:
 
 > Consensus crowns make RGB phenology extraction more comparable because each tree is sampled from a stable spatial object across the sequence.
 
-### 2.6 Species, Traits, and Cross-Scale Satellite Integration
+### 2.6 Field Labels, Species Traits, and Crown-Level Ecological Interpretation
 
-This is where satellite/species becomes a proper section.
+This is where field labels and species context support the main UAV phenology paper without turning it into a satellite/species classifier paper.
 
 Write about:
 
-- Crown-level field labels as a bridge between high-resolution UAV observations and satellite pixels.
-- Sentinel-2 spectral/time-series features for vegetation phenology and species/trait mapping.
-- Sentinel-1 backscatter as complementary structure/moisture information.
-- Visual foundation/embedding features as an exploratory representation for crown appearance.
-- Limitations from scale mismatch: one satellite pixel may contain many crowns/species.
+- Crown-level field labels as a way to interpret tracked phenology trajectories.
+- Species and trait labels as ecological context for differences in leaf state, flowering color, and deciduousness.
+- QField/manual validation workflows for linking labels to crown geometries.
+- Visual review and map exports as practical QA tools.
+- A brief note that satellite/species classifiers are possible follow-on analyses but are not the main paper claim.
 
 Connect:
 
-> In this work, satellite and embedding experiments are not treated as independent replacements for UAV monitoring. Instead, they test whether the drone-derived crown identity layer can serve as labeled ecological units for cross-scale trait inference.
+> In this work, field labels are used primarily to interpret and validate crown-level UAV phenology records. Satellite and embedding classifiers are deferred to an appendix and a later short paper.
 
 ---
 
@@ -318,7 +316,7 @@ Write:
 - Raw UAV images processed in WebODM.
 - Outputs include georeferenced RGB orthomosaics.
 - Orthomosaics are exported as GeoTIFFs.
-- CRS and geospatial metadata are preserved for crown polygons and satellite linkage.
+- CRS and geospatial metadata are preserved for crown polygons, field-label joins, and any future geospatial linkage.
 
 Important caution:
 
@@ -339,22 +337,20 @@ Need from user:
 - details of field verification protocol and who performed it;
 - how QField annotations were joined back to crown geometries.
 
-### 3.5 Satellite and Embedding Data
+### 3.5 Deferred Satellite and Embedding Data
+
+Keep this out of the main data section unless a one-paragraph scope note is useful.
 
 Write:
 
-- Satellite/species work is still in progress and should currently be represented by headings and planned result slots.
-- The most trusted current direction is the **Google Earth Engine embeddings** experiment.
-- Sentinel-2 seasonal and harmonic features should remain as the main interpretable satellite baseline, while Google Earth Engine embeddings should be treated as the strongest current feature representation.
-- Other Sentinel-1, random-forest, pixel-level, and visual-embedding experiments can remain in the method/result hierarchy, but detailed claims should wait until the final results are selected.
-- Features will be linked to field-verified crown labels to test species/trait inference.
-- The weekly meetings show that crown size versus satellite pixel size is not a side detail. It should be reported explicitly because many crowns are sub-pixel at Sentinel-2 resolution.
+- Satellite/species data and Google Earth Engine embedding experiments are being developed as follow-on work.
+- They should be described in Appendix D as exploratory context and as material for a separate short paper.
+- The main paper should not depend on satellite classifier results.
 
-Need from user:
+Need from user later for Appendix D or the short paper:
 
 - final Google Earth Engine embedding workflow details;
 - final classifier tasks and validation strategy;
-- which non-GEE satellite experiments should remain as secondary comparisons.
 - final crown-area filtering policy, if any, for satellite classifier tables.
 
 ---
@@ -378,8 +374,8 @@ UAV images
   -> chain extraction and gap filling
   -> consensus crown generation
   -> crown crops and RGB phenology features
-  -> field/species/satellite feature linkage
-  -> phenology and trait inference
+  -> field/species label linkage
+  -> phenology interpretation and visual QA
 ```
 
 Write one paragraph explaining each block at high level.
@@ -620,7 +616,7 @@ Be honest:
 
 ### 4.12 Field Label and Species Integration
 
-This begins the bridge into satellite/species experiments.
+This supports ecological interpretation of UAV-derived phenology, not a main-paper satellite classifier claim.
 
 Write:
 
@@ -632,60 +628,25 @@ Write:
 Need from user:
 
 - final label columns and definitions;
-- whether to use "species classification", "trait classification", or both.
+- final number of field-verified labeled crowns;
+- how labels should be summarized in the main paper.
 
-### 4.13 Satellite and Embedding Feature Extraction
-
-Make this a full method subsection, not appendix.
-
-Write:
-
-- Drone-derived consensus crowns provide geospatial training units.
-- Sentinel-2 features are extracted for crown locations or buffered crown geometries as an interpretable seasonal baseline.
-- Sentinel-2 seasonal features include raw bands, vegetation indices, seasonal medians/amplitudes, and harmonic phenology coefficients where used.
-- Sentinel-1 features provide complementary radar/time-series information.
-- Temporal features are computed across seasonal windows.
-- Google Earth Engine satellite embedding features provide a learned remote-sensing representation, currently the most trusted direction for the satellite/species section.
-- Compare original crown geometry extraction with centroid-buffer extraction when that choice affects classifier behavior.
-- Report crown area distributions against the 10 m Sentinel-2 pixel footprint to make scale mismatch explicit.
-- DINO/visual crown embeddings can be described as secondary/exploratory if they are not part of the final classifier claim.
-
-Potential extraction strategies:
-
-- centroid sampling;
-- buffered crown sampling;
-- fractional crown-pixel overlap;
-- annual or multi-year Sentinel-2 summaries;
-- vegetation indices and raw bands;
-- temporal aggregates;
-- leave-area-out validation splits.
-
-Need from user/code:
-
-- which exact features are final;
-- whether GEE or STAC is the final extraction source;
-- which model family is final: random forest, threshold sweeps, pixel classifier, embeddings.
-- whether original crown polygons or 20 m centroid buffers are the final extraction geometry for each task.
-
-### 4.14 Species and Phenological Trait Classifiers
+### 4.13 Interactive Visualization and Quality Assurance
 
 Write:
 
-- Classification tasks:
-  - Acacia vs non-Acacia;
-  - deciduous vs rest;
-  - showy flower vs rest;
-  - red/yellow flowering categories;
-  - ESD multiclass if defensible.
-- Models:
-  - random forest classifiers;
-  - threshold sweeps;
-  - leave-area-out validation;
-  - random split as less strict baseline.
+- The viewer links consensus crowns, per-date detections, crop sequences, and phenology features.
+- Interactive inspection is used to review tracking errors, split/merge cases, missing detections, and suspicious phenology trajectories.
+- Google Earth/KML/KMZ exports support field-facing review and communication.
+- This is part of the method because the pipeline produces objects that need visual QA before biological interpretation.
 
-Important framing:
+Potential outputs:
 
-> These classifiers evaluate whether crown identities derived from UAV tracking can serve as labeled ecological units for broader trait mapping. They are not presented as a complete solution to species mapping under all canopy mixtures.
+- clickable map of consensus crowns;
+- before/after alignment overlays;
+- chain visualizations;
+- crop strips by tree and date;
+- plots of GCC/RCC/vegetation fraction and leaf-state labels.
 
 ---
 
@@ -940,89 +901,29 @@ Possible outputs:
 - species x phenology summaries;
 - examples where RGB time series differs by species/trait.
 
-## 6.7 Satellite and Species Classifier Results
+## 6.7 Interactive Visualization and Error Analysis
 
-This should be a real results section.
-
-Current decision:
-
-- Keep this as a proper main-paper section.
-- For now, write only headings and result slots.
-- The strongest trusted direction is the Google Earth Engine embeddings experiment.
-- Detailed metrics, task selection, and validation claims should be filled later after the satellite/species workflow stabilizes.
-
-Suggested organization:
-
-### 6.7.1 Satellite Feature Extraction Summary
+This should be a real main-paper results section because the viewer was central to understanding whether the pipeline output was biologically and geometrically plausible.
 
 Report:
 
-- crown samples used;
-- Google Earth Engine embedding source and temporal window;
-- how crown geometries/points are linked to embedding features;
-- cloud/missing-data handling if relevant;
-- final feature dimensionality.
-- original crown geometry versus buffered centroid extraction, if both are compared.
+- representative tracking viewer screenshots;
+- crown crop strips for stable chains, partial chains, split/merge cases, and failure cases;
+- before/after examples where alignment improves interpretability;
+- examples where consensus crowns stabilize noisy per-date polygons;
+- qualitative error taxonomy from visual review.
 
-### 6.7.2 Classification Tasks
+Possible categories:
 
-Candidate tasks to report if available:
+- correct stable identity;
+- missed detection;
+- split crown;
+- merged crown;
+- poor overlap or distorted orthomosaic region;
+- shadow/illumination contaminated crop;
+- non-tree or weak vegetation object.
 
-- Acacia vs non-Acacia;
-- deciduous vs rest;
-- showy flower vs rest;
-- red showy;
-- yellow showy broad/strict;
-- ESD multiclass.
-
-Current stance:
-
-- Keep these as headings/placeholders until the final GEE embedding results are chosen.
-- Do not over-commit to all tasks being paper-ready.
-- The weekly meetings indicate a usable label inventory for this section: clean species labels, ambiguous labels, ESD categories, Acacia labels, and flowering-color/showiness labels. Exact final counts should be regenerated from the current label table before writing the final paper.
-
-### 6.7.3 Validation Strategy
-
-Prioritize:
-
-- leave-area-out validation as stronger evidence of spatial generalization;
-- random split as an easier baseline, clearly labeled.
-- leave-species-out validation can be reported when the question is trait generalization beyond seen species.
-
-### 6.7.4 Model Performance
-
-Report:
-
-- accuracy;
-- precision/recall/F1;
-- ROC-AUC if binary and appropriate;
-- confusion matrix;
-- model comparison only if multiple feature sets are mature enough;
-- feature importance only for interpretable models where applicable.
-- Sentinel-2 seasonal/harmonic baselines should be separated from GEE embedding results so the paper does not mix interpretable baselines with the stronger learned representation.
-
-### 6.7.5 Interpretation
-
-Key argument:
-
-> The satellite/species experiments demonstrate that the drone-tracked crown layer can act as a structured label and validation product for coarser remote-sensing models.
-
-Avoid:
-
-- claiming operational species mapping if validation is weak;
-- claiming satellite pixels identify individual crowns directly;
-- hiding spatial leakage if random splits perform much better than leave-area-out.
-
-### 6.7.6 Crown Size and Satellite Pixel Scale
-
-Report:
-
-- crown area distribution by site;
-- fraction of crowns smaller than, comparable to, or larger than a 10 m Sentinel-2 pixel;
-- effect of area filtering on retained label count;
-- why sub-pixel crowns make satellite trait inference harder, especially in dense or mixed canopies.
-
-This can be a compact but important result because it explains why some satellite classifiers generalize poorly even when random-split performance looks acceptable.
+Keep satellite/species classifier results out of this main results section. Put them in Appendix D as exploratory follow-on material.
 
 ---
 
@@ -1065,19 +966,17 @@ Discuss:
 - medoid is simple, valid, and interpretable;
 - intersection/union alternatives might be explored later.
 
-### 7.5 Field, Species, and Satellite Integration
+### 7.5 Field Labels and Crown-Level Ecological Interpretation
 
-This should be substantial because user wants satellite/species properly included.
+This should be substantial enough to show that the tracked crowns are useful ecological objects, without making satellite/species classifiers part of the main claim.
 
 Discuss:
 
-- individual-tree drone identities become training/validation units;
+- individual-tree drone identities become stable units for field label joins;
 - species labels turn crown tracks into ecological objects;
-- satellite features test whether high-resolution crown labels can inform broader mapping;
-- scale mismatch remains a central limitation;
-- strongest evidence should come from leave-area-out validation.
-- GEE embeddings should be framed as a stronger learned representation, while Sentinel-2 seasonal/harmonic features provide an interpretable baseline.
-- crown-area analysis should be used to explain why some sites/tasks are more realistic for satellite inference than others.
+- field labels help interpret phenology trajectories;
+- species/trait summaries can be reported descriptively;
+- satellite/species classifiers are better handled in Appendix D and a future short paper.
 
 ### 7.6 Operational Lessons
 
@@ -1098,7 +997,7 @@ Be direct:
 - translation alignment does not correct all local deformation;
 - graph tracking needs stronger manual identity validation;
 - rule-based phenology is a proxy unless validated;
-- species/satellite classifiers depend on label quality and may suffer spatial leakage or scale mismatch;
+- species/trait summaries depend on label quality and crown-label joins;
 - results may not generalize across forest types without retuning.
 
 ### 7.8 Future Work
@@ -1110,7 +1009,7 @@ Include:
 - learned temporal association model;
 - non-tree and shadow filtering;
 - active learning for uncertain chains;
-- improved satellite fusion and spatially blocked validation;
+- separate satellite/species short paper using spatially blocked validation;
 - species-aware or phenology-aware tracking priors.
 
 ---
@@ -1119,7 +1018,7 @@ Include:
 
 Draft conclusion paragraph:
 
-This work demonstrates that individual-tree phenology monitoring from repeated UAV RGB orthomosaics depends on preserving tree identity through time. By combining multi-threshold crown segmentation, residual orthomosaic alignment, graph-based temporal association, gap filling, consensus crown generation, and crown-level feature extraction, the proposed pipeline converts independent orthomosaics into a structured dataset of tracked tree crowns and phenology trajectories. The resulting crown identity layer supports visual inspection, field validation, species linkage, and downstream satellite/embedding classifiers for ecological trait inference. The study therefore reframes UAV crown delineation as part of a larger temporal monitoring problem and provides a practical foundation for linking fine-scale drone observations with broader remote-sensing analyses.
+This work demonstrates that individual-tree phenology monitoring from repeated UAV RGB orthomosaics depends on preserving tree identity through time. By combining multi-threshold crown segmentation, residual orthomosaic alignment, graph-based temporal association, gap filling, consensus crown generation, and crown-level feature extraction, the proposed pipeline converts independent orthomosaics into a structured dataset of tracked tree crowns and phenology trajectories. The resulting crown identity layer supports visual inspection, field validation, species linkage, and crown-level ecological interpretation. The study therefore reframes UAV crown delineation as part of a larger temporal monitoring problem and provides a practical foundation for fine-scale drone-based phenology analysis.
 
 ---
 
@@ -1130,7 +1029,7 @@ This work demonstrates that individual-tree phenology monitoring from repeated U
 Show:
 
 ```text
-UAV survey -> WebODM orthomosaic -> Detectree2 crowns -> alignment -> graph tracking -> consensus crowns -> phenology -> field/satellite inference
+UAV survey -> WebODM orthomosaic -> Detectree2 crowns -> alignment -> graph tracking -> consensus crowns -> phenology -> field labels and visual QA
 ```
 
 Purpose:
@@ -1186,14 +1085,20 @@ Show:
 - GCC/RCC/vegetation fraction line plot;
 - leaf-on/leaf-off/transition labels.
 
-### Figure 8: Species and Satellite Inference
+### Figure 8: Interactive QA and Field Label Review
 
 Show:
 
 - consensus crown labels;
-- satellite feature extraction buffer/pixel overlap;
-- classifier workflow;
-- feature importance or confusion matrix.
+- clickable tracking/crop viewer;
+- examples of correct identity, split/merge, missing detection, and shadow-contaminated crops;
+- field label or Google Earth review overlay.
+
+Appendix-only figure:
+
+- satellite feature extraction buffers/pixels;
+- GEE embedding classifier workflow;
+- crown area versus Sentinel-2 pixel scale.
 
 ---
 
@@ -1248,12 +1153,19 @@ Columns:
 - interpretation;
 - QC sensitivity.
 
-### Table 5: Species/Satellite Classification Tasks
+### Table 5: Field Label and Phenology Summary
 
 Columns:
 
-- task;
-- labels/classes;
+- species/trait group;
+- number of labeled crowns;
+- number of tracked consensus crowns linked;
+- available phenology trajectories;
+- summary statistic or example pattern.
+
+Appendix-only table:
+
+- satellite/species classification tasks;
 - features;
 - model;
 - validation split;
@@ -1278,7 +1190,7 @@ Keep these in the main paper:
 - consensus crowns.
 - phenology features and rule-based scoring.
 - species label integration.
-- satellite/species classifier results.
+- interactive visualization and QA.
 
 ### Supplement / Appendix
 
@@ -1286,14 +1198,16 @@ Move here if too long:
 
 - full code/config tables;
 - all threshold sensitivity results;
-- all classifier config JSONs;
-- weaker exploratory embedding experiments;
+- all satellite/species classifier config JSONs;
+- exploratory embedding experiments;
+- Sentinel-2 seasonal/harmonic baselines;
+- crown-size versus satellite-pixel analysis;
 - detailed notebook history;
 - failed methods like early DeepForest, unless used as motivation.
 
 Important:
 
-Satellite/species should stay in the main body, but only the strongest classifier tasks and cleanest validation should be emphasized. Weaker or exploratory variants can go to supplement.
+Satellite/species should **not** stay in the main body for this paper. Put it in Appendix D as exploratory follow-on work, and save the full argument for a later short paper once the GEE embedding results and validation are complete.
 
 ---
 
@@ -1305,7 +1219,7 @@ These are the current decisions and remaining open points before polished prose.
 
 Resolved working title:
 
-**Tracking Individual Tree Phenology from Repeated UAV RGB Orthomosaics Using Graph-Based Crown Association and Cross-Scale Ecological Inference**
+**Tracking Individual Tree Phenology from Repeated UAV RGB Orthomosaics Using Graph-Based Crown Association and Consensus Crowns**
 
 ### Decision 2: Main Study Site
 
@@ -1320,13 +1234,14 @@ Resolved:
 
 ### Decision 3: Final Satellite/Species Scope
 
-Partly resolved:
+Resolved for this paper:
 
-- Satellite/species work should remain in the main paper, but detailed claims should wait.
-- The most trusted current direction is the Google Earth Engine embeddings experiment.
-- For now, keep satellite/species as headings and planned result slots.
+- Satellite/species work moves to Appendix D.
+- The main paper should not rely on satellite/species classifier results.
+- The strongest current direction remains Google Earth Engine embeddings, but that will become a separate short paper later.
+- Main-body references should be brief and should frame satellite/species as future work or appendix context.
 
-Still need:
+Need later for Appendix D or the separate short paper:
 
 - final embedding feature source;
 - final classifier tasks;
@@ -1368,11 +1283,11 @@ Recommended order:
 2. Fill Table 1 with exact LHC/SIT date ranges and 13/19 OM lists.
 3. Run or ingest final full-data LHC/SIT tracking outputs.
 4. Replace current partial-run result tables with final full-run numbers.
-5. Keep satellite/species headings in main paper; fill after GEE embeddings work stabilizes.
+5. Keep satellite/species in Appendix D only; do not let it drive the main paper.
 6. Write Introduction and Contributions.
 7. Write Method as pipeline.
 8. Write Results around figures/tables.
-9. Write Discussion honestly around limitations and cross-scale value.
+9. Write Discussion honestly around tracking, consensus crowns, phenology proxies, and operational limits.
 
 ---
 
@@ -1385,4 +1300,78 @@ These are the most important questions to answer next.
 3. Which output folder will contain the latest full-data LHC/SIT results once you share them?
 4. Do we have or want a small manually checked tracking-validation subset?
 5. What exact field-verified label schema should the species section use?
-6. What is the final Google Earth Engine embeddings workflow and which classifier result should become the main satellite/species result?
+6. How much satellite/species material should Appendix D preserve before we spin it into the separate short paper?
+
+---
+
+## Appendix D Plan: Satellite, Species, and Trait Classification Explorations
+
+Purpose:
+
+- Preserve the satellite/species work without making it a dependency of the main UAV tracking/phenology paper.
+- Document enough context that it can become a separate short paper later.
+- Keep claims exploratory unless final validation results are regenerated and selected.
+
+Suggested Appendix D structure:
+
+### D.1 Motivation for a Separate Short Paper
+
+Write:
+
+- The tracked consensus crown layer creates clean geospatial training/validation units.
+- Satellite and embedding experiments are a natural follow-on question.
+- The workflow is still maturing, so the main paper should not depend on it.
+
+### D.2 Field Label Inventory
+
+Report:
+
+- final species/trait label counts;
+- clean versus ambiguous labels;
+- ESD, Acacia, flowering color, and showy-flower task definitions if retained.
+
+### D.3 Sentinel-2 Seasonal and Harmonic Features
+
+Keep as the interpretable baseline:
+
+- raw bands and vegetation indices;
+- seasonal medians/amplitudes;
+- harmonic phenology coefficients;
+- random split versus spatial/area holdout behavior.
+
+### D.4 Google Earth Engine Embedding Features
+
+Keep as the strongest current direction:
+
+- embedding source and year/window;
+- original crown geometry versus centroid-buffer extraction;
+- 64-dimensional embedding features if that remains final;
+- classifier tasks and validation splits.
+
+### D.5 Crown Size and Satellite Pixel-Scale Analysis
+
+Report:
+
+- crown area distribution by site;
+- fraction of crowns below/above one 10 m Sentinel-2 pixel;
+- effect of area filtering on retained labels;
+- why sub-pixel crowns complicate satellite trait inference.
+
+### D.6 Candidate Classification Tasks
+
+Possible tasks:
+
+- Acacia versus non-Acacia;
+- ESD class;
+- showy flower versus non-showy;
+- yellow flowering broad/strict;
+- red showy flowering.
+
+### D.7 Validation Strategy for Future Work
+
+Prioritize:
+
+- leave-area-out validation;
+- leave-species-out validation for trait generalization;
+- random split only as an easy baseline;
+- confusion matrices and balanced metrics for imbalanced labels.

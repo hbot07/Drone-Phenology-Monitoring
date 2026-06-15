@@ -1,4 +1,4 @@
-# Tracking Individual Tree Phenology from Repeated UAV RGB Orthomosaics Using Graph-Based Crown Association and Cross-Scale Ecological Inference
+# Tracking Individual Tree Phenology from Repeated UAV RGB Orthomosaics Using Graph-Based Crown Association and Consensus Crowns
 
 ## Abstract
 
@@ -12,7 +12,7 @@
 
 ### 1.3 From Crown Detection to Temporal Tree Identity
 
-### 1.4 Cross-Scale Ecological Inference
+### 1.4 Scope of This Paper
 
 ### 1.5 Contributions
 
@@ -30,7 +30,7 @@
 
 ### 2.5 RGB-Based Phenology Metrics
 
-### 2.6 Field Labels, Species Traits, and Satellite-Scale Inference
+### 2.6 Field Labels and Crown-Level Ecological Interpretation
 
 ## 3. Study Area and Data
 
@@ -45,14 +45,6 @@
 ### 3.3 Orthomosaic Generation
 
 ### 3.4 Crown Annotation and Field-Verified Labels
-
-### 3.5 Satellite and Embedding Data
-
-#### 3.5.1 Sentinel-2 Seasonal and Harmonic Data
-
-#### 3.5.2 Google Earth Engine Embedding Data
-
-#### 3.5.3 Crown Size and Satellite Pixel Scale
 
 ## 4. Methodology
 
@@ -140,29 +132,13 @@
 
 #### 4.9.3 Species and Trait Label Joins
 
-### 4.10 Cross-Scale Species and Trait Inference
+### 4.10 Interactive Visualization and Quality Assurance
 
-#### 4.10.1 Sentinel-2 Seasonal and Harmonic Features
+#### 4.10.1 Tracking Viewer
 
-#### 4.10.2 Google Earth Engine Embedding Features
+#### 4.10.2 Crown Crop Review
 
-#### 4.10.3 Crown Geometry Sampling Strategies
-
-#### 4.10.4 Crown Size and Satellite Pixel-Scale Analysis
-
-#### 4.10.5 Crown-Level Training Units
-
-#### 4.10.6 Classification Tasks
-
-#### 4.10.7 Validation Strategy
-
-### 4.11 Interactive Visualization and Quality Assurance
-
-#### 4.11.1 Tracking Viewer
-
-#### 4.11.2 Crown Crop Review
-
-#### 4.11.3 Google Earth and Field Review Exports
+#### 4.10.3 Google Earth and Field Review Exports
 
 ## 5. Experiments and Evaluation
 
@@ -184,9 +160,7 @@
 
 ### 5.6 Field Label and Species Analysis
 
-### 5.7 Cross-Scale Species and Trait Classification
-
-### 5.8 Visualization-Based Quality Assurance
+### 5.7 Visualization-Based Quality Assurance
 
 ## 6. Results
 
@@ -202,13 +176,7 @@
 
 ### 6.6 Field-Verified Species and Trait Results
 
-### 6.7 Google Earth Engine Embedding Classification Results
-
-### 6.8 Sentinel-2 Seasonal Baseline Results
-
-### 6.9 Crown Size and Scale-Mismatch Results
-
-### 6.10 Interactive Visualization and Error Analysis
+### 6.7 Interactive Visualization and Error Analysis
 
 ## 7. Discussion
 
@@ -222,13 +190,11 @@
 
 ### 7.5 Consensus Crowns for Stable Temporal Sampling
 
-### 7.6 Linking Drone-Scale Crowns to Field and Satellite Data
+### 7.6 Field Labels and Crown-Level Ecological Interpretation
 
-### 7.7 Satellite Scale Mismatch and Cross-Site Generalization
+### 7.7 Operational Considerations
 
-### 7.8 Operational Considerations
-
-### 7.9 Limitations and Future Work
+### 7.8 Limitations and Future Work
 
 ## 8. Conclusion
 
@@ -242,4 +208,18 @@
 
 ## Appendix C. Additional Phenology Visualizations
 
-## Appendix D. Additional Species and Trait Classification Results
+## Appendix D. Satellite, Species, and Trait Classification Explorations
+
+### D.1 Motivation for a Separate Short Paper
+
+### D.2 Field Label Inventory
+
+### D.3 Sentinel-2 Seasonal and Harmonic Features
+
+### D.4 Google Earth Engine Embedding Features
+
+### D.5 Crown Size and Satellite Pixel-Scale Analysis
+
+### D.6 Candidate Classification Tasks
+
+### D.7 Validation Strategy for Future Work
