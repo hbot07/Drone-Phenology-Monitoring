@@ -1,0 +1,15 @@
+model,decision,csv,label,split,holdout,n_train,n_test,train_counts,test_counts,accuracy,balanced_accuracy,macro_f1,confusion_matrix,labels,threshold
+hist_gradient,threshold_cv,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.6666666666666666,0.6731601731601732,0.6664294609500089,"[[26, 16], [9, 24]]","[0, 1]",0.1
+rf_balanced,threshold_cv,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.6666666666666666,0.6666666666666666,0.6645195920558239,"[[28, 14], [11, 22]]","[0, 1]",0.3
+rf_deeper,threshold_cv,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.6666666666666666,0.6374458874458875,0.6286393345216874,"[[37, 5], [20, 13]]","[0, 1]",0.35
+hist_gradient,default,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.6666666666666666,0.6374458874458875,0.6286393345216874,"[[37, 5], [20, 13]]","[0, 1]",
+extra_trees,default,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.6266666666666667,0.579004329004329,0.5227272727272727,"[[41, 1], [27, 6]]","[0, 1]",
+extra_trees,threshold_cv,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.5066666666666667,0.5595238095238095,0.4267713282379674,"[[5, 37], [0, 33]]","[0, 1]",0.25
+rf_balanced,default,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.5866666666666667,0.5400432900432901,0.4797493846498098,"[[39, 3], [28, 5]]","[0, 1]",
+logistic_l2,default,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.49333333333333335,0.5313852813852814,0.4585866261398176,"[[9, 33], [5, 28]]","[0, 1]",
+extra_trees_kbest,default,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.5733333333333334,0.5281385281385281,0.47089947089947093,"[[38, 4], [28, 5]]","[0, 1]",
+rf_deeper,default,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.56,0.5097402597402597,0.4282744282744283,"[[39, 3], [30, 3]]","[0, 1]",
+extra_trees_kbest,threshold_cv,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.44,0.5,0.3055555555555556,"[[0, 42], [0, 33]]","[0, 1]",0.1
+logistic_l2,threshold_cv,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.4266666666666667,0.47186147186147187,0.3612596553773024,"[[4, 38], [5, 28]]","[0, 1]",0.25
+svc_rbf,default,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.48,0.4707792207792208,0.47058823529411764,"[[23, 19], [20, 13]]","[0, 1]",
+svc_rbf,threshold_cv,exports/exp_s2temporal.csv,label_deciduous,leave_area_out,SIT,267,75,"{0: 185, 1: 82}","{0: 42, 1: 33}",0.48,0.4707792207792208,0.47058823529411764,"[[23, 19], [20, 13]]","[0, 1]",0.3

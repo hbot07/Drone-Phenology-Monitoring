@@ -1,0 +1,68 @@
+[
+  {
+    "label": "label_deciduous",
+    "model": "rf_deeper",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.2,
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_fused_original_buffer20_default_labels/label_deciduous_rf_deeper.joblib",
+    "n_train": 342,
+    "n_features": 128,
+    "random_balanced_accuracy": 0.6483193277310924,
+    "random_macro_f1": 0.5616192187647782
+  },
+  {
+    "label": "label_esd",
+    "model": "rf_balanced",
+    "decision": "default",
+    "decision_threshold": null,
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_fused_original_buffer20_default_labels/label_esd_rf_balanced.joblib",
+    "n_train": 342,
+    "n_features": 128,
+    "random_balanced_accuracy": 0.5163184641445512,
+    "random_macro_f1": 0.5125185706466495
+  },
+  {
+    "label": "label_red_showy",
+    "model": "svc_rbf",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.5,
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_fused_original_buffer20_default_labels/label_red_showy_svc_rbf.joblib",
+    "n_train": 355,
+    "n_features": 128,
+    "random_balanced_accuracy": 0.5,
+    "random_macro_f1": 0.4904761904761904
+  },
+  {
+    "label": "label_showy_flower",
+    "model": "logistic_l2",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.15,
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_fused_original_buffer20_default_labels/label_showy_flower_logistic_l2.joblib",
+    "n_train": 355,
+    "n_features": 128,
+    "random_balanced_accuracy": 0.6575956937799043,
+    "random_macro_f1": 0.4867408815277401
+  },
+  {
+    "label": "label_yellow_broad",
+    "model": "extra_trees_kbest",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.35,
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_fused_original_buffer20_default_labels/label_yellow_broad_extra_trees_kbest.joblib",
+    "n_train": 355,
+    "n_features": 128,
+    "random_balanced_accuracy": 0.8248917748917749,
+    "random_macro_f1": 0.8183361629881154
+  },
+  {
+    "label": "label_yellow_strict",
+    "model": "svc_rbf",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.1,
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_fused_original_buffer20_default_labels/label_yellow_strict_svc_rbf.joblib",
+    "n_train": 355,
+    "n_features": 128,
+    "random_balanced_accuracy": 0.6684210526315789,
+    "random_macro_f1": 0.3898995384197665
+  }
+]

@@ -2,6 +2,8 @@
   {
     "label": "label_acacia_all_priority",
     "model": "svc_rbf",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.45,
     "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_all_priority_svc_rbf.joblib",
     "n_train": 2462,
     "n_features": 64,
@@ -11,6 +13,8 @@
   {
     "label": "label_acacia_clustering",
     "model": "hist_gradient",
+    "decision": "default",
+    "decision_threshold": null,
     "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_clustering_hist_gradient.joblib",
     "n_train": 2179,
     "n_features": 64,
@@ -20,6 +24,8 @@
   {
     "label": "label_acacia_species_or_clustering",
     "model": "svc_rbf",
+    "decision": "default",
+    "decision_threshold": null,
     "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_species_or_clustering_svc_rbf.joblib",
     "n_train": 2462,
     "n_features": 64,
@@ -29,6 +35,8 @@
   {
     "label": "label_acacia_species",
     "model": "extra_trees",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.2,
     "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_species_extra_trees.joblib",
     "n_train": 391,
     "n_features": 64,
@@ -38,6 +46,8 @@
   {
     "label": "label_acacia_visual_or_clustering",
     "model": "svc_rbf",
+    "decision": "default",
+    "decision_threshold": null,
     "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_visual_or_clustering_svc_rbf.joblib",
     "n_train": 2179,
     "n_features": 64,
@@ -47,6 +57,8 @@
   {
     "label": "label_acacia_visual_or_species",
     "model": "logistic_l2",
+    "decision": "default",
+    "decision_threshold": null,
     "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_visual_or_species_logistic_l2.joblib",
     "n_train": 767,
     "n_features": 64,
@@ -56,6 +68,8 @@
   {
     "label": "label_acacia_visual",
     "model": "rf_balanced",
+    "decision": "default",
+    "decision_threshold": null,
     "artifact": "src/notebooks/satellite/embeddings/models/gee_original_acacia_label_configs/label_acacia_visual_rf_balanced.joblib",
     "n_train": 400,
     "n_features": 64,

@@ -37,13 +37,18 @@ def main() -> None:
     ap.add_argument("--csv", required=True)
     ap.add_argument("--sweep-dir", required=True)
     ap.add_argument("--models-dir", default=str(ROOT / "models"))
+    ap.add_argument(
+        "--run-name",
+        default=None,
+        help="Optional model artifact subdirectory name. Defaults to the source CSV stem.",
+    )
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--trees", type=int, default=500)
     args = ap.parse_args()
 
     csv = Path(args.csv)
     sweep_dir = Path(args.sweep_dir)
-    models_dir = Path(args.models_dir) / csv.stem
+    models_dir = Path(args.models_dir) / (args.run_name or csv.stem)
     models_dir.mkdir(parents=True, exist_ok=True)
 
     df = pd.read_csv(csv)
@@ -65,6 +70,12 @@ def main() -> None:
             "model": model,
             "label": label,
             "model_name": model_name,
+            "decision": row.get("decision", "default"),
+            "decision_threshold": (
+                None
+                if pd.isna(row.get("threshold", None))
+                else float(row.get("threshold"))
+            ),
             "feature_cols": feature_cols,
             "classes": sorted(y.unique().tolist()),
             "train_counts": y.value_counts().sort_index().to_dict(),
@@ -79,6 +90,12 @@ def main() -> None:
             {
                 "label": label,
                 "model": model_name,
+                "decision": row.get("decision", "default"),
+                "decision_threshold": (
+                    None
+                    if pd.isna(row.get("threshold", None))
+                    else float(row.get("threshold"))
+                ),
                 "artifact": str(out_path),
                 "n_train": int(len(usable)),
                 "n_features": len(feature_cols),

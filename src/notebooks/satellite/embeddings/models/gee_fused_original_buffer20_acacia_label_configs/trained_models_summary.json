@@ -1,0 +1,46 @@
+[
+  {
+    "label": "label_acacia_all_priority",
+    "model": "extra_trees",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.35,
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_fused_original_buffer20_acacia_label_configs/label_acacia_all_priority_extra_trees.joblib",
+    "n_train": 2462,
+    "n_features": 128,
+    "random_balanced_accuracy": 0.7391773875481266,
+    "random_macro_f1": 0.7143208574942892
+  },
+  {
+    "label": "label_acacia_species",
+    "model": "rf_balanced",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.25,
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_fused_original_buffer20_acacia_label_configs/label_acacia_species_rf_balanced.joblib",
+    "n_train": 391,
+    "n_features": 128,
+    "random_balanced_accuracy": 0.9290816326530612,
+    "random_macro_f1": 0.8692375886524824
+  },
+  {
+    "label": "label_acacia_visual_or_species",
+    "model": "extra_trees_kbest",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.3,
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_fused_original_buffer20_acacia_label_configs/label_acacia_visual_or_species_extra_trees_kbest.joblib",
+    "n_train": 767,
+    "n_features": 128,
+    "random_balanced_accuracy": 0.8486648170625974,
+    "random_macro_f1": 0.8080788099382814
+  },
+  {
+    "label": "label_acacia_visual",
+    "model": "svc_rbf",
+    "decision": "default",
+    "decision_threshold": null,
+    "artifact": "src/notebooks/satellite/embeddings/models/gee_fused_original_buffer20_acacia_label_configs/label_acacia_visual_svc_rbf.joblib",
+    "n_train": 400,
+    "n_features": 128,
+    "random_balanced_accuracy": 0.7864293659621802,
+    "random_macro_f1": 0.7823660714285714
+  }
+]

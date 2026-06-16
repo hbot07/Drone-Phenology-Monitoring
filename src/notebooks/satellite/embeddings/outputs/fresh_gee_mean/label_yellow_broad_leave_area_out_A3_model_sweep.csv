@@ -1,0 +1,15 @@
+model,decision,csv,label,split,holdout,n_train,n_test,train_counts,test_counts,accuracy,balanced_accuracy,macro_f1,confusion_matrix,labels,threshold
+logistic_l2,default,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.6875,0.6312178387650085,0.5833333333333333,"[[38, 15], [5, 6]]","[0, 1]",
+logistic_l2,threshold_cv,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.796875,0.5891938250428816,0.5982617093191696,"[[48, 5], [8, 3]]","[0, 1]",0.65
+rf_balanced,default,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",
+rf_balanced,threshold_cv,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",0.5
+rf_deeper,default,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",
+rf_deeper,threshold_cv,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",0.5
+extra_trees,default,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",
+extra_trees,threshold_cv,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",0.5
+extra_trees_kbest,default,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",
+extra_trees_kbest,threshold_cv,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",0.6
+svc_rbf,default,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",
+svc_rbf,threshold_cv,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",0.35
+hist_gradient,default,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",
+hist_gradient,threshold_cv,exports/gee_mean_2024_acacia_label_configs.csv,label_yellow_broad,leave_area_out,A3,291,64,"{0: 202, 1: 89}","{0: 53, 1: 11}",0.828125,0.5,0.452991452991453,"[[53, 0], [11, 0]]","[0, 1]",0.6

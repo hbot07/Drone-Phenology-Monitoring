@@ -1,0 +1,15 @@
+model,decision,csv,label,split,holdout,n_train,n_test,train_counts,test_counts,accuracy,balanced_accuracy,macro_f1,confusion_matrix,labels,threshold
+rf_balanced,threshold_cv,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.671875,0.6018518518518519,0.5530428999002328,"[[38, 16], [5, 5]]","[0, 1]",0.1
+logistic_l2,threshold_cv,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.75,0.5666666666666667,0.5608919382504288,"[[45, 9], [7, 3]]","[0, 1]",0.15
+hist_gradient,threshold_cv,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.859375,0.55,0.5524475524475525,"[[54, 0], [9, 1]]","[0, 1]",0.1
+extra_trees,threshold_cv,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.71875,0.5481481481481482,0.5384615384615384,"[[43, 11], [7, 3]]","[0, 1]",0.15
+extra_trees_kbest,threshold_cv,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.4375,0.5444444444444444,0.40923076923076923,"[[21, 33], [3, 7]]","[0, 1]",0.15
+rf_deeper,threshold_cv,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.5625,0.537037037037037,0.47602339181286546,"[[31, 23], [5, 5]]","[0, 1]",0.1
+logistic_l2,default,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.796875,0.512962962962963,0.5091445427728614,"[[50, 4], [9, 1]]","[0, 1]",
+svc_rbf,threshold_cv,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.796875,0.512962962962963,0.5091445427728614,"[[50, 4], [9, 1]]","[0, 1]",0.1
+rf_balanced,default,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.84375,0.5,0.4576271186440678,"[[54, 0], [10, 0]]","[0, 1]",
+rf_deeper,default,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.84375,0.5,0.4576271186440678,"[[54, 0], [10, 0]]","[0, 1]",
+extra_trees,default,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.84375,0.5,0.4576271186440678,"[[54, 0], [10, 0]]","[0, 1]",
+extra_trees_kbest,default,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.84375,0.5,0.4576271186440678,"[[54, 0], [10, 0]]","[0, 1]",
+svc_rbf,default,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.84375,0.5,0.4576271186440678,"[[54, 0], [10, 0]]","[0, 1]",
+hist_gradient,default,exports/exp_gee_dino.csv,label_yellow_strict,leave_area_out,A3,291,64,"{0: 261, 1: 30}","{0: 54, 1: 10}",0.84375,0.5,0.4576271186440678,"[[54, 0], [10, 0]]","[0, 1]",

@@ -8,6 +8,98 @@ This outline treats the **tree-identity-preserving temporal pipeline** as the ce
 
 ---
 
+## Professor Feedback (Round 1) — Structure Directives
+
+Captured 2026-06-15. The heading skeleton in `paper.md` and the Overleaf
+`main.tex` is now the source of truth for section structure; where the
+"Proposed Paper Structure" below (this document's Section 5) disagrees, these
+directives win.
+
+**Introduction**
+
+- **1.1 Background and Motivation** must state **two problem statements**:
+  1. Crown detection on a single orthomosaic is not reliable — it depends on
+     canopy structure at that moment (some trees leafless; similar trees merge
+     into one large canopy blob).
+  2. Labeling tree phenology (leaf-shed and flowering times) provides robust
+     training data for satellite models that can move back/forth in time,
+     analyze multi-year phenology change, and compare against weather events.
+     (Satellite stays as *motivation only*; experiments remain deferred.)
+  Implemented as subsubsections 1.1.1 / 1.1.2.
+- **1.2** recentered on **examples** of single-OM unreliability: show two OMs of
+  the same area with crowns missed and crowns merged. (Retitled "Examples of
+  Unreliable Single-Orthomosaic Crown Detection".)
+- **1.3 renamed** "From Crown Detection to Temporal Tree **Phenology**" (was
+  "...Identity"). Show one crown across time — the **Semal** example
+  (leaves → leafless → flowers). Doable now: species are marked in the master
+  geojson, so extract Semal crops across OMs and lay them out as a figure.
+
+**Related Work (Section 2)**
+
+- Each 2.x subsection must end with a line or two on **how it relates to our
+  work** ("we take the same approach", "this does not work for us, so we do X",
+  "our work can help solve this", etc.). Needs sourced literature — see the
+  deep-research prompt kept with the writing notes. No heading change.
+
+**Study Area and Data (Section 3)**
+
+- **3.2 / 3.3:** give method-level detail but keep it light. Installation,
+  library names, exact parameters belong in the GitHub repo, not the paper.
+- **3.4:** document that labeling was first attempted in **QField** (guide in
+  `misc/docs`) but it was slow — too many clicks, one crown labelled at a time.
+  We switched to **paper forms**: crowns were assigned IDs in nearby/walking
+  order, and we walked the site writing running notes (e.g., "12, 15, 21 —
+  Amaltas"), carrying (a) a printout of the orthomosaic with crown IDs and
+  (b) the QField app showing the same IDs to point out the current tree.
+  Implemented as subsubsections 3.4.1 (QField pilot + limits), 3.4.2 (paper-form
+  workflow), 3.4.3 (crown-ID printouts). Method 4.9.2 retitled accordingly
+  ("Paper-Form to Crown-ID Label Joins"). **TODO: insert photos of the paper
+  forms and field photos (user to provide).**
+
+**Methodology (Section 4)**
+
+- **4.1** must carry **flowcharts/infographics**: one high-level workflow of the
+  main components, plus detailed flowcharts for each smaller component. To be
+  drawn (placeholder TODO in the LaTeX).
+
+**Evaluation and Results (Section 5)**
+
+- Be selective: only include tables/graphs we are confident are backed by good
+  results and are meaningful. Do not pad with weak/uncertain tables.
+- Section retitled **"Evaluation and Results"** — the old Section 6 metric
+  results are merged up here (one place for all quantitative evaluation:
+  detection, alignment, tracking, consensus, phenology features, plus
+  visualization-based error analysis).
+
+**Seasonal Phenology Mapping (Section 6, repurposed)**
+
+- The prof asked how 6 differs from 5. Section 6 is now the **applied seasonal
+  output** section, distinct from the metrics in 5:
+  - 6.1 per-OM flowering-color labeling: Red / Yellow / White / None.
+  - 6.2 leaf-shed phenophase progression across the season (what the OMs look
+    like in March, then April, then May, etc.).
+  - 6.3 species-resolved phenology patterns.
+  - 6.4 illustrative crown-level trajectories.
+- **Data check needed:** confirm we actually have **white**-flower labeled
+  crowns; if not, drop "White" from 6.1.
+
+**Discussion (Section 7) — REMOVED**
+
+- Per feedback, the standalone Discussion is removed; its points are woven into
+  the nearest relevant sections, and a brief future-work paragraph goes in the
+  Conclusion. Migration map:
+  - "tree identity is the core unit" → Introduction 1.3 / Conclusion.
+  - "role of multi-threshold detection" → Method 4.2 / Eval 5.1.
+  - "impact of alignment" → Method 4.3 / Eval 5.2.
+  - "graph association under split-merge" → Method 4.4 / Eval 5.3.
+  - "consensus crowns for stable sampling" → Method 4.6 / Eval 5.4.
+  - "field labels and ecological interpretation" → Method 4.9 / Section 6.
+  - "operational considerations" → Section 3 / Conclusion.
+  - "limitations + future work" → distributed inline + brief Future Work in
+    the Conclusion.
+
+---
+
 ## 1. Candidate Titles
 
 ### Recommended Main Title
@@ -303,6 +395,14 @@ Write:
 - Near-nadir imagery.
 - Reused flight paths for temporal consistency.
 
+Resolved from prof emails / meetings (cite-able):
+
+- DJI Mini 4 Pro is a **consumer** drone, not survey-grade: no public SDK for autonomous fixed-overlap flight paths (the Mini 3 had one), so survey-grade flight automation was a known limitation. Camera intrinsics on record: focal 5.067 mm, sensor 7.6 × 4.275 mm.
+- Coordinate metadata is stored in **XMP, not standard EXIF** on the Mini 4 Pro; an XMP→EXIF conversion was required before WebODM. CRS is WGS84 / UTM 43N.
+- Imprecise EXIF georeferencing plus wind/terrain-driven yaw/pitch/roll introduce orthomosaic distortion; residual positional offsets of **~5–7 m** remained even after EXIF-corner placement. This is the sourced motivation for the residual-alignment step (§4.3) and a number usable in §6.2.
+- External GPS/RTK was investigated and rejected on cost/accuracy grounds (affordable receivers ~2 m), reinforcing image-based alignment over field-GPS precision.
+- Drone-mapping collaboration involved Craig Dsouza and SS Jayakrishna; acknowledge as appropriate.
+
 Need from user:
 
 - exact flight count and dates;
@@ -393,20 +493,15 @@ Include:
 - Polygons are cleaned/simplified/deduplicated.
 - Detections are saved at multiple confidence thresholds.
 
-Technical details to include if final values are stable:
+Code-verified settings (resolve discrepancies before writing final numbers):
 
-- tile size around 40 m or 45 m depending on site;
-- buffer around 30;
-- simplify tolerance around 0.3;
-- thresholds such as `conf_0p15` to `conf_0p65`;
-- base tracking threshold such as `conf_0p45`;
-- high-confidence alignment threshold such as `conf_0p65`.
-
-Need from user:
-
-- final canonical tile/buffer/threshold settings;
-- whether settings vary by site;
-- which exact settings produced final results.
+- **Tile size / buffer (discrepancy):** the *production pipeline* defaults to **25 × 25 m tiles, 15 m buffer** (`00_discover_oms.py`). The earlier *notebook era* used **45 × 45 m tiles, 20 m buffer** (weekly meeting 2025-03-11; notebook-analysis doc). Pick the values from the run that produced the final tables — do NOT inherit the 40 m/buffer-30 figure from the overlapping companion group's text.
+- simplify tolerance 0.3, fixed IoU 0.7 for `clean_crowns` (`01_crown_detection.py`).
+- thresholds `conf_0p15` … `conf_0p65` in 0.05 steps (11 layers).
+- base tracking threshold: **`conf_0p45` for LHC**, **`conf_0p15` for SIT** (SIT's `conf_0p45` is too sparse — README documents this).
+- high-confidence alignment threshold `conf_0p65`.
+- model: `250312_flexi.pth` (the "flexi" model adopted Oct 2025 for more consistent crown sizes).
+- Settings DO vary by site (base threshold). State per-site settings in Table 1 / Appendix.
 
 ### 4.3 Multi-Threshold Crown Store
 
@@ -452,10 +547,11 @@ P'_t = P_t + delta_t
 
 If alignment is chained date-to-date, define whether `delta_t` is cumulative.
 
-Need from user/code check:
+Resolved from code (`tree_tracking.py::align_to_reference_with_method`):
 
-- confirm final alignment is to OM1 directly or consecutive/cumulative;
-- confirm `pcc_tiled` is the final method in current pipeline.
+- Reference is OM1. Each OM is aligned to the **previous** OM via phase cross-correlation, and the step shifts are **accumulated** (`shift_t = shift_{t-1} + step_t`), i.e. consecutive/cumulative to OM1 — not each OM registered directly to OM1.
+- `pcc_tiled` is the default and final method. It splits the overlap into a 4×4 tile grid, runs PCC per tile, gates tiles on texture/error/max-shift, then takes a **MAD-inlier median** of the per-tile shifts (falls back to whole-image PCC if too few valid tiles). Alternatives `pcc`, `ecc`, `crowns` (centroid), `orb_affine` also exist.
+- Step 2 saves the per-OM shifts into `pipeline_config.json`; Steps 3–4 reuse those exact shifts (no re-registration), so crop sampling is consistent with tracking.
 
 ### 4.5 Temporal Crown Graph Construction
 
@@ -517,11 +613,11 @@ Write:
 - Broken chains can result from missed detections or real canopy invisibility.
 - Gap filling searches lower-threshold detections near predicted/interpolated positions and accepts candidates only when spatially consistent.
 
-Need from user:
+Resolved from code (`tree_tracking.py`, `02_crown_tracking.py`):
 
-- exact final rule for full vs partial chain inclusion;
-- whether virtual nodes are implemented in final output or only conceptual;
-- whether gap-filled lower-threshold detections are marked with provenance.
+- **Full vs partial inclusion rule:** consensus sources = full width-1 chains + extracted backbones of branching full chains, plus partial chains with `len >= min_partial_len` (default 5) AND a one-to-one edge ratio `>= min_partial_one_to_one_ratio` (default 0.9). See `select_consensus_source_chains`.
+- **How multi-threshold actually helps tracking (IMPORTANT correction):** the production Step 2 does NOT call the explicit predicted-position gap-filler (`augment_partial_chains_with_multithreshold` exists but is not invoked). Instead, `load_multithreshold_data` builds the candidate population so that OM1 uses only the base layer while every later OM uses the **union of all threshold layers** (`conf_0p15…conf_0p65`), de-duplicated by geometry. So lower-confidence detections enter tracking as a richer candidate pool, not as targeted gap fills. Section 4.5.4 / paper §4.5.4 should describe this union mechanism (the paper.md heading is now "Gap Filling via Multi-Threshold Candidates").
+- **Virtual nodes / provenance:** the gap-fill path does tag appended crowns with `is_augmented=True` and `case="gap_fill"`, but since it is not run in production there are no virtual/augmented nodes in the current outputs. If the stronger gap-fill story is wanted, wire `augment_partial_chains_with_multithreshold` into Step 2 and regenerate.
 
 ### 4.8 Consensus Crown Generation
 
@@ -561,6 +657,8 @@ Then explain:
 - avoids invalid geometry from repeated intersections/unions;
 - robust enough for noisy time series;
 - alternative consensus strategies include intersection core and union-shrink.
+
+Code-verified weights (`consensus_medoid`): `w_d = 0.5` (centroid distance, normalized by the max pairwise centroid distance in the chain), `w_iou = 0.4` (on `1 - IoU`), `w_a = 0.1` (on `1 - area_ratio`). Dedup after consensus (`deduplicate_crowns`): drop by IoU `> 0.75` and by containment (buffer 5.0), larger-area-first with chain-length/avg-similarity tiebreak.
 
 ### 4.9 Crown Crop Extraction
 
@@ -611,6 +709,16 @@ Write:
   - leaf-on;
   - leaf-off;
   - transitioning.
+
+Code-verified (`phenology_leafshed.compute_leafshed_scores`):
+
+- per-crown veg/GCC/texture series are linearly interpolated over missing/bad dates, then amplitudes are normalized by **A90** (the 90th-percentile amplitude across all crowns);
+- deciduous score `DS = 0.35·veg_amp + 0.30·depth + 0.25·gcc_amp + 0.10·texture_amp`;
+- `depth = (tau_veg - min_veg)/tau_veg` when `min_veg < tau_veg` (else 0), with `tau_veg = veg_min_threshold`, default 0.45;
+- deciduous if `DS >= ds_threshold` — **pipeline Step 3 default is 0.70**; the dataclass default is 0.85, so state the actual run value;
+- phenophase on min-max-normalized veg: `leaf_on >= 0.65`, `leaf_off <= 0.35`, transitioning in between, `stable` for non-deciduous crowns;
+- events: `leaf_off_start_om`, `full_leaf_off_om` (veg trough), `leaf_on_return_om`.
+- A non-tree filter (`apply_non_tree_thresholds`) exists but Step 3 disables it — do not claim automated non-tree removal as a result.
 
 Be honest:
 
@@ -1268,12 +1376,14 @@ Resolved:
 
 ### Decision 3: Final Satellite/Species Scope
 
-Resolved for this paper:
+Resolved for this paper (confirmed by author 2026-06-15):
 
 - Satellite/species work moves out of this paper's main structure.
 - The main paper should not rely on satellite/species classifier results.
 - The strongest current direction remains Google Earth Engine embeddings, but that will become a separate short paper later.
 - Main-body references should be brief and should frame satellite/species as future work.
+
+Counterpoint on record (do not silently reopen): the weekly-meeting digest's "Suggested Paper Updates" recommends satellite/species in the **main body** (Sentinel-2 baselines + GEE embeddings + spatial-holdout evaluation), and the professor's original charter frames cross-scale satellite modeling and species classification as part of the project vision. This was reviewed and **consciously overridden** in favor of a focused drone-only contribution. If the professor pushes for inclusion, the fallback is "satellite as a secondary/appendix contribution" rather than co-equal — and the GEE embedding Acacia result plus the crown-size-vs-Sentinel-2-pixel scale-mismatch analysis are the materials to use.
 
 Need later for the separate short paper:
 

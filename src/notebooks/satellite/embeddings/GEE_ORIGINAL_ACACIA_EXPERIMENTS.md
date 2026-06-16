@@ -120,24 +120,37 @@ Regenerate:
 python3 src/notebooks/satellite/embeddings/rank_acacia_review_candidates.py
 ```
 
-## Finer-Resolution Next Step
+## GEE-Only Next Step
 
-For imagery finer than 10 m, the first practical next test is Planet NICFI basemaps in Earth Engine because it keeps a similar export workflow while improving nominal spatial resolution.
+The active direction is to stay with Google Earth Engine Satellite Embedding V1 and improve the label/evaluation workflow rather than switching imagery sources.
 
-Script:
+Recommended GEE-only experiments:
 
-- `scripts/extract_gee_nicfi_features.py`
+- compare original crown polygons, centroids, and centroid buffers;
+- fuse geometry variants only when leave-area-out performance improves;
+- prioritize visual-only Acacia and species-only Acacia for clean evaluation;
+- treat clustering-heavy labels as review/triage signals, not primary training labels;
+- report leave-area-out before random split.
 
-Example:
+Example geometry exports:
 
 ```bash
-python3 scripts/extract_gee_nicfi_features.py \
+python3 scripts/extract_gee_embeddings.py \
   --project adept-vigil-418410 \
   --crowns-asset projects/adept-vigil-418410/assets/iitd_sv_crowns_master_shapefile_for_gee \
-  --region asia \
-  --start-date 2024-01-01 \
-  --end-date 2025-01-01 \
-  --geometry-mode polygon
+  --year 2024 \
+  --geometry-mode original \
+  --description iitd_sv_gee_embeddings_2024_original
+```
+
+```bash
+python3 scripts/extract_gee_embeddings.py \
+  --project adept-vigil-418410 \
+  --crowns-asset projects/adept-vigil-418410/assets/iitd_sv_crowns_master_shapefile_for_gee \
+  --year 2024 \
+  --geometry-mode centroid_buffer \
+  --buffer-meters 20 \
+  --description iitd_sv_gee_embeddings_2024_buffer20m
 ```
 
 ## Regenerating Results

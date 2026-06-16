@@ -1,0 +1,156 @@
+[
+  {
+    "label": "label_acacia_all_priority",
+    "model": "svc_rbf",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.45,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_acacia_all_priority_svc_rbf.joblib",
+    "n_train": 2462,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.7260071368203587,
+    "random_macro_f1": 0.7107772915297339
+  },
+  {
+    "label": "label_acacia_clustering",
+    "model": "extra_trees_kbest",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.45,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_acacia_clustering_extra_trees_kbest.joblib",
+    "n_train": 2179,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.7235243055555556,
+    "random_macro_f1": 0.7125828717271396
+  },
+  {
+    "label": "label_acacia",
+    "model": "extra_trees_kbest",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.3,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_acacia_extra_trees_kbest.joblib",
+    "n_train": 391,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.9239795918367346,
+    "random_macro_f1": 0.858343337334934
+  },
+  {
+    "label": "label_acacia_species_or_clustering",
+    "model": "extra_trees",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.4,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_acacia_species_or_clustering_extra_trees.joblib",
+    "n_train": 2462,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.7327054391335059,
+    "random_macro_f1": 0.7232036078995051
+  },
+  {
+    "label": "label_acacia_species",
+    "model": "extra_trees_kbest",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.3,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_acacia_species_extra_trees_kbest.joblib",
+    "n_train": 391,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.9239795918367346,
+    "random_macro_f1": 0.858343337334934
+  },
+  {
+    "label": "label_acacia_visual_or_clustering",
+    "model": "extra_trees_kbest",
+    "decision": "default",
+    "decision_threshold": null,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_acacia_visual_or_clustering_extra_trees_kbest.joblib",
+    "n_train": 2179,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.6875912408759124,
+    "random_macro_f1": 0.6847668910496136
+  },
+  {
+    "label": "label_acacia_visual_or_species",
+    "model": "svc_rbf",
+    "decision": "default",
+    "decision_threshold": null,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_acacia_visual_or_species_svc_rbf.joblib",
+    "n_train": 767,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.8254725160395353,
+    "random_macro_f1": 0.7856762145409322
+  },
+  {
+    "label": "label_acacia_visual",
+    "model": "rf_balanced",
+    "decision": "default",
+    "decision_threshold": null,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_acacia_visual_rf_balanced.joblib",
+    "n_train": 400,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.7675194660734149,
+    "random_macro_f1": 0.7666666666666667
+  },
+  {
+    "label": "label_deciduous",
+    "model": "extra_trees",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.45,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_deciduous_extra_trees.joblib",
+    "n_train": 342,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.6256302521008403,
+    "random_macro_f1": 0.6291325695581015
+  },
+  {
+    "label": "label_esd",
+    "model": "rf_balanced",
+    "decision": "default",
+    "decision_threshold": null,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_esd_rf_balanced.joblib",
+    "n_train": 342,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.5235648409561453,
+    "random_macro_f1": 0.5198067632850242
+  },
+  {
+    "label": "label_red_showy",
+    "model": "rf_balanced",
+    "decision": "default",
+    "decision_threshold": null,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_red_showy_rf_balanced.joblib",
+    "n_train": 355,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.5,
+    "random_macro_f1": 0.4904761904761904
+  },
+  {
+    "label": "label_showy_flower",
+    "model": "rf_balanced",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.2,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_showy_flower_rf_balanced.joblib",
+    "n_train": 355,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.6489234449760766,
+    "random_macro_f1": 0.5618345618345618
+  },
+  {
+    "label": "label_yellow_broad",
+    "model": "hist_gradient",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.1,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_yellow_broad_hist_gradient.joblib",
+    "n_train": 355,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.7952380952380952,
+    "random_macro_f1": 0.786292441921581
+  },
+  {
+    "label": "label_yellow_strict",
+    "model": "logistic_l2",
+    "decision": "threshold_cv",
+    "decision_threshold": 0.4,
+    "artifact": "src/notebooks/satellite/embeddings/models/fresh_gee_mean/label_yellow_strict_logistic_l2.joblib",
+    "n_train": 355,
+    "n_features": 64,
+    "random_balanced_accuracy": 0.7899122807017543,
+    "random_macro_f1": 0.5962264150943397
+  }
+]

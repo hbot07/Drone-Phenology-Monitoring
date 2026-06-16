@@ -1,0 +1,87 @@
+crown_uid,area,crown_num,fid,species,Tree type,field_raw,species_raw,species_clean,tree_type_raw,species_first,clustering,clustering_label,visual,visual_source,known_label_values,has_disagreement
+SV_S1:crown_0030,SV_S1,30,30,,,,,,,,0.0,non_acacia,1.0,s1_tree_029.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0076,SV_S1,76,76,,,,,,,,1.0,acacia,0.0,s1_tree_075.tif,clustering label=1; visual chip label=0,True
+SV_S1:crown_0078,SV_S1,78,78,,,,,,,,0.0,non_acacia,1.0,s1_tree_077.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0098,SV_S1,98,98,,,,,,,,1.0,acacia,0.0,s1_tree_097.tif,clustering label=1; visual chip label=0,True
+SV_S1:crown_0100,SV_S1,100,100,,,,,,,,1.0,acacia,0.0,s1_tree_099.tif,clustering label=1; visual chip label=0,True
+SV_S1:crown_0204,SV_S1,204,204,,,,,,,,0.0,non_acacia,1.0,s1_tree_203.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0219,SV_S1,219,219,Prosopis Juliflora,Non-Acacia ,0.0,Prosopis Juliflora,Prosopis Juliflora,Non-Acacia,1.0,0.0,non_acacia,,,field raw Tree type=0; species-first master label_acacia=1; clustering label=0,True
+SV_S1:crown_0220,SV_S1,220,220,Prosopis Juliflora,Acacia,1.0,Prosopis Juliflora,Prosopis Juliflora,Acacia,1.0,0.0,non_acacia,,,field raw Tree type=1; species-first master label_acacia=1; clustering label=0,True
+SV_S1:crown_0221,SV_S1,221,221,,,,,,,,0.0,non_acacia,1.0,s1_tree_220.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0274,SV_S1,274,274,,,,,,,,1.0,acacia,0.0,s1_tree_273.tif,clustering label=1; visual chip label=0,True
+SV_S1:crown_0280,SV_S1,280,280,,,,,,,,0.0,non_acacia,1.0,s1_tree_279.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0287,SV_S1,287,287,,,,,,,,1.0,acacia,0.0,s1_tree_286.tif,clustering label=1; visual chip label=0,True
+SV_S1:crown_0313,SV_S1,313,313,,,,,,,,0.0,non_acacia,1.0,s1_tree_312.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0327,SV_S1,327,327,,,,,,,,0.0,non_acacia,1.0,s1_tree_326.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0333,SV_S1,333,333,,,,,,,,0.0,non_acacia,1.0,s1_tree_332.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0346,SV_S1,346,346,Subabool,Acacia,1.0,Subabool,Subabool,Acacia,1.0,0.0,non_acacia,,,field raw Tree type=1; species-first master label_acacia=1; clustering label=0,True
+SV_S1:crown_0349,SV_S1,349,349,Subabool,Acacia,1.0,Subabool,Subabool,Acacia,1.0,0.0,non_acacia,0.0,s1_tree_348.tif,field raw Tree type=1; species-first master label_acacia=1; clustering label=0; visual chip label=0,True
+SV_S1:crown_0362,SV_S1,362,362,,,,,,,,1.0,acacia,0.0,s1_tree_361.tif,clustering label=1; visual chip label=0,True
+SV_S1:crown_0384,SV_S1,384,384,,,,,,,,0.0,non_acacia,1.0,s1_tree_383.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0394,SV_S1,394,394,Others,Acacia,1.0,Others,,Acacia,1.0,0.0,non_acacia,,,field raw Tree type=1; species-first master label_acacia=1; clustering label=0,True
+SV_S1:crown_0397,SV_S1,397,397,,,,,,,,0.0,non_acacia,1.0,s1_tree_396.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0399,SV_S1,399,399,Others,Non-Acacia ,0.0,Others,,Non-Acacia,0.0,1.0,acacia,,,field raw Tree type=0; species-first master label_acacia=0; clustering label=1,True
+SV_S1:crown_0400,SV_S1,400,400,,,,,,,,0.0,non_acacia,1.0,s1_tree_399.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0404,SV_S1,404,404,Neem,Acacia,1.0,Neem,Neem,Acacia,0.0,0.0,non_acacia,,,field raw Tree type=1; species-first master label_acacia=0; clustering label=0,True
+SV_S1:crown_0409,SV_S1,409,409,Prosopis Juliflora,Acacia,1.0,Prosopis Juliflora,Prosopis Juliflora,Acacia,1.0,0.0,non_acacia,1.0,s1_tree_408.tif,field raw Tree type=1; species-first master label_acacia=1; clustering label=0; visual chip label=1,True
+SV_S1:crown_0414,SV_S1,414,414,,,,,,,,0.0,non_acacia,1.0,s1_tree_413.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0424,SV_S1,424,424,Prosopis Juliflora,Acacia,1.0,Prosopis Juliflora,Prosopis Juliflora,Acacia,1.0,0.0,non_acacia,0.0,s1_tree_423.tif,field raw Tree type=1; species-first master label_acacia=1; clustering label=0; visual chip label=0,True
+SV_S1:crown_0442,SV_S1,442,442,,,,,,,,0.0,non_acacia,1.0,s1_tree_441.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0467,SV_S1,467,467,,,,,,,,1.0,acacia,0.0,s1_tree_466.tif,clustering label=1; visual chip label=0,True
+SV_S1:crown_0480,SV_S1,480,480,Neem,Acacia,1.0,Neem,Neem,Acacia,0.0,0.0,non_acacia,0.0,s1_tree_479.tif,field raw Tree type=1; species-first master label_acacia=0; clustering label=0; visual chip label=0,True
+SV_S1:crown_0483,SV_S1,483,483,,,,,,,,0.0,non_acacia,1.0,s1_tree_482.tif,clustering label=0; visual chip label=1,True
+SV_S1:crown_0538,SV_S1,538,538,Prosopis Juliflora,Acacia,1.0,Prosopis Juliflora,Prosopis Juliflora,Acacia,1.0,0.0,non_acacia,,,field raw Tree type=1; species-first master label_acacia=1; clustering label=0,True
+SV_S1:crown_0575,SV_S1,575,575,,,,,,,,1.0,acacia,0.0,s1_tree_574.tif,clustering label=1; visual chip label=0,True
+SV_S1:crown_0618,SV_S1,618,618,,,,,,,,0.0,non_acacia,1.0,s1_tree_617.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0004,SV_S2,4,4,,,,,,,,0.0,non_acacia,1.0,s2_tree_003.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0016,SV_S2,16,16,,,,,,,,1.0,acacia,0.0,s2_tree_015.tif,clustering label=1; visual chip label=0,True
+SV_S2:crown_0036,SV_S2,36,36,,,,,,,,1.0,acacia,0.0,s2_tree_035.tif,clustering label=1; visual chip label=0,True
+SV_S2:crown_0057,SV_S2,57,57,,,,,,,,0.0,non_acacia,1.0,s2_tree_056.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0094,SV_S2,94,94,,,,,,,,1.0,acacia,0.0,s2_tree_093.tif,clustering label=1; visual chip label=0,True
+SV_S2:crown_0112,SV_S2,112,112,,Acacia,1.0,,,Acacia,1.0,0.0,non_acacia,,,field raw Tree type=1; species-first master label_acacia=1; clustering label=0,True
+SV_S2:crown_0133,SV_S2,133,133,Subabool,Acacia,1.0,Subabool,Subabool,Acacia,1.0,0.0,non_acacia,,,field raw Tree type=1; species-first master label_acacia=1; clustering label=0,True
+SV_S2:crown_0152,SV_S2,152,152,Prosopis Juliflora,Acacia,1.0,Prosopis Juliflora,Prosopis Juliflora,Acacia,1.0,0.0,non_acacia,1.0,s2_tree_151.tif,field raw Tree type=1; species-first master label_acacia=1; clustering label=0; visual chip label=1,True
+SV_S2:crown_0157,SV_S2,157,157,Others,Acacia,1.0,Others,,Acacia,1.0,0.0,non_acacia,,,field raw Tree type=1; species-first master label_acacia=1; clustering label=0,True
+SV_S2:crown_0177,SV_S2,177,177,,,,,,,,0.0,non_acacia,1.0,s2_tree_176.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0306,SV_S2,306,306,,,,,,,,1.0,acacia,0.0,s2_tree_305.tif,clustering label=1; visual chip label=0,True
+SV_S2:crown_0318,SV_S2,318,318,,,,,,,,0.0,non_acacia,1.0,s2_tree_317.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0319,SV_S2,319,319,,,,,,,,0.0,non_acacia,1.0,s2_tree_318.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0321,SV_S2,321,321,,,,,,,,0.0,non_acacia,1.0,s2_tree_320.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0322,SV_S2,322,322,,,,,,,,0.0,non_acacia,1.0,s2_tree_321.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0324,SV_S2,324,324,,,,,,,,0.0,non_acacia,1.0,s2_tree_323.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0349,SV_S2,349,349,,,,,,,,1.0,acacia,0.0,s2_tree_348.tif,clustering label=1; visual chip label=0,True
+SV_S2:crown_0414,SV_S2,414,414,,,,,,,,0.0,non_acacia,1.0,s2_tree_413.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0418,SV_S2,418,418,,,,,,,,0.0,non_acacia,1.0,s2_tree_417.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0433,SV_S2,433,433,,,,,,,,1.0,acacia,0.0,s2_tree_432.tif,clustering label=1; visual chip label=0,True
+SV_S2:crown_0466,SV_S2,466,466,,,,,,,,1.0,acacia,0.0,s2_tree_465.tif,clustering label=1; visual chip label=0,True
+SV_S2:crown_0503,SV_S2,503,503,,,,,,,,0.0,non_acacia,1.0,s2_tree_502.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0542,SV_S2,542,542,,,,,,,,0.0,non_acacia,1.0,s2_tree_541.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0550,SV_S2,550,550,Others,Non-Acacia ,0.0,Others,,Non-Acacia,0.0,1.0,acacia,,,field raw Tree type=0; species-first master label_acacia=0; clustering label=1,True
+SV_S2:crown_0562,SV_S2,562,562,,,,,,,,0.0,non_acacia,1.0,s2_tree_561.tif,clustering label=0; visual chip label=1,True
+SV_S2:crown_0574,SV_S2,574,574,,,,,,,,0.0,non_acacia,1.0,s2_tree_573.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0022,SV_S3,22,22,,,,,,,,0.0,non_acacia,1.0,s3_tree_021.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0024,SV_S3,24,24,,,,,,,,0.0,non_acacia,1.0,s3_tree_023.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0032,SV_S3,32,32,,,,,,,,0.0,non_acacia,1.0,s3_tree_031.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0093,SV_S3,93,93,,,,,,,,1.0,acacia,0.0,s3_tree_092.tif,clustering label=1; visual chip label=0,True
+SV_S3:crown_0142,SV_S3,142,142,,,,,,,,0.0,non_acacia,1.0,s3_tree_141.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0172,SV_S3,172,172,,,,,,,,1.0,acacia,0.0,s3_tree_171.tif,clustering label=1; visual chip label=0,True
+SV_S3:crown_0177,SV_S3,177,177,,,,,,,,0.0,non_acacia,1.0,s3_tree_176.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0181,SV_S3,181,181,Prosopis Juliflora,Acacia ,1.0,Prosopis Juliflora,Prosopis Juliflora,Acacia,1.0,0.0,non_acacia,1.0,s3_tree_180.tif,field raw Tree type=1; species-first master label_acacia=1; clustering label=0; visual chip label=1,True
+SV_S3:crown_0197,SV_S3,197,197,,,,,,,,0.0,non_acacia,1.0,s3_tree_196.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0211,SV_S3,211,211,,,,,,,,1.0,acacia,0.0,s3_tree_210.tif,clustering label=1; visual chip label=0,True
+SV_S3:crown_0267,SV_S3,267,267,,,,,,,,1.0,acacia,0.0,s3_tree_266.tif,clustering label=1; visual chip label=0,True
+SV_S3:crown_0299,SV_S3,299,299,,,,,,,,0.0,non_acacia,1.0,s3_tree_298.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0303,SV_S3,303,303,,,,,,,,0.0,non_acacia,1.0,s3_tree_302.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0325,SV_S3,325,325,,,,,,,,0.0,non_acacia,1.0,s3_tree_324.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0377,SV_S3,377,377,,,,,,,,0.0,non_acacia,1.0,s3_tree_376.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0388,SV_S3,388,388,,,,,,,,0.0,non_acacia,1.0,s3_tree_387.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0405,SV_S3,405,405,,,,,,,,0.0,non_acacia,1.0,s3_tree_404.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0421,SV_S3,421,421,,,,,,,,0.0,non_acacia,1.0,s3_tree_420.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0445,SV_S3,445,445,,,,,,,,0.0,non_acacia,1.0,s3_tree_444.tif,clustering label=0; visual chip label=1,True
+SV_S3:crown_0466,SV_S3,466,466,,,,,,,,1.0,acacia,0.0,s3_tree_465.tif,clustering label=1; visual chip label=0,True
+SV_S4:crown_0021,SV_S4,21,21,,,,,,,,1.0,acacia,0.0,s4_tree_020.tif,clustering label=1; visual chip label=0,True
+SV_S4:crown_0044,SV_S4,44,44,Banyan,Non-acacia,0.0,Banyan,Banyan,Non-acacia,0.0,1.0,acacia,0.0,s4_tree_043.tif,field raw Tree type=0; species-first master label_acacia=0; clustering label=1; visual chip label=0,True
+SV_S4:crown_0051,SV_S4,51,51,,,,,,,,1.0,acacia,0.0,s4_tree_050.tif,clustering label=1; visual chip label=0,True
+SV_S4:crown_0071,SV_S4,71,71,,Non-acacia,0.0,,,Non-acacia,0.0,1.0,acacia,0.0,s4_tree_070.tif,field raw Tree type=0; species-first master label_acacia=0; clustering label=1; visual chip label=0,True
+SV_S4:crown_0096,SV_S4,96,96,Prosopis Juliflora,Acacia,1.0,Prosopis Juliflora,Prosopis Juliflora,Acacia,1.0,0.0,non_acacia,,,field raw Tree type=1; species-first master label_acacia=1; clustering label=0,True
+SV_S4:crown_0130,SV_S4,130,130,Bamboo,Non-acacia,0.0,Bamboo,Bamboo clump,Non-acacia,0.0,1.0,acacia,,,field raw Tree type=0; species-first master label_acacia=0; clustering label=1,True

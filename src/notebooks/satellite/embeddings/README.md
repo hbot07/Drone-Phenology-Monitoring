@@ -79,6 +79,23 @@ python src/notebooks/satellite/embeddings/run_gee_embedding_suite.py \
   --csv path/to/iitd_sv_gee_embeddings_2024_buffer20m.csv
 ```
 
+## Current GEE-Only Direction
+
+We are pausing Planet/NICFI and keeping the satellite classifier work focused on GEE Satellite Embedding V1 plus local model evaluation.
+
+Use these result notes as the current baseline trail:
+
+- `GEE_ONLY_CLASSIFIER_RESULTS.md` for the current GEE-only leaderboard and recommended model artifacts.
+- `GEE_ORIGINAL_ACACIA_EXPERIMENTS.md` for the original-crown GEE annual embedding Acacia baseline.
+- `FUSED_GEE_RESULTS.md` for original-geometry + buffer20 GEE embedding fusion results.
+
+The practical next experiments should stay within GEE embeddings:
+
+- compare `original`, `centroid`, and `centroid_buffer` geometry modes;
+- compare annual embedding reducers, especially median versus mean if exported;
+- prioritize clean visual Acacia labels and species labels over clustering-heavy labels;
+- report leave-area-out performance before trusting random split.
+
 ## Faster Plumbing Check
 
 Use this before a full run if you only want to verify the extractor starts and writes a tiny table:

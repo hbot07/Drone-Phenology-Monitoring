@@ -1,0 +1,3 @@
+offset,visual_labels,matched_crowns,unmatched_crowns,visual_vs_field_raw_n,visual_vs_field_raw_agreement,visual_vs_field_raw_disagree,visual_vs_species_first_n,visual_vs_species_first_agreement,visual_vs_species_first_disagree,visual_vs_clustering_n,visual_vs_clustering_agreement,visual_vs_clustering_disagree
+0,400,399,1,21,0.5238095238095238,10,21,0.5714285714285714,9,399,0.5137844611528822,194
+1,400,400,0,24,0.875,3,24,0.9166666666666666,2,400,0.825,70

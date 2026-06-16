@@ -1,0 +1,15 @@
+model,decision,csv,label,split,holdout,n_train,n_test,train_counts,test_counts,accuracy,balanced_accuracy,macro_f1,confusion_matrix,labels,threshold
+rf_balanced,default,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.76,0.6580882352941176,0.6710526315789473,"[[3, 5], [1, 16]]","[0, 1]",
+rf_deeper,default,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.72,0.5955882352941176,0.592074592074592,"[[2, 6], [1, 16]]","[0, 1]",
+extra_trees,default,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.68,0.5330882352941176,0.5,"[[1, 7], [1, 16]]","[0, 1]",
+rf_balanced,threshold_cv,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.1
+rf_deeper,threshold_cv,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.1
+extra_trees,threshold_cv,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.1
+extra_trees_kbest,threshold_cv,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.1
+logistic_l2,default,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",
+logistic_l2,threshold_cv,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.2
+svc_rbf,default,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",
+svc_rbf,threshold_cv,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.1
+hist_gradient,threshold_cv,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.68,0.5,0.40476190476190477,"[[0, 8], [0, 17]]","[0, 1]",0.1
+extra_trees_kbest,default,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.64,0.47058823529411764,0.3902439024390244,"[[0, 8], [1, 16]]","[0, 1]",
+hist_gradient,default,exports/gee_centroid_2024_acacia_label_configs.csv,label_acacia,leave_area_out,SV_S3,366,25,"{0: 318, 1: 48}","{0: 8, 1: 17}",0.64,0.47058823529411764,0.3902439024390244,"[[0, 8], [1, 16]]","[0, 1]",

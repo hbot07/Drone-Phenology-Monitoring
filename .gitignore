@@ -1,8 +1,9 @@
 input/
 output/
 misc/ODM/*.tar
-misc/thesis/weekly meetings/originals/
+misc/thesis/weekly meetings/
 misc/thesis/prof emails/
+misc/thesis/drone-phenology-thesis-overleaf/
 .venv/
 .codebuddy/
 .vscode/

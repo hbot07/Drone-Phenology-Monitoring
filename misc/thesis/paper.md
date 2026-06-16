@@ -8,9 +8,13 @@
 
 ### 1.1 Background and Motivation
 
-### 1.2 Individual-Tree Phenology from UAV RGB Imagery
+#### 1.1.1 Problem 1: Single-Orthomosaic Crown Detection Is Unreliable
 
-### 1.3 From Crown Detection to Temporal Tree Identity
+#### 1.1.2 Problem 2: Phenology Labels as Training Data for Satellite Models
+
+### 1.2 Examples of Unreliable Single-Orthomosaic Crown Detection
+
+### 1.3 From Crown Detection to Temporal Tree Phenology
 
 ### 1.4 Scope of This Paper
 
@@ -46,6 +50,12 @@
 
 ### 3.4 Crown Annotation and Field-Verified Labels
 
+#### 3.4.1 QField Annotation Pilot and Its Limitations
+
+#### 3.4.2 Paper-Form Field Labeling Workflow
+
+#### 3.4.3 Crown-ID Orthomosaic Printouts for In-Field Identification
+
 ## 4. Methodology
 
 ### 4.1 Workflow Overview
@@ -66,7 +76,7 @@
 
 #### 4.3.2 Phase Cross-Correlation Alignment
 
-#### 4.3.3 Tiled Alignment and Robust Shift Aggregation
+#### 4.3.3 Tiled Alignment and Robust Cumulative Shift Aggregation
 
 #### 4.3.4 Applying Alignment to Crown Geometries
 
@@ -78,7 +88,7 @@
 
 #### 4.4.3 Edge Features and Similarity Scoring
 
-#### 4.4.4 Crown Association Cases
+#### 4.4.4 Crown Association Cases: One-to-One, Containment, and Nearby
 
 #### 4.4.5 Split, Merge, and Ambiguous Associations
 
@@ -90,7 +100,7 @@
 
 #### 4.5.3 Partial Chains
 
-#### 4.5.4 Gap Filling with Lower-Threshold Crowns
+#### 4.5.4 Gap Filling via Multi-Threshold Candidates
 
 ### 4.6 Consensus Crown Generation
 
@@ -128,7 +138,7 @@
 
 #### 4.9.1 Crown IDs and Field-Verified Labels
 
-#### 4.9.2 QField-Based Crown Validation
+#### 4.9.2 Paper-Form to Crown-ID Label Joins
 
 #### 4.9.3 Species and Trait Label Joins
 
@@ -140,7 +150,7 @@
 
 #### 4.10.3 Google Earth and Field Review Exports
 
-## 5. Experiments and Evaluation
+## 5. Evaluation and Results
 
 ### 5.1 Crown Detection Evaluation
 
@@ -158,45 +168,19 @@
 
 ### 5.5 Phenology Feature Evaluation
 
-### 5.6 Field Label and Species Analysis
+### 5.6 Visualization-Based Error Analysis
 
-### 5.7 Visualization-Based Quality Assurance
+## 6. Seasonal Phenology Mapping
 
-## 6. Results
+### 6.1 Flowering-Color Labeling per Orthomosaic (Red / Yellow / White / None)
 
-### 6.1 Crown Detection Results
+### 6.2 Leaf-Shed Phenophase Progression Across the Season
 
-### 6.2 Alignment Results
+### 6.3 Species-Resolved Phenology Patterns
 
-### 6.3 Tracking and Chain Assembly Results
+### 6.4 Illustrative Crown-Level Trajectories
 
-### 6.4 Consensus Crown Results
-
-### 6.5 Crown-Level Phenology Results
-
-### 6.6 Field-Verified Species and Trait Results
-
-### 6.7 Interactive Visualization and Error Analysis
-
-## 7. Discussion
-
-### 7.1 Tree Identity as the Core Unit of UAV Phenology
-
-### 7.2 Role of Multi-Threshold Detection
-
-### 7.3 Impact of Orthomosaic Alignment
-
-### 7.4 Graph Association Under Split-Merge Ambiguity
-
-### 7.5 Consensus Crowns for Stable Temporal Sampling
-
-### 7.6 Field Labels and Crown-Level Ecological Interpretation
-
-### 7.7 Operational Considerations
-
-### 7.8 Limitations and Future Work
-
-## 8. Conclusion
+## 7. Conclusion
 
 ## Acknowledgements
 
@@ -208,7 +192,7 @@
 
 ## Appendix C. Additional Phenology Visualizations
 
-## Appendix D. Dataset and Date Inventory
+## Appendix D. Dataset and Date Inventory (UAV and Field Data)
 
 ### D.1 UAV Orthomosaic Date Inventory
 

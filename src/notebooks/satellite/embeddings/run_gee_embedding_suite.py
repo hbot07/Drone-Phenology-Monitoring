@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Run classifier sweeps and train model artifacts for a downloaded GEE embedding CSV."""
+"""Run classifier sweeps and train model artifacts for a downloaded GEE feature CSV.
+
+Works for GEE Satellite Embedding exports and other crown-level GEE tables, such
+as Planet NICFI features, as long as the label/crown metadata columns are present.
+"""
 from __future__ import annotations
 
 import argparse
@@ -71,16 +75,20 @@ def normalize_gee_csv(csv: Path) -> Path:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", required=True, help="Downloaded GEE embedding CSV from Drive.")
+    ap.add_argument("--csv", required=True, help="Downloaded GEE feature CSV from Drive.")
     ap.add_argument("--label", action="append", default=[])
     ap.add_argument("--trees", type=int, default=300)
     ap.add_argument("--max-holdouts", type=int, default=6)
     ap.add_argument("--random-only", action="store_true")
+    ap.add_argument("--normalize-only", action="store_true")
     ap.add_argument("--skip-train", action="store_true")
     ap.add_argument("--outdir", default=None)
     args = ap.parse_args()
 
     csv = normalize_gee_csv(Path(args.csv))
+    if args.normalize_only:
+        return
+
     labels = args.label or DEFAULT_LABELS
     outdir = Path(args.outdir) if args.outdir else OUTPUT_DIR / f"gee_{csv.stem}"
     outdir.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,22 @@
+crown_uid,area,crown_num,species,species_raw,species_clean,Tree type,status,field_raw_tree_type_label,species_first_master_label,clustering_label_acacia,label_acacia_visual,visual_label_source,known_values,disagrees_with_species_master,disagrees_with_clustering,disagrees_with_visual
+SV_S1:crown_0219,SV_S1,219,Prosopis Juliflora,Prosopis Juliflora,Prosopis Juliflora,Non-Acacia ,completed,0.0,1.0,0.0,,,field=0; species/master=1; clustering=0,True,False,False
+SV_S1:crown_0220,SV_S1,220,Prosopis Juliflora,Prosopis Juliflora,Prosopis Juliflora,Acacia,completed,1.0,1.0,0.0,,,field=1; species/master=1; clustering=0,False,True,False
+SV_S1:crown_0346,SV_S1,346,Subabool,Subabool,Subabool,Acacia,completed,1.0,1.0,0.0,,,field=1; species/master=1; clustering=0,False,True,False
+SV_S1:crown_0349,SV_S1,349,Subabool,Subabool,Subabool,Acacia,completed,1.0,1.0,0.0,0.0,s1_tree_348.tif,field=1; species/master=1; clustering=0; visual=0,False,True,True
+SV_S1:crown_0394,SV_S1,394,Others,Others,,Acacia,completed,1.0,1.0,0.0,,,field=1; species/master=1; clustering=0,False,True,False
+SV_S1:crown_0399,SV_S1,399,Others,Others,,Non-Acacia ,completed,0.0,0.0,1.0,,,field=0; species/master=0; clustering=1,False,True,False
+SV_S1:crown_0404,SV_S1,404,Neem,Neem,Neem,Acacia,completed,1.0,0.0,0.0,,,field=1; species/master=0; clustering=0,True,True,False
+SV_S1:crown_0409,SV_S1,409,Prosopis Juliflora,Prosopis Juliflora,Prosopis Juliflora,Acacia,completed,1.0,1.0,0.0,1.0,s1_tree_408.tif,field=1; species/master=1; clustering=0; visual=1,False,True,False
+SV_S1:crown_0424,SV_S1,424,Prosopis Juliflora,Prosopis Juliflora,Prosopis Juliflora,Acacia,completed,1.0,1.0,0.0,0.0,s1_tree_423.tif,field=1; species/master=1; clustering=0; visual=0,False,True,True
+SV_S1:crown_0480,SV_S1,480,Neem,Neem,Neem,Acacia,completed,1.0,0.0,0.0,0.0,s1_tree_479.tif,field=1; species/master=0; clustering=0; visual=0,True,True,True
+SV_S1:crown_0538,SV_S1,538,Prosopis Juliflora,Prosopis Juliflora,Prosopis Juliflora,Acacia,completed,1.0,1.0,0.0,,,field=1; species/master=1; clustering=0,False,True,False
+SV_S2:crown_0112,SV_S2,112,,,,Acacia,pending,1.0,1.0,0.0,,,field=1; species/master=1; clustering=0,False,True,False
+SV_S2:crown_0133,SV_S2,133,Subabool,Subabool,Subabool,Acacia,completed,1.0,1.0,0.0,,,field=1; species/master=1; clustering=0,False,True,False
+SV_S2:crown_0152,SV_S2,152,Prosopis Juliflora,Prosopis Juliflora,Prosopis Juliflora,Acacia,completed,1.0,1.0,0.0,1.0,s2_tree_151.tif,field=1; species/master=1; clustering=0; visual=1,False,True,False
+SV_S2:crown_0157,SV_S2,157,Others,Others,,Acacia,completed,1.0,1.0,0.0,,,field=1; species/master=1; clustering=0,False,True,False
+SV_S2:crown_0550,SV_S2,550,Others,Others,,Non-Acacia ,completed,0.0,0.0,1.0,,,field=0; species/master=0; clustering=1,False,True,False
+SV_S3:crown_0181,SV_S3,181,Prosopis Juliflora,Prosopis Juliflora,Prosopis Juliflora,Acacia ,completed,1.0,1.0,0.0,1.0,s3_tree_180.tif,field=1; species/master=1; clustering=0; visual=1,False,True,False
+SV_S4:crown_0044,SV_S4,44,Banyan,Banyan,Banyan,Non-acacia,completed,0.0,0.0,1.0,0.0,s4_tree_043.tif,field=0; species/master=0; clustering=1; visual=0,False,True,False
+SV_S4:crown_0071,SV_S4,71,,,,Non-acacia,completed,0.0,0.0,1.0,0.0,s4_tree_070.tif,field=0; species/master=0; clustering=1; visual=0,False,True,False
+SV_S4:crown_0096,SV_S4,96,Prosopis Juliflora,Prosopis Juliflora,Prosopis Juliflora,Acacia,completed,1.0,1.0,0.0,,,field=1; species/master=1; clustering=0,False,True,False
+SV_S4:crown_0130,SV_S4,130,Bamboo,Bamboo,Bamboo clump,Non-acacia,,0.0,0.0,1.0,,,field=0; species/master=0; clustering=1,False,True,False
