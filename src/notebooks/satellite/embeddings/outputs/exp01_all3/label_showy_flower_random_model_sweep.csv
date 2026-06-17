@@ -1,0 +1,15 @@
+model,decision,csv,label,split,holdout,n_train,n_test,train_counts,test_counts,accuracy,balanced_accuracy,macro_f1,confusion_matrix,labels,threshold
+extra_trees,threshold_cv,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.7383177570093458,0.7847790507364976,0.6346341463414634,"[[68, 26], [2, 11]]","[0, 1]",0.15
+rf_deeper,threshold_cv,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.7663551401869159,0.76759410801964,0.6482577251808022,"[[72, 22], [3, 10]]","[0, 1]",0.15
+extra_trees_kbest,threshold_cv,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.7009345794392523,0.7635024549918167,0.6037037037037037,"[[64, 30], [2, 11]]","[0, 1]",0.15
+svc_rbf,threshold_cv,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8037383177570093,0.7557283142389526,0.6707692307692308,"[[77, 17], [4, 9]]","[0, 1]",0.15
+logistic_l2,threshold_cv,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8411214953271028,0.7438625204582652,0.6954629164573916,"[[82, 12], [5, 8]]","[0, 1]",0.2
+rf_balanced,threshold_cv,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.5514018691588785,0.7115384615384616,0.4976525821596244,"[[47, 47], [1, 12]]","[0, 1]",0.1
+logistic_l2,default,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8504672897196262,0.6828968903436989,0.6712749615975422,"[[85, 9], [7, 6]]","[0, 1]",
+svc_rbf,default,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.822429906542056,0.6006546644844517,0.597346009110715,"[[84, 10], [9, 4]]","[0, 1]",
+hist_gradient,threshold_cv,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8504672897196262,0.5503273322422259,0.5587628865979382,"[[89, 5], [11, 2]]","[0, 1]",0.2
+extra_trees,default,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8878504672897196,0.5384615384615384,0.5414285714285714,"[[94, 0], [12, 1]]","[0, 1]",
+extra_trees_kbest,default,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8411214953271028,0.5118657937806874,0.5090418353576248,"[[89, 5], [12, 1]]","[0, 1]",
+rf_balanced,default,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8785046728971962,0.5,0.46766169154228854,"[[94, 0], [13, 0]]","[0, 1]",
+rf_deeper,default,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8785046728971962,0.5,0.46766169154228854,"[[94, 0], [13, 0]]","[0, 1]",
+hist_gradient,default,exports/exp01_all3.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8691588785046729,0.4946808510638298,0.465,"[[93, 1], [13, 0]]","[0, 1]",

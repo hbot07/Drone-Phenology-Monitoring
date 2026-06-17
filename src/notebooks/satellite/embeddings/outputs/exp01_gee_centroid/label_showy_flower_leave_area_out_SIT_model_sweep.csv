@@ -1,0 +1,15 @@
+model,decision,csv,label,split,holdout,n_train,n_test,train_counts,test_counts,accuracy,balanced_accuracy,macro_f1,confusion_matrix,labels,threshold
+logistic_l2,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.6666666666666666,0.6186868686868687,0.5341614906832298,"[[45, 21], [4, 5]]","[0, 1]",0.15
+rf_balanced,default,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.88,0.5,0.46808510638297873,"[[66, 0], [9, 0]]","[0, 1]",
+rf_deeper,default,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.88,0.5,0.46808510638297873,"[[66, 0], [9, 0]]","[0, 1]",
+extra_trees,default,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.88,0.5,0.46808510638297873,"[[66, 0], [9, 0]]","[0, 1]",
+extra_trees_kbest,default,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.88,0.5,0.46808510638297873,"[[66, 0], [9, 0]]","[0, 1]",
+svc_rbf,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.4533333333333333,0.4974747474747475,0.3909685086155674,"[[29, 37], [4, 5]]","[0, 1]",0.1
+hist_gradient,default,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.8533333333333334,0.48484848484848486,0.460431654676259,"[[64, 2], [9, 0]]","[0, 1]",
+extra_trees_kbest,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.84,0.4772727272727273,0.45652173913043476,"[[63, 3], [9, 0]]","[0, 1]",0.25
+svc_rbf,default,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.84,0.4772727272727273,0.45652173913043476,"[[63, 3], [9, 0]]","[0, 1]",
+hist_gradient,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.8133333333333334,0.4621212121212121,0.4485294117647059,"[[61, 5], [9, 0]]","[0, 1]",0.1
+logistic_l2,default,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.76,0.4318181818181818,0.4318181818181818,"[[57, 9], [9, 0]]","[0, 1]",
+extra_trees,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.7333333333333333,0.4166666666666667,0.4230769230769231,"[[55, 11], [9, 0]]","[0, 1]",0.2
+rf_deeper,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.44,0.3939393939393939,0.35661764705882354,"[[30, 36], [6, 3]]","[0, 1]",0.1
+rf_balanced,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,leave_area_out,SIT,280,75,"{0: 245, 1: 35}","{0: 66, 1: 9}",0.14666666666666667,0.3712121212121212,0.1465149359886202,"[[5, 61], [3, 6]]","[0, 1]",0.1

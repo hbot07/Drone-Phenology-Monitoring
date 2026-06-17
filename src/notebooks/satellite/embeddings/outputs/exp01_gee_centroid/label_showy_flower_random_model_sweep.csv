@@ -1,0 +1,15 @@
+model,decision,csv,label,split,holdout,n_train,n_test,train_counts,test_counts,accuracy,balanced_accuracy,macro_f1,confusion_matrix,labels,threshold
+extra_trees,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.5794392523364486,0.6943535188216039,0.511117879987816,"[[51, 43], [2, 11]]","[0, 1]",0.15
+logistic_l2,default,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.7850467289719626,0.6788052373158756,0.6242174377767598,"[[77, 17], [6, 7]]","[0, 1]",
+svc_rbf,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.794392523364486,0.6509819967266777,0.615359477124183,"[[79, 15], [7, 6]]","[0, 1]",0.15
+logistic_l2,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.6542056074766355,0.6374795417348609,0.5360365639282785,"[[62, 32], [5, 8]]","[0, 1]",0.25
+svc_rbf,default,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.7570093457943925,0.6297054009819967,0.5840311004784688,"[[75, 19], [7, 6]]","[0, 1]",
+hist_gradient,default,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8691588785046729,0.6272504091653028,0.6453598484848485,"[[89, 5], [9, 4]]","[0, 1]",
+extra_trees_kbest,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.3925233644859813,0.621112929623568,0.3748314606741573,"[[30, 64], [1, 12]]","[0, 1]",0.1
+rf_balanced,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.6448598130841121,0.5990180032733223,0.5173314339981007,"[[62, 32], [6, 7]]","[0, 1]",0.15
+hist_gradient,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8598130841121495,0.5887888707037643,0.6039970392301999,"[[89, 5], [10, 3]]","[0, 1]",0.65
+extra_trees,default,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8691588785046729,0.527823240589198,0.5271464646464646,"[[92, 2], [12, 1]]","[0, 1]",
+extra_trees_kbest,default,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8691588785046729,0.527823240589198,0.5271464646464646,"[[92, 2], [12, 1]]","[0, 1]",
+rf_deeper,threshold_cv,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.5607476635514018,0.5180032733224222,0.45008201202843084,"[[54, 40], [7, 6]]","[0, 1]",0.1
+rf_balanced,default,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8691588785046729,0.4946808510638298,0.465,"[[93, 1], [13, 0]]","[0, 1]",
+rf_deeper,default,exports/exp01_gee_centroid.csv,label_showy_flower,random,,248,107,"{0: 217, 1: 31}","{0: 94, 1: 13}",0.8691588785046729,0.4946808510638298,0.465,"[[93, 1], [13, 0]]","[0, 1]",
