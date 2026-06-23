@@ -6,7 +6,7 @@ Loads multi-threshold detectree2 crowns for all OMs, aligns them using
 PCC-tiled method, builds a tracking graph, assembles high-quality chains,
 generates and deduplicates consensus crowns.
 
-Requires: detectree conda environment
+Requires: dpm-tracking conda environment
 
 Usage:
     python 02_crown_tracking.py --config /path/to/pipeline_config.json \\
@@ -20,9 +20,9 @@ Usage:
         [--skip-chain-viz] \\
         [--skip-if-done]
 
-NOTE: For LHC dataset you MUST exclude the bad Dec-9 OM via --exclude-stems in
-step 0 (00_discover_oms.py), or that OM will corrupt tracking by introducing
-a grossly misaligned step in the sequence.
+NOTE: If any site/date has a badly misaligned orthomosaic, exclude that stem in
+step 0 (00_discover_oms.py), or it can corrupt tracking by introducing a
+misaligned step in the sequence.
 
 Reads:
     <output_dir>/pipeline_config.json

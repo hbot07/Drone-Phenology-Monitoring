@@ -1,204 +1,145 @@
 # Running Detectree2
 
-The crown-detection workflow is under:
+This guide covers crown detection on cleaned orthomosaic GeoTIFFs. The reusable pipeline scripts are in `src/pipeline/`.
 
-- `Drone-Phenology-Monitoring\\src\\pipeline`
+The detection stage takes:
 
-The main script is:
+```text
+folder of cleaned orthomosaic .tif files
+```
 
-- `Drone-Phenology-Monitoring\\src\\pipeline\\01_crown_detection.py`
+and writes:
 
-The workflow is:
+```text
+<output_dir>/01_detectree/crowns_multithreshold/{stem}_multithreshold.gpkg
+```
 
-1. Run `00_discover_oms.py` to create `pipeline_config.json`.
-2. Run `01_crown_detection.py` with that config.
-3. Check the output GPKG files in `crowns_multithreshold`.
-4. Use those outputs later for tracking.
+Each output GPKG contains multiple crown layers at different confidence thresholds.
 
-This step is run after the orthomosaics are ready. The input is a folder of cleaned `.tif` orthomosaics. The output is a set of multi-threshold crown polygon files, one per orthomosaic.
+## Setup
 
-Example:
+Create the detection environment from the repository root:
 
 ```bash
-python 00_discover_oms.py \
-  --om-dir input/input_om_sit \
-  --output-dir output/my_sit_run \
-  --run-name my_sit_run
+bash scripts/setup_dpm_detectree.sh
+```
 
-python 01_crown_detection.py \
-  --config output/my_sit_run/pipeline_config.json \
+Then install Detectree2 and Detectron2 using versions that match your operating system, CUDA support, and PyTorch version. Test:
+
+```bash
+conda run -n dpm-detectree python -c "import detectree2, detectron2; print('ok')"
+```
+
+## Configure Paths
+
+Copy and edit:
+
+```bash
+cp .env.example .env
+```
+
+Important values:
+
+```bash
+DPM_OM_DIR=/path/to/clean_orthomosaics
+DPM_OUTPUT_DIR=output/my_run
+DPM_MODEL_PATH=input/detectree_models/250312_flexi.pth
+DPM_STEPS=0,1
+```
+
+Run discovery and detection:
+
+```bash
+bash src/pipeline/run_pipeline.sh
+```
+
+Equivalent explicit commands:
+
+```bash
+conda run -n dpm-detectree python src/pipeline/00_discover_oms.py \
+  --om-dir /path/to/clean_orthomosaics \
+  --output-dir output/my_run \
+  --model-path input/detectree_models/250312_flexi.pth \
+  --run-name my_run
+
+conda run -n dpm-detectree python src/pipeline/01_crown_detection.py \
+  --config output/my_run/pipeline_config.json \
   --device cpu \
   --threads 6
 ```
 
-If you want to run through the shell wrapper instead of calling the scripts directly, the pipeline wrapper is:
+## Model Choice
 
-```bash
-bash run_pipeline.sh \
-  --om-dir input/input_om_sit \
-  --steps 0,1
-```
-
-The first command scans the orthomosaic folder, sorts the files by date, and writes the pipeline configuration. The second command runs Detectree2 on each orthomosaic and writes one multi-threshold crown file per orthomosaic.
-
-The current script defaults are:
-
-- tile width: `25`
-- tile height: `25`
-- tile buffer: `15`
-- thresholds: `0.15` to `0.65` in steps of `0.05`
-- fixed IoU: `0.7`
-- simplify tolerance: `0.3`
-
-The confidence thresholds become layer names in the output GPKG, for example:
-
-1. `conf_0p15`
-2. `conf_0p20`
-3. `conf_0p25`
-4. `conf_0p30`
-5. `conf_0p35`
-6. `conf_0p40`
-7. `conf_0p45`
-8. `conf_0p50`
-9. `conf_0p55`
-10. `conf_0p60`
-11. `conf_0p65`
-
-That means the output does not contain just one crown layer. It contains multiple layers such as `conf_0p15`, `conf_0p45`, and `conf_0p65`, which can then be used later during crown tracking.
-
-The outputs go under:
-
-```text
-<output_dir>/01_detectree/crowns_multithreshold/
-```
-
-Each orthomosaic gets a multi-threshold GPKG such as:
-
-```text
-{stem}_multithreshold.gpkg
-```
-
-Along with the GPKG files, the detection step also writes metadata JSON files and a run summary.
-
-The detection stage works like this:
-
-1. The orthomosaic is tiled.
-2. Detectree2 predicts crowns on each tile.
-3. The tile predictions are projected back into map coordinates.
-4. The predictions are stitched together.
-5. The cleaned crowns are written out at multiple confidence thresholds.
-
-Before moving on, it is worth opening a few outputs and checking that:
-
-1. The crowns line up with the orthomosaic.
-2. The number of crowns is plausible.
-3. The expected threshold layers are present.
-4. There is no obvious corruption in one date.
-
-If crowns already exist and you do not want to rerun detection, the pipeline also supports reusing an existing `crowns_multithreshold` directory through step 0.
-
-It is also worth remembering that later tracking does not need to use the same threshold layer for every dataset. The point of exporting multiple layers is that you can later choose a denser or cleaner crown set depending on the site.
-
-## Model choice
-
-By default, use:
+Default first choice:
 
 ```text
 input/detectree_models/250312_flexi.pth
 ```
 
-This is an RGB generalist model trained across both closed-canopy forests and urban environments. It is a good first choice when the site type is mixed or uncertain because it is less likely to over-detect trees in non-forested urban areas while still separating crowns in closed canopy. If the use case is clearly urban or clearly closed-canopy forest, use the more specialised model for that site type because it should usually be more accurate in its target setting.
+This is the current generalist model used in this project. For a new site, start with it unless you have a reason to use a more specialised model.
 
-`250312_flexi.pth` details:
-
-- Training sites: Harapan, Danum, Paracou, Cambridge, and Sepilok
-- Appropriate tile size: about `100 m`, with some tolerance
-- Base learning rate: `0.001`
-- Weight decay: `0.001`
-- Momentum: `0.9`
-- Batch size per image: `1024`
-- Gamma: `0.1`
-- Backbone freeze at: `2` until convergence, then `0` for 200 steps
-- Warmup iterations: `120`
-- Augmentations: random flipping, resize, rotation, lighting, brightness, contrast, and saturation
-
-## Urban areas
-
-For IITD campus or other urban tree-mapping runs, start with the default `250312_flexi.pth`. If the campus crowns need a more urban-specific model, use:
+Other local models may exist under:
 
 ```text
-input/detectree_models/urban_trees_Cambridge20230630.pth
+input/detectree_models/
 ```
 
-This model was trained for mapping urban trees in Cambridge, UK.
+Use `--model-path` or `DPM_MODEL_PATH` to choose one explicitly.
 
-| Parameter | Value |
+## Detection Parameters
+
+Current defaults:
+
+| Parameter | Default |
 |---|---|
-| Detectree2 model path | Default: `input/detectree_models/250312_flexi.pth`; urban-specific option: `input/detectree_models/urban_trees_Cambridge20230630.pth` |
-| Device | `cpu`, or `cuda` if available |
-| Threads | `6` for the documented examples; otherwise set based on available CPU |
-| Tile width | `25` |
-| Tile height | `25` |
-| Tile buffer | `15` |
+| Tile width | `25` metres |
+| Tile height | `25` metres |
+| Tile buffer | `15` metres |
 | Confidence thresholds | `0.15` to `0.65` in steps of `0.05` |
-| Fixed IoU | `0.7` |
+| Fixed IoU cleanup | `0.7` |
 | Simplify tolerance | `0.3` |
+| Device | `cpu` |
 
-`urban_trees_Cambridge20230630.pth` details:
+Use `--device cuda` only when GPU inference is correctly installed and tested.
 
-- Training site: Cambridge, UK
-- Appropriate tile size: about `200 m`
-- Learning rate: `0.01709`
-- Data loader workers: `6`
-- Gamma: `0.08866`
-- Backbone freeze at: `2`
-- Warmup iterations: `184`
-- Batch size per image: `623`
-- Weight decay: `0.006519`
-- AP50: `62.0`
+## Output Layers
 
-## Sanjay Van
-
-For Sanjay Van, start with the default `250312_flexi.pth`. If the site should be treated as tropical closed canopy, use:
+The crown GPKG is multi-layer. Common layers:
 
 ```text
-input/detectree_models/230717_base.pth
+conf_0p15
+conf_0p45
+conf_0p65
 ```
 
-This model maps trees in tropical closed-canopy systems from aerial RGB imagery and is the base model from "Harnessing temporal and spectral dimensionality to map and identify species of individual trees in diverse tropical forests."
+Lower thresholds give denser crown sets. Higher thresholds give cleaner but sparser crown sets. Tracking can choose different layers later with `--base-threshold-tag` and `--align-threshold-tag`.
 
-| Parameter | Value |
-|---|---|
-| Detectree2 model path | Default: `input/detectree_models/250312_flexi.pth`; closed-canopy option: `input/detectree_models/230717_base.pth` |
-| Device | `cpu`, or `cuda` if available |
-| Threads | `6` for the documented examples; otherwise set based on available CPU |
-| Tile width | `25` |
-| Tile height | `25` |
-| Tile buffer | `15` |
-| Confidence thresholds | `0.15` to `0.65` in steps of `0.05` |
-| Fixed IoU | `0.7` |
-| Simplify tolerance | `0.3` |
+## Quality Check
 
-`230717_base.pth` details:
+Before tracking, open a few crown GPKGs in QGIS with the matching orthomosaic. Check:
 
-- Training sites: Danum, Sepilok, and Paracou
-- Appropriate tile size: about `100 m`, with some tolerance
-- Most suitable for aeroplane-collected RGB data at about `1 m` resolution
-- Initial model: `COCO-InstanceSegmentation/mask_rcnn_R_101_FPN_3x.yaml`
-- Base learning rate: `0.0003389`
-- Weight decay: `0.001`
-- Momentum: `0.9`
-- Batch size per image: `1024`
-- Gamma: `0.1`
-- Backbone freeze at: `3`
-- Warmup iterations: `120`
-- Augmentations: random flipping, resize, rotation, lighting, brightness, contrast, and saturation
+1. Crown boundaries line up with the raster.
+2. The crown count is plausible.
+3. The chosen threshold layer is neither too sparse nor wildly over-detected.
+4. No date is obviously corrupted.
+5. All expected GPKG layers exist.
 
-Troubleshooting:
+## Reusing Existing Crowns
 
-1. If the detection step fails immediately, first check that `pipeline_config.json` exists and points to the right orthomosaic folder and model path.
-2. If the script says the model cannot be found, check the `.pth` path in the config or place the model in the expected Detectree model folder.
-3. If outputs are missing for one date only, open that orthomosaic and check that the file is valid and not corrupted.
-4. If crowns are clearly shifted or nonsense, inspect the orthomosaic itself before blaming Detectree2. A bad orthomosaic will produce bad crowns.
-5. If the output GPKG exists but later steps cannot use it, check whether the expected confidence layers are present.
-6. If you already have good crown files, reuse them instead of rerunning the detection step unnecessarily.
+If crown detection already exists, do not rerun it unnecessarily:
+
+```bash
+bash src/pipeline/run_pipeline.sh \
+  --om-dir /path/to/clean_orthomosaics \
+  --crowns-dir /path/to/crowns_multithreshold \
+  --output-dir output/my_run \
+  --steps 0,2,3,4
+```
+
+## Troubleshooting
+
+1. If imports fail, check `dpm-detectree`, Detectree2, and Detectron2.
+2. If the model cannot be found, set `DPM_MODEL_PATH` or pass `--model-path`.
+3. If one date fails, open that orthomosaic and check that it is a valid GeoTIFF.
+4. If crowns are shifted or nonsensical, inspect the orthomosaic before tuning Detectree2.
+5. If later tracking cannot read a GPKG, check that the expected confidence layers are present.

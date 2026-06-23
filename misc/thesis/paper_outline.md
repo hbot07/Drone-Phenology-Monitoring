@@ -8,6 +8,197 @@ This outline treats the **tree-identity-preserving temporal pipeline** as the ce
 
 ---
 
+## Working Context for Future LLM Sessions (READ THIS FIRST)
+
+This block is the single up-to-date brief for anyone (human or LLM) continuing
+the paper. It captures the project, the decisions, the verified code facts, the
+data, the supervisor's instructions, the author's style preferences, and what is
+still blocked. If something here conflicts with older prose lower in this file,
+**this block and the heading skeleton win.**
+
+### 0.1 What the paper is
+
+A master's thesis framed as a paper. One sentence: *an end-to-end pipeline that
+turns repeated UAV RGB orthomosaics of the same site into temporally stable
+individual-tree crowns and crown-level phenology, using Detectree2
+multi-threshold detection, tiled phase-cross-correlation alignment, graph-based
+crown association, medoid consensus crowns, and RGB/texture phenology features,
+with field species labels joined in.* Title is locked (see paper.md / main.tex).
+
+### 0.2 Scope decision (LOCKED 2026-06-15)
+
+- **Drone-only.** Satellite / species classifiers (Sentinel-2 RF, GEE embeddings,
+  DINOv2, NICFI) are **out of this paper** and become a separate short companion
+  paper. They may appear only as *motivation* (drone labels as training data for
+  satellite phenology models) and brief future work — never as results here.
+- This was the author's call, overriding a meeting-digest suggestion to include
+  satellite in the main body. Do not silently reopen it. If the supervisor
+  pushes for inclusion, fall back to "satellite as a secondary appendix," using
+  the GEE-embedding Acacia result + the crown-size-vs-Sentinel-2-pixel
+  scale-mismatch analysis.
+- Also explicitly **excluded**: CHM / DSM / DTM / tree-height estimation (that
+  was companion-project context, not this thesis's work). The supervisor's
+  "discover the height we can fly at" was about flight planning, not tree height.
+
+### 0.3 Source-of-truth files and where they live
+
+- `misc/thesis/paper.md` — heading skeleton (Markdown), main repo.
+- `misc/thesis/paper_outline.md` — THIS file: detailed spec + context, main repo.
+- `misc/thesis/drone-phenology-thesis-overleaf/` — **separate git repo**, pushed
+  to GitHub `hbot07/drone-phenology-thesis-overleaf` (branch `master`), linked to
+  Overleaf. `main.tex` is what the supervisor reviews; `references.bib` holds the
+  Section-2 source pool. This folder is gitignored by the main repo, so its files
+  live ONLY in the Overleaf repo.
+- Editing/compiling the LaTeX: edit `main.tex`, then
+  `pdflatex main.tex` (twice; add `bibtex main` once citations exist),
+  commit with `git -c user.name="Parth" -c user.email="parth5462003@gmail.com"
+  commit`, and `git push origin master`. `\usepackage{lmodern}` is required (the
+  local basic TeX Live otherwise fails microtype font expansion).
+- paper.md and paper_outline.md are edited in the main repo but the author
+  commits the main repo themselves; only the Overleaf repo is auto-pushed.
+
+### 0.4 Code architecture (what backs the methodology)
+
+The production pipeline is `src/notebooks/pipeline/00..04_*.py` (discover →
+Detectree2 detection → tracking+consensus → phenology → viewer), driven by one
+shared `pipeline_config.json`. **Steps 2–3 are thin orchestrators**: the real
+algorithms live in `src/flask_app_tracking/tree_tracking.py`
+(`TreeTrackingGraph`: alignment, graph, chains, gap-fill, consensus, dedup) and
+`src/flask_app_tracking/phenology_leafshed.py` (patch features + deciduousness +
+phenophase). `src/notebooks/organised/tracking/` is a cleaner parallel re-write
+of the same math (notebook-first) — good as a formalization reference, NOT the
+production code. The legacy Flask UI (`app.py`) is superseded by the standalone
+Leaflet viewer in Step 4.
+
+### 0.5 Code-verified parameters (state the actual run values in the paper)
+
+- Detection: Detectree2 model `250312_flexi.pth`; tiles **25×25 m, buffer 15 m**
+  in the production pipeline (notebook era used 45×45 m / 20 m — pick the values
+  of the run that made the final tables); `clean_crowns` simplify tol 0.3, fixed
+  IoU 0.7; thresholds `conf_0p15`…`conf_0p65` (0.05 steps).
+- Tracking base layer: **`conf_0p45` for LHC, `conf_0p15` for SIT** (SIT's 0.45 is
+  too sparse). Alignment anchor layer `conf_0p65`.
+- Alignment: default `pcc_tiled`; reference = OM1; each OM aligned to the previous
+  one and shifts **accumulated** (cumulative-to-OM1); 4×4 tile PCC with
+  texture/error/max-shift gating + MAD-inlier median; shifts saved to config and
+  reused by Steps 3–4 (so crop sampling matches tracking via inverse transform).
+- Graph: `base_max_dist=30`, `overlap_gate=0.10`, `min_base_similarity=0.30`,
+  `classify_mode=balanced`; cases one-to-one / containment / nearby; split/merge
+  allowed via `allow_multiple` + `max_edges_per_prev/curr`.
+- Chains for consensus: full width-1 chains + extracted backbones of branching
+  full chains + partial chains with `len>=5` and one-to-one ratio `>=0.9`.
+- Consensus medoid weights: 0.5 centroid (normalized) / 0.4 (1−IoU) / 0.1
+  (1−area_ratio). Dedup: IoU `>0.75` + containment (buffer 5.0), larger-area-first.
+- Phenology features: GCC=G/(R+G+B), RCC=R/(R+G+B); HSV veg mask h∈[0.18,0.48],
+  s≥0.15, v≥0.12; shadow = v<0.12; gray Shannon entropy; 4-neighbour Laplacian
+  variance. QC `is_bad` if valid-pixel-frac<0.60 OR shadow>0.55 OR Laplacian<25.
+- Deciduousness: amplitudes of interpolated veg/GCC/texture, normalized by A90
+  (90th-percentile amplitude across crowns); DS = 0.35·veg_amp + 0.30·depth +
+  0.25·gcc_amp + 0.10·tex_amp; depth=(τ−min_veg)/τ with τ=veg_min (default 0.45);
+  **deciduous if DS≥0.70 (pipeline Step 3 value; dataclass default is 0.85 —
+  report the run value)**. Phenophase on min-max-normalized veg: leaf_on≥0.65,
+  leaf_off≤0.35, else transitioning; non-deciduous=stable. Events:
+  leaf_off_start_om, full_leaf_off_om (veg trough), leaf_on_return_om.
+
+### 0.6 Feasibility caveats (don't over-claim)
+
+- The explicit lower-threshold gap-filler (`augment_partial_chains_with_multithreshold`)
+  EXISTS but is **not called** in the production Step 2. What actually helps is
+  the **multi-threshold candidate union** (OM1 = base layer; later OMs = union of
+  all threshold layers, deduped). §4.5.4 is named "Gap Filling via Multi-Threshold
+  Candidates" to match. Don't describe a predicted-position gap-filler as run.
+- The non-tree filter (`apply_non_tree_thresholds`) exists but Step 3 disables it.
+  No automated non-tree removal in the current outputs.
+
+### 0.7 Sites and data
+
+- Primary sites: **LHC** and **SIT** on the IIT Delhi campus. Full available data:
+  **LHC = 13 OMs, SIT = 19 OMs** (per the 2026-05-19 meeting). Sanjay Van: ~8 OMs
+  spots 1–3, ~6 OMs spot 4 (companion-paper data, not this paper).
+- Cleanest partial pipeline runs inspected so far (placeholders until the full run):
+  `output/lhc_pipeline_fixed` (LHC, 8 OMs, base conf_0p45) →
+  ~87 consensus crowns, ~69% deciduous;
+  `output/sit_pipeline_fixed` (SIT, 14 OMs, base conf_0p15) →
+  ~131 consensus crowns, ~79% deciduous.
+  **Final tables must be regenerated from the full 13-OM LHC / 19-OM SIT runs.**
+- Crown-detection ground truth: `input/ground_truth.json`, 124 manually annotated
+  crowns (COCO). Early SIT detection metrics: P=0.438, R=0.258, F1=0.325, mean
+  matched IoU 0.72 — placeholder, regenerate.
+- Species: ~372 clean species-labeled crowns; top species include Prosopis
+  juliflora, Neem, Ashok, Amaltas, Peepal, Pilkhan. Flowering colors present in
+  data: **yellow and red only (no white)**.
+
+### 0.8 Drone / acquisition facts (cite-able)
+
+DJI **Mini 4 Pro** (consumer drone; no public SDK for autonomous fixed-overlap
+paths — a real limitation; the Mini 3 had one). Intrinsics: focal 5.067 mm,
+sensor 7.6×4.275 mm. Coordinates stored in **XMP, not EXIF**; XMP→EXIF conversion
+before WebODM; CRS WGS84 / UTM 43N. Orthomosaics built in **WebODM**. Imprecise
+EXIF georeferencing + wind/terrain yaw-pitch-roll → distortion; **~5–7 m residual
+offset** even after EXIF-corner placement (this motivates §4.3). External GPS/RTK
+investigated and rejected (cost/accuracy). Drone-mapping collaborators: Craig
+Dsouza, SS Jayakrishna (acknowledge). Flights ~every 2 weeks, ~50–80 m AGL,
+~80% overlap, near-nadir. (Confirm final flight count/dates with the author.)
+
+### 0.9 Field-labeling workflow (for §3.4)
+
+Labeling started in **QField** (guide in `misc/docs`) but was too slow — too many
+clicks, one crown at a time. Switched to **paper forms**: crowns were given IDs in
+nearby/walking order, and the team walked the site writing running notes (e.g.,
+"12, 15, 21 — Amaltas"), carrying (a) a printout of the orthomosaic with crown IDs
+and (b) the QField app showing the same IDs to point out the current tree. Labels
+later joined to crown IDs in the master geojson. **Photos of the paper forms +
+field photos are pending from the author — remind them.**
+
+### 0.10 Author's writing-style instructions
+
+- Natural, human voice; vary sentence structure and word choice; coherent, readable.
+- Eliminate AI tells: avoid formulaic transitions ("Furthermore," "In conclusion,"
+  "Moreover"), avoid excessive passive voice, avoid templated semicolon list-pileups.
+- BUT keep an academic register — the author rejected an overly casual abstract
+  rewrite. Aim for clean, precise, standard academic prose, not chatty. Active
+  voice where natural ("We detect…", "The tracker links…").
+
+### 0.11 Status / what's blocked on the full data run
+
+Filled now (code-/fact-backed, results-independent): Methodology (§4), §3.2–3.4,
+and Introduction framing as it gets written. **Deferred until the full LHC/SIT run
+produces results:** §5 Evaluation and Results, §6 Seasonal Phenology Mapping, the
+§3.1 site specifics and Appendix D inventories, and any numeric claims. Also
+pending: the two-OM unreliability figure (§1.2), the Semal across-time figure
+(§1.3; extractable from the species geojson → crown → aligned crops across LHC/SIT
+OMs), the §4.1 flowcharts (boxes proposed; awaiting author OK then TikZ), the §2
+relation-to-our-work lines, and a manual tracking-validation subset (§5.3.2) +
+consensus-vs-GT IoU evaluation (§5.4, GT already in `input/ground_truth.json`).
+
+### 0.12 Section 2 sources
+
+`references.bib` (Overleaf repo) holds a curated, theme-grouped source pool from
+TWO complementary deep-research passes. It IS now wired in (`\bibliography`), and
+§4 already cites the core methods, so a References list renders. Verify
+DOIs/pages/authors before camera-ready (entries with `note={verify}` are unconfirmed).
+
+- The two full research write-ups (with a one-line "relation to our work" for every
+  source, plus summaries) are saved at `misc/thesis/others/Related Work *.pdf`.
+  When writing §2, lift the relation lines from there.
+- Recommended §2.4 narrative (from the research): SORT → DeepSORT → Kuhn/Munkres
+  (establish the Hungarian one-to-one paradigm and its split/merge failure) →
+  Zhang/Li/Nevatia network-flow global association → our graph-based crown
+  association with medoid consensus crowns. This is where the novelty lands hardest.
+- Recommended §2.1/§2.6 framing: state plainly that Klosterman & Richardson (2017),
+  Berra (2019), and Wu (2021) draw or assume per-date ROIs without an automated
+  cross-date crown-linking step — that one sentence positions the consensus-crown
+  contribution. Wu (2021) is also the best precedent for the satellite companion goal.
+- `[verify authors]` placeholder entries from the research (a GIScience&RS urban
+  multi-sensor 2021, a Drones UAV-RS review 2023, an ITCD review preprint) were
+  intentionally left OUT of references.bib; add them only after filling real authors.
+
+Field-labeling photos: two are now in the Overleaf repo and placed as figures in
+§3.4 — `field_qfield_usage.jpeg` (§3.4.1) and `field_printout_crown_ids.jpeg`
+(§3.4.3). The **paper-form** photo is still pending from the author.
+
+---
+
 ## Professor Feedback (Round 1) — Structure Directives
 
 Captured 2026-06-15. The heading skeleton in `paper.md` and the Overleaf
@@ -38,8 +229,11 @@ directives win.
 
 - Each 2.x subsection must end with a line or two on **how it relates to our
   work** ("we take the same approach", "this does not work for us, so we do X",
-  "our work can help solve this", etc.). Needs sourced literature — see the
-  deep-research prompt kept with the writing notes. No heading change.
+  "our work can help solve this", etc.). No heading change.
+- Sources gathered (2026-06-15) into `references.bib` in the Overleaf repo,
+  grouped by the six themes. Not yet rendered (no `\cite`/`\nocite`). Relation
+  lines still to be written. DOIs/pages/authors need verification before
+  camera-ready (some AI-suggested metadata; a few entries carry `note={verify}`).
 
 **Study Area and Data (Section 3)**
 
@@ -75,13 +269,13 @@ directives win.
 
 - The prof asked how 6 differs from 5. Section 6 is now the **applied seasonal
   output** section, distinct from the metrics in 5:
-  - 6.1 per-OM flowering-color labeling: Red / Yellow / White / None.
+  - 6.1 per-OM flowering-color labeling: Red / Yellow / None. (White dropped —
+    confirmed 2026-06-15 that only yellow and red flowering crowns exist in the
+    data.)
   - 6.2 leaf-shed phenophase progression across the season (what the OMs look
     like in March, then April, then May, etc.).
   - 6.3 species-resolved phenology patterns.
   - 6.4 illustrative crown-level trajectories.
-- **Data check needed:** confirm we actually have **white**-flower labeled
-  crowns; if not, drop "White" from 6.1.
 
 **Discussion (Section 7) — REMOVED**
 

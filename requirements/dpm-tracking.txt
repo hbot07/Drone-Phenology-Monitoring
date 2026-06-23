@@ -1,0 +1,15 @@
+flask
+geopandas
+matplotlib
+networkx
+numpy==1.26.*
+opencv-python
+pandas
+plotly
+rasterio==1.3.10
+rtree
+scikit-image
+scikit-learn
+scipy
+shapely
+tqdm

@@ -1,13 +1,16 @@
 # Drone Phenology Monitoring Guides
 
-These guides describe the operational workflow for turning repeated drone flights into crown-level phenology data.
+These guides describe the reusable workflow for turning repeated drone flights into crown-level phenology data. They are written for a new site or a new machine, so the main instructions avoid hardcoded local paths.
 
 Recommended reading order:
 
-1. `01_collecting_drone_imagery.md` - field collection habits that keep repeated flights comparable.
-2. `02_building_orthomosaic_webodm.md` - creating orthomosaics with the local ODM and NodeODM scripts.
-3. `03_running_detectree2.md` - running crown detection on cleaned orthomosaic inputs.
-4. `04_orthomosaic_printout_crown_ids.md` - producing numbered crown overlays for field use.
-5. `05_qfield_crown_annotation.md` - preparing QGIS/QField projects for crown annotation.
+1. [Collecting drone imagery](01_collecting_drone_imagery.md)
+2. [Building orthomosaics with ODM/WebODM/NodeODM](02_building_orthomosaic_webodm.md)
+3. [Running Detectree2 crown detection](03_running_detectree2.md)
+4. [Creating orthomosaic printouts with crown IDs](04_orthomosaic_printout_crown_ids.md)
+5. [Preparing QField crown annotation projects](05_qfield_crown_annotation.md)
+6. [Appendix: local project scripts and datasets](06_appendix_local_project_scripts.md)
 
-The ODM scripts and runbooks used by the orthomosaic workflow are stored in `misc/ODM/`. Start with `misc/ODM/ODM_QUICKSTART.md` for the short version and `misc/ODM/ODM_OM_RUNBOOK.md` for the detailed machine-specific setup.
+The reusable analysis pipeline is documented separately in [../../src/pipeline/README.md](../../src/pipeline/README.md).
+
+The ODM scripts are in [../ODM](../ODM/). Use [../ODM/ODM_QUICKSTART.md](../ODM/ODM_QUICKSTART.md) for the short version and [../ODM/ODM_OM_RUNBOOK.md](../ODM/ODM_OM_RUNBOOK.md) for the current machine-specific runbook.

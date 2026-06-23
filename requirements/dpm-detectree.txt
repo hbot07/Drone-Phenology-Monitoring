@@ -1,0 +1,19 @@
+# Companion pip requirements for the dpm-detectree conda environment.
+# Install the conda packages from envs/detectree-windows.yml first.
+#
+# Detectree2 and Detectron2 are platform/CUDA-sensitive; install them using
+# the versions/commands recommended for your operating system and CUDA/PyTorch
+# combination, then use this file for the ordinary Python package layer.
+
+geopandas
+matplotlib
+numpy==1.26.*
+opencv-python
+pandas
+pillow<10
+pyproj==3.6.1
+rasterio==1.3.10
+rtree
+scipy
+shapely
+tqdm

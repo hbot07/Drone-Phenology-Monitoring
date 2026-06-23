@@ -1,60 +1,90 @@
-# Orthomosaic Printout with Crown IDs
+# Orthomosaic Printouts With Crown IDs
 
-Use:
+This guide creates a printable image where crown polygons are overlaid on an orthomosaic and each crown is numbered. The printout can be used during ground visits for species labels, tree condition notes, or other crown-level observations.
 
-- `Drone-Phenology-Monitoring\\src\\utility\\overlap_numbered_crowns.ipynb`
+Use the generic CLI script:
 
-This notebook overlays detected crowns on the orthomosaic, assigns numbers to the crowns, and saves an output image for printing.
-
-This is the bridge between the remote workflow and the ground visit. Once the crowns are numbered and printed, the printout can be carried into the field and used to record crown-level labels such as species.
-
-Input needed:
-
-1. The orthomosaic.
-2. The crown file for that orthomosaic, usually as `.gpkg` or `.geojson`.
-3. The output path for the numbered overlay image.
-
-If the crowns are stored in a multi-layer GPKG, first make sure you are using the specific layer you want to number.
-
-In the notebook, set:
-
-```python
-img_path = r"D:\path\to\orthomosaic.tif"
-geojson_path = r"D:\path\to\crowns.geojson"
-output_path = r"D:\path\to\numbered_crowns_overlay.png"
+```text
+src/utility/numbered_crown_overlay.py
 ```
 
-Then run the notebook cell that calls:
+## Inputs
 
-```python
-save_overlay_with_numbers(img_path, geojson_path, output_path)
+You need:
+
+1. One checked orthomosaic GeoTIFF.
+2. A crown polygon file for that same orthomosaic or monitoring area.
+3. An output image path.
+
+If the crown file is a multi-layer GPKG from Detectree2, choose the confidence layer you want to print, for example `conf_0p45`.
+
+## Basic Command
+
+```bash
+conda run -n dpm-tracking python src/utility/numbered_crown_overlay.py \
+  --orthomosaic input/input_om_site_a/site_a_15-01-26.tif \
+  --crowns output/my_run/01_detectree/crowns_multithreshold/site_a_15-01-26_multithreshold.gpkg \
+  --layer conf_0p45 \
+  --output output/printouts/site_a_15-01-26_numbered_crowns.png
 ```
 
-That function reads the orthomosaic, reads the crown polygons, draws the polygon boundaries, writes a number label on each crown, and saves the final overlay image.
+If your crown layer already has stable IDs:
 
-After that:
+```bash
+conda run -n dpm-tracking python src/utility/numbered_crown_overlay.py \
+  --orthomosaic input/input_om_site_a/site_a_15-01-26.tif \
+  --crowns output/my_run/02_tracking/consensus_crowns_complete_all.gpkg \
+  --id-field crown_id \
+  --output output/printouts/site_a_consensus_numbered_crowns.png
+```
 
-1. Check that the crown boundaries line up with the orthomosaic.
-2. Check that the labels are readable.
-3. Print the output image.
-4. Take the printout to the field.
+Useful options:
 
-If the labels are too crowded, it is better to change the plotting scale or split the output into smaller sections before printing than to take an unreadable sheet to the field.
+- `--layer`: GPKG layer name.
+- `--id-field`: existing attribute field to use as label text.
+- `--max-size`: maximum raster preview dimension in pixels.
+- `--dpi`: output image DPI.
 
-The printout is used during ground visits to note down crown-level labels such as species. In practice the field note is usually a mapping like:
+## Before Printing
+
+Check the output image on screen:
+
+1. Crown polygons align with the orthomosaic.
+2. Labels are readable.
+3. Labels are not too crowded for field use.
+4. The map covers the correct site extent.
+5. The crown file used for printing is archived or recorded.
+
+If labels are crowded, split the area into smaller sections or increase output resolution. An unreadable field sheet usually costs more time than making a cleaner printout.
+
+## Field Notes
+
+The minimum useful field record is:
 
 ```text
 crown_id -> species
 ```
 
-The same printout can also be used for other crown-level notes such as condition, health, or anything else needed during the ground visit.
+Other useful fields include:
 
-After the visit, those notes should be entered into a clean table so they can be joined back to the crown layer later.
+```text
+crown_id -> species, notes, health, status, photo_id
+```
 
-If needed, the numbered crown layer can also be loaded in QGIS and synced to QField to help locate crowns on the ground.
+After the visit, enter the notes into a clean table or QField-edited layer so labels can be joined back to the same crown file later.
 
-Troubleshooting:
+## Appendix: Notebook Reference
 
-1. If the crowns do not line up with the orthomosaic, check that the crown file and orthomosaic are from the same run and same area.
-2. If labels overlap too much, reduce the map extent, split the area into sections, or adjust the plotting settings before printing.
-3. If the numbering changes after rerunning crown detection, do not assume the old printout is still valid. Keep the exact crown file used to generate the printed version.
+The older notebook is still available:
+
+```text
+src/utility/overlap_numbered_crowns.ipynb
+```
+
+Use it as a reference for plotting experiments, but prefer the CLI script for repeatable project work.
+
+## Troubleshooting
+
+1. If crowns do not line up, check that the crown file and orthomosaic are from the same site/date or same consensus coordinate frame.
+2. If labels overlap too much, split the area or increase `--max-size`/`--dpi`.
+3. If numbering changes after rerunning crown detection, do not reuse an old printout without also preserving the exact crown file used for that printout.

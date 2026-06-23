@@ -53,11 +53,35 @@ function Get-DefaultOutputRoot {
     return Join-Path $ProjectRoot "ODM_Output"
 }
 
-$projectRoot = Split-Path -Parent $PSCommandPath
+function Find-RepositoryRoot {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$StartDirectory
+    )
+
+    $current = Resolve-Path -LiteralPath $StartDirectory
+    while ($null -ne $current) {
+        $candidate = Join-Path $current.Path "src\utility\xmp_to_exif.py"
+        if (Test-Path -LiteralPath $candidate) {
+            return $current.Path
+        }
+
+        $parent = Split-Path -Parent $current.Path
+        if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $current.Path) {
+            break
+        }
+        $current = Resolve-Path -LiteralPath $parent
+    }
+
+    throw "Could not locate repository root from: $StartDirectory"
+}
+
+$scriptDir = Split-Path -Parent $PSCommandPath
+$repoRoot = Find-RepositoryRoot -StartDirectory $scriptDir
 $resolvedImageFolder = Resolve-NormalizedPath -Path $ImageFolder
 
 if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
-    $OutputRoot = Get-DefaultOutputRoot -ResolvedImageFolder $resolvedImageFolder -ProjectRoot $projectRoot
+    $OutputRoot = Get-DefaultOutputRoot -ResolvedImageFolder $resolvedImageFolder -ProjectRoot $scriptDir
 }
 $resolvedOutputRoot = Resolve-NormalizedPath -Path $OutputRoot -CreateDirectory
 
@@ -72,7 +96,7 @@ if ($PrepareExifFromXmp) {
         $PreparedImageFolder = Join-Path (Split-Path -Parent $resolvedImageFolder) ((Split-Path -Leaf $resolvedImageFolder) + "_exif")
     }
 
-    $xmpScript = Join-Path $projectRoot "Drone-Phenology-Monitoring\src\utility\xmp_to_exif.py"
+    $xmpScript = Join-Path $repoRoot "src\utility\xmp_to_exif.py"
     if (-not (Test-Path -LiteralPath $xmpScript)) {
         throw "Could not find XMP to EXIF conversion script: $xmpScript"
     }
@@ -121,7 +145,7 @@ $odmArgs = switch ($Mode) {
     }
 }
 
-$runner = Join-Path $projectRoot "run_nodeodm_orthomosaic.ps1"
+$runner = Join-Path $scriptDir "run_nodeodm_orthomosaic.ps1"
 if (-not (Test-Path -LiteralPath $runner)) {
     throw "Could not find NodeODM orthomosaic runner: $runner"
 }

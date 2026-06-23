@@ -172,7 +172,7 @@
 
 ## 6. Seasonal Phenology Mapping
 
-### 6.1 Flowering-Color Labeling per Orthomosaic (Red / Yellow / White / None)
+### 6.1 Flowering-Color Labeling per Orthomosaic (Red / Yellow / None)
 
 ### 6.2 Leaf-Shed Phenophase Progression Across the Season
 

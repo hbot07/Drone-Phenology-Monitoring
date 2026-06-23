@@ -1,141 +1,119 @@
 # ODM Quick Start
 
-Use this if you only want the shortest working path.
+Use this when you want the shortest path from a drone image folder to an orthomosaic. For the full operational guide, see [../docs/02_building_orthomosaic_webodm.md](../docs/02_building_orthomosaic_webodm.md). For the current machine-specific WSL/Docker/GPU notes, see [ODM_OM_RUNBOOK.md](ODM_OM_RUNBOOK.md).
 
-For the full setup and troubleshooting details, see:
+## Single Orthomosaic
 
-- [ODM_OM_RUNBOOK.md](d:\Drone_Phenology_Monitoring\ODM_OM_RUNBOOK.md)
-
-## Standard Orthomosaic (Default)
-
-This is the recommended default. Runs the full dense reconstruction pipeline at **2 cm/px**.
-
-Settings applied: `--skip-report --build-overviews --orthophoto-compression DEFLATE --orthophoto-resolution 2`
+From the repository root in PowerShell:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Drone_Phenology_Monitoring\make_om.ps1" `
-  -ImageFolder "D:\path\to\images"
-```
-
-What it does:
-
-1. starts the GPU NodeODM container
-2. uploads the images
-3. runs full dense reconstruction (GPU-accelerated with DSPSIFT + OpenMVS CUDA)
-4. produces a 2 cm/px orthomosaic with DEFLATE compression and overviews
-5. waits for completion
-6. copies the final TIFF out to the output folder
-
-Default output root:
-
-1. if your folder path contains `Raw_data`, output goes to the matching `Processed\ODM`
-2. otherwise output goes to `D:\Drone_Phenology_Monitoring\ODM_Output`
-
-## Example
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Drone_Phenology_Monitoring\make_om.ps1" `
-  -ImageFolder "D:\Gaurav2\LHC\07_03_26"
-```
-
-## Fast Orthomosaic (Quicker, Lower Quality)
-
-Use this only if you need a quick preview. Skips dense reconstruction. Produces ~5 cm/px.
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Drone_Phenology_Monitoring\make_om.ps1" `
+powershell -NoProfile -ExecutionPolicy Bypass -File "misc\ODM\make_om.ps1" `
   -ImageFolder "D:\path\to\images" `
-  -Mode fast
+  -OutputRoot "D:\path\to\processed\ODM" `
+  -DatasetName "site_a_2026_01_15"
 ```
 
-## If Images Need XMP To EXIF Conversion
+Default mode is `full`. It runs the full dense reconstruction path with:
 
-Only use this when GPS exists in XMP but not in EXIF.
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Drone_Phenology_Monitoring\make_om.ps1" `
-  -ImageFolder "D:\path\to\images" `
-  -PrepareExifFromXmp
+```text
+--skip-report
+--build-overviews
+--orthophoto-compression DEFLATE
+--orthophoto-resolution 2
 ```
 
-That creates a converted copy and runs ODM on the converted folder.
-
-## Common Variants
-
-Set a custom output folder:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Drone_Phenology_Monitoring\make_om.ps1" `
-  -ImageFolder "D:\path\to\images" `
-  -OutputRoot "D:\my_outputs\ODM"
-```
-
-Set a custom dataset name:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File "D:\Drone_Phenology_Monitoring\make_om.ps1" `
-  -ImageFolder "D:\path\to\images" `
-  -DatasetName "plot_a_jan_2026"
-```
-
-## Output File
-
-The final orthomosaic is copied to:
+The final file is:
 
 ```text
 <OutputRoot>\<DatasetName>\odm_orthophoto.tif
 ```
 
-## Before You Run
+## Fast Preview
 
-1. Confirm the folder contains drone images.
-2. Confirm the dataset already has EXIF GPS, or use `-PrepareExifFromXmp`.
-3. Confirm GPU Docker support still works if you changed WSL or Docker.
-
-GPU test command:
-
-```bash
-wsl docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu22.04 nvidia-smi
-```
-
-## Filer Quick Rules
-
-For this machine, use the CSE filer through `nfs_mount_img` with NFS v3 and `nolock`.
-
-Do this:
+Use this only for diagnostics or quick previews:
 
 ```powershell
-wsl docker run --rm --privileged nfs_mount_img bash -c "mount -t nfs -o vers=3,nolock cohesityiitd.cse.iitd.ac.in:/Aaditeswar /mnt/filer && ls /mnt/filer"
+powershell -NoProfile -ExecutionPolicy Bypass -File "misc\ODM\make_om.ps1" `
+  -ImageFolder "D:\path\to\images" `
+  -OutputRoot "D:\path\to\processed\ODM" `
+  -DatasetName "site_a_2026_01_15_preview" `
+  -Mode fast
 ```
 
-Do not assume a direct Windows mount or a plain WSL NFS workflow will be stable here.
+Fast mode adds:
 
-For long multi-line filer commands from PowerShell, prefer piping a here-string into the container:
+```text
+--fast-orthophoto
+--skip-3dmodel
+```
+
+## XMP To EXIF GPS Conversion
+
+Use this only when GPS exists in XMP but not EXIF:
 
 ```powershell
-@'
-mount -t nfs -o vers=3,nolock cohesityiitd.cse.iitd.ac.in:/Aaditeswar /mnt/filer
-du -sh /mnt/filer/IITD_Drone_data
-'@ | wsl docker run --rm --privileged -i nfs_mount_img bash
+powershell -NoProfile -ExecutionPolicy Bypass -File "misc\ODM\make_om.ps1" `
+  -ImageFolder "D:\path\to\images" `
+  -OutputRoot "D:\path\to\processed\ODM" `
+  -DatasetName "site_a_2026_01_15" `
+  -PrepareExifFromXmp
 ```
 
-## Project Shortcuts
+Check metadata first:
 
-Use these scripts instead of rebuilding commands from scratch:
+```powershell
+exiftool -GPSLatitude -GPSLongitude -XMP:GPSLatitude -XMP:GPSLongitude "D:\path\to\image.JPG"
+```
 
-1. [make_om.ps1](d:\Drone_Phenology_Monitoring\make_om.ps1) for single orthomosaic generation
-2. [lhc_sit_make_oms.ps1](d:\Drone_Phenology_Monitoring\lhc_sit_make_oms.ps1) for LHC and SIT backlog runs
-3. [sv_make_oms.ps1](d:\Drone_Phenology_Monitoring\sv_make_oms.ps1) for Sanjay Van backlog runs
-4. [copy_to_filer.ps1](d:\Drone_Phenology_Monitoring\copy_to_filer.ps1) for generic filer uploads
-5. [lhc_sit_upload_oms.sh](d:\Drone_Phenology_Monitoring\lhc_sit_upload_oms.sh) and [sv_upload_oms.sh](d:\Drone_Phenology_Monitoring\sv_upload_oms.sh) for orthomosaic uploads
-6. [sv_sync_input_oms.sh](d:\Drone_Phenology_Monitoring\sv_sync_input_oms.sh) to rebuild the local `input/input_om_sv` folder from the filer
+## Batch Orthomosaics
 
-## Local Analysis Folder Conventions
+Copy the example CSV:
 
-Use the cleaned folders under `Drone-Phenology-Monitoring/input/`:
+```text
+misc\ODM\odm_batch_runs.example.csv
+```
 
-1. `input_om_lhc`: `lhc_DD-MM-YY.tif`
-2. `input_om_sit`: `sit_DD-MM-YY.tif` and `sit_DD-MM-YY_dateUnknown.tif` for placeholder-dated legacy files
-3. `input_om_sv/spot_X`: `sv_spotX_DD-MM-YY.tif`
+Edit it:
 
-Do not rely on the older mixed-name folders when preparing analysis inputs.
+```csv
+image_folder,dataset_name,output_root,mode,prepare_exif_from_xmp,prepared_image_folder,skip_existing
+D:\raw\site_a\2026_01_15,site_a_2026_01_15,D:\processed\ODM,full,false,,true
+D:\raw\site_a\2026_01_29,site_a_2026_01_29,D:\processed\ODM,full,false,,true
+```
+
+Run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "misc\ODM\run_odm_batch.ps1" `
+  -RunsCsv "D:\path\to\odm_runs.csv" `
+  -MinFreeGB C=20,D=10
+```
+
+Optional cleanup flags:
+
+```powershell
+-CleanupNodeTasks
+-DockerPrune
+-ClearTemp
+```
+
+These are opt-in because they remove temporary/container data.
+
+## After ODM Finishes
+
+1. Open `odm_orthophoto.tif` and check the map visually.
+2. Confirm the site/date and footprint.
+3. Rename or copy the checked TIFF into a clean analysis folder.
+4. Use that folder as `DPM_OM_DIR` or `--om-dir` for the analysis pipeline.
+
+Recommended cleaned names:
+
+```text
+<site>_DD-MM-YY.tif
+<site>_DD-MM-YY_dateNotConfirmed.tif
+<site>_spot<id>_DD-MM-YY.tif
+```
+
+## Local Project Scripts
+
+The older LHC/SIT/Sanjay Van helper scripts are still in this folder, but they contain local paths and current-project backlog assumptions. Prefer `run_odm_batch.ps1` for reusable work, and see [../docs/06_appendix_local_project_scripts.md](../docs/06_appendix_local_project_scripts.md) for context.

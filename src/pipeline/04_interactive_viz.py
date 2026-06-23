@@ -11,7 +11,7 @@ Generates a standalone HTML viewer (Leaflet-based) showing:
 Also generates a static matplotlib overview of phenology results (deciduous score
 distribution and phenophase timelines for a sample of trees).
 
-Requires: detectree conda environment
+Requires: dpm-tracking conda environment
 
 Usage:
     python 04_interactive_viz.py --config /path/to/pipeline_config.json \\

@@ -1,0 +1,3 @@
+image_folder,dataset_name,output_root,mode,prepare_exif_from_xmp,prepared_image_folder,skip_existing
+D:\path\to\raw_images\site_a\2026_01_15,site_a_2026_01_15,D:\path\to\processed\ODM,full,false,,true
+D:\path\to\raw_images\site_a\2026_01_29,site_a_2026_01_29,D:\path\to\processed\ODM,fast,true,D:\path\to\prepared_images\site_a_2026_01_29_exif,true

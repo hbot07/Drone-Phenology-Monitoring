@@ -5,7 +5,7 @@ Pipeline Step 1: Multi-threshold Detectree2 Crown Detection
 Runs Detectree2 on each orthomosaic in the pipeline and saves multi-threshold
 crown GeoPackages (one GPKG per OM, one layer per confidence threshold).
 
-Requires: base conda environment (has detectree2, detectron2)
+Requires: dpm-detectree conda environment (has detectree2, detectron2)
 
 Usage:
     python 01_crown_detection.py --config /path/to/pipeline_config.json \\

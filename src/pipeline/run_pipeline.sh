@@ -4,24 +4,25 @@
 # =============================================================================
 #
 # Runs the complete 4-step pipeline:
-#   Step 0: Discover orthomosaics and write pipeline_config.json  (base env)
-#   Step 1: Multi-threshold Detectree2 crown detection            (base env)
-#   Step 2: Crown tracking + consensus crown generation           (detectree env)
-#   Step 3: Phenology / leaf-shed analysis                        (detectree env)
-#   Step 4: Interactive HTML viewer generation                    (detectree env)
+#   Step 0: Discover orthomosaics and write pipeline_config.json  (dpm-detectree)
+#   Step 1: Multi-threshold Detectree2 crown detection            (dpm-detectree)
+#   Step 2: Crown tracking + consensus crown generation           (dpm-tracking)
+#   Step 3: Phenology / leaf-shed analysis                        (dpm-tracking)
+#   Step 4: Interactive HTML viewer generation                    (dpm-tracking)
 #
 # Usage:
 #   bash run_pipeline.sh --om-dir /path/to/orthomosaics [OPTIONS]
+#   bash run_pipeline.sh --env-file /path/to/pipeline.env
 #
 # Required:
-#   --om-dir PATH           Folder containing .tif orthomosaics
+#   --om-dir PATH           Folder containing .tif orthomosaics, unless set in .env
 #
 # Options:
 #   --run-name NAME         Human-readable run name (default: auto-generated)
 #   --output-dir PATH       Output directory (default: <project_root>/output/<run_name>)
 #   --model-path PATH       Path to .pth model (default: auto-discover)
 #   --exclude-stems STEMS   Comma-separated stems to exclude from tracking
-#                           IMPORTANT for LHC: always pass --exclude-stems odm_orthophoto_9_12_25
+#                           Use this for any known-bad date. Local LHC example: lhc_09-12-25.
 #                           (that OM has gross misalignment and corrupts tracking)
 #   --crowns-dir PATH       Use existing crowns directory instead of running step 1
 #   --tile-width N          Detectree tile width in metres (default: 25)
@@ -43,19 +44,20 @@
 #   --steps STEPS           Comma-separated steps to run: 0,1,2,3,4 (default: all)
 #   --base-env NAME         Conda environment for steps 0-1 (default: dpm-detectree)
 #   --tracking-env NAME     Conda environment for steps 2-4 (default: dpm-tracking)
+#   --env-file PATH         Optional shell-style env file. CLI flags override it.
 #
 # Examples:
 #   # Full pipeline, LHC dataset (MUST exclude the bad Dec-9 OM):
 #   bash run_pipeline.sh \
 #       --om-dir /path/to/project/input/input_om_lhc \
-#       --exclude-stems odm_orthophoto_9_12_25 \
+#       --exclude-stems lhc_09-12-25 \
 #       --crowns-dir /path/to/project/output/detectree_om_lhc_multithreshold_smaller_tiles/crowns_multithreshold \
 #       --steps 0,2,3,4
 #
 #   # Resume tracking step only (skip detection), using existing crowns:
 #   bash run_pipeline.sh \
 #       --om-dir /path/to/project/input/input_om_lhc \
-#       --exclude-stems odm_orthophoto_9_12_25 \
+#       --exclude-stems lhc_09-12-25 \
 #       --crowns-dir /path/to/crowns_multithreshold \
 #       --steps 2,3,4 \
 #       --output-dir /path/to/existing/output/dir
@@ -71,31 +73,55 @@
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
+# Resolve script/project directories and optionally load .env
+# ---------------------------------------------------------------------------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+ENV_FILE="${PROJECT_ROOT}/.env"
+
+for ((i=1; i<=$#; i++)); do
+    if [[ "${!i}" == "--env-file" ]]; then
+        next_index=$((i + 1))
+        if [[ $next_index -le $# ]]; then
+            ENV_FILE="${!next_index}"
+        fi
+        break
+    fi
+done
+
+if [[ -f "$ENV_FILE" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+fi
+
+# ---------------------------------------------------------------------------
 # Parse arguments
 # ---------------------------------------------------------------------------
-OM_DIR=""
-RUN_NAME=""
-OUTPUT_DIR=""
-MODEL_PATH=""
-EXCLUDE_STEMS=""
-TILE_WIDTH=25
-TILE_HEIGHT=25
-TILE_BUFFER=15
-DEVICE="cpu"
-THREADS=6
+OM_DIR="${DPM_OM_DIR:-}"
+RUN_NAME="${DPM_RUN_NAME:-}"
+OUTPUT_DIR="${DPM_OUTPUT_DIR:-}"
+MODEL_PATH="${DPM_MODEL_PATH:-}"
+EXCLUDE_STEMS="${DPM_EXCLUDE_STEMS:-}"
+TILE_WIDTH="${DPM_TILE_WIDTH:-25}"
+TILE_HEIGHT="${DPM_TILE_HEIGHT:-25}"
+TILE_BUFFER="${DPM_TILE_BUFFER:-15}"
+DEVICE="${DPM_DEVICE:-cpu}"
+THREADS="${DPM_THREADS:-6}"
 SKIP_EXISTING_FLAG="--skip-existing"
 SKIP_CHAIN_VIZ=""
 SKIP_CONSENSUS_VIZ=""
-UNDERLAY_OM="last"
-STEPS="0,1,2,3,4"
-BASE_ENV="dpm-detectree"
-TRACKING_ENV="dpm-tracking"
-CROWNS_DIR=""
-ALIGN_METHOD="pcc_tiled"
-BASE_THRESH_TAG="conf_0p45"
-ALIGN_THRESH_TAG="conf_0p65"
-MIN_PARTIAL_LEN=""
-MIN_PARTIAL_RATIO=""
+UNDERLAY_OM="${DPM_UNDERLAY_OM:-last}"
+STEPS="${DPM_STEPS:-0,1,2,3,4}"
+BASE_ENV="${DPM_BASE_ENV:-dpm-detectree}"
+TRACKING_ENV="${DPM_TRACKING_ENV:-dpm-tracking}"
+CROWNS_DIR="${DPM_CROWNS_DIR:-}"
+ALIGN_METHOD="${DPM_ALIGN_METHOD:-pcc_tiled}"
+BASE_THRESH_TAG="${DPM_BASE_THRESHOLD_TAG:-conf_0p45}"
+ALIGN_THRESH_TAG="${DPM_ALIGN_THRESHOLD_TAG:-conf_0p65}"
+MIN_PARTIAL_LEN="${DPM_MIN_PARTIAL_LEN:-}"
+MIN_PARTIAL_RATIO="${DPM_MIN_PARTIAL_RATIO:-}"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -117,6 +143,7 @@ while [[ $# -gt 0 ]]; do
         --steps)            STEPS="$2";         shift 2 ;;
         --base-env)         BASE_ENV="$2";      shift 2 ;;
         --tracking-env)     TRACKING_ENV="$2";  shift 2 ;;
+        --env-file)         ENV_FILE="$2";      shift 2 ;;
         --crowns-dir)       CROWNS_DIR="$2";    shift 2 ;;
         --align-method)     ALIGN_METHOD="$2";  shift 2 ;;
         --base-threshold-tag) BASE_THRESH_TAG="$2"; shift 2 ;;
@@ -138,11 +165,6 @@ if [[ -z "$OM_DIR" ]]; then
     echo "ERROR: --om-dir is required." >&2
     exit 1
 fi
-
-# ---------------------------------------------------------------------------
-# Resolve script directory and set up paths
-# ---------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ---------------------------------------------------------------------------
 # Utility: run a python command in a specific conda environment
@@ -215,7 +237,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 1: Crown detection  (base conda env — has detectree2/detectron2)
+# Step 1: Crown detection  (dpm-detectree conda env — has detectree2/detectron2)
 # ---------------------------------------------------------------------------
 if should_run_step 1; then
     echo ""
@@ -235,7 +257,7 @@ if should_run_step 1; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 2: Crown tracking + consensus crowns  (detectree conda env)
+# Step 2: Crown tracking + consensus crowns  (dpm-tracking conda env)
 # ---------------------------------------------------------------------------
 if should_run_step 2; then
     echo ""
@@ -259,7 +281,7 @@ if should_run_step 2; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 3: Phenology analysis  (detectree conda env)
+# Step 3: Phenology analysis  (dpm-tracking conda env)
 # ---------------------------------------------------------------------------
 if should_run_step 3; then
     echo ""
@@ -276,7 +298,7 @@ if should_run_step 3; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 4: Interactive viewer  (detectree conda env)
+# Step 4: Interactive viewer  (dpm-tracking conda env)
 # ---------------------------------------------------------------------------
 if should_run_step 4; then
     echo ""

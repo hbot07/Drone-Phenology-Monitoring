@@ -7,7 +7,7 @@ and computes deciduous/phenophase scores. Produces a single canonical GeoJSON
 (tree_master_geojson.geojson) with all observations, tracking metadata, and
 phenology embedded per crown. No tree/non-tree classification is performed.
 
-Requires: detectree conda environment
+Requires: dpm-tracking conda environment
 
 Usage:
     python 03_phenology_analysis.py --config /path/to/pipeline_config.json \\
