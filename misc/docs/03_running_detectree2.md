@@ -1,145 +1,216 @@
-# Running Detectree2
+# Run Detectree2
 
-This guide covers crown detection on cleaned orthomosaic GeoTIFFs. The reusable pipeline scripts are in `src/pipeline/`.
+Start with checked orthomosaic GeoTIFFs in a clean folder. End with crown polygon GeoPackages.
 
-The detection stage takes:
+## Inputs And Outputs
 
-```text
-folder of cleaned orthomosaic .tif files
-```
-
-and writes:
+Input:
 
 ```text
-<output_dir>/01_detectree/crowns_multithreshold/{stem}_multithreshold.gpkg
+/path/to/clean_orthomosaics/*.tif
 ```
 
-Each output GPKG contains multiple crown layers at different confidence thresholds.
+Output:
 
-## Setup
+```text
+<output_dir>/01_detectree/crowns_multithreshold/{orthomosaic_stem}_multithreshold.gpkg
+```
 
-Create the detection environment from the repository root:
+Each GeoPackage contains threshold layers such as:
+
+```text
+conf_0p15
+conf_0p20
+conf_0p25
+...
+conf_0p65
+```
+
+## Environment
+
+From the repository root:
 
 ```bash
 bash scripts/setup_dpm_detectree.sh
 ```
 
-Then install Detectree2 and Detectron2 using versions that match your operating system, CUDA support, and PyTorch version. Test:
+Test imports:
 
 ```bash
 conda run -n dpm-detectree python -c "import detectree2, detectron2; print('ok')"
 ```
 
-## Configure Paths
+If `conda` is not on `PATH`, set:
 
-Copy and edit:
+```bash
+DPM_CONDA_EXE=<path-to-conda-executable>
+```
+
+Detectree2, Detectron2, PyTorch, CUDA, and the operating system must match each other.
+
+## Configure
 
 ```bash
 cp .env.example .env
 ```
 
-Important values:
+Set:
 
 ```bash
 DPM_OM_DIR=/path/to/clean_orthomosaics
-DPM_OUTPUT_DIR=output/my_run
-DPM_MODEL_PATH=input/detectree_models/250312_flexi.pth
+DPM_OUTPUT_DIR=output/site_a_run
+DPM_MODEL_PATH=/path/to/detectree_model.pth
 DPM_STEPS=0,1
 ```
 
-Run discovery and detection:
+Run:
 
 ```bash
 bash src/pipeline/run_pipeline.sh
 ```
 
-Equivalent explicit commands:
+This runs:
+
+1. Step 0: discover orthomosaics and write `pipeline_config.json`.
+2. Step 1: run Detectree2 and export crown polygons.
+
+## Direct Commands
 
 ```bash
 conda run -n dpm-detectree python src/pipeline/00_discover_oms.py \
   --om-dir /path/to/clean_orthomosaics \
-  --output-dir output/my_run \
-  --model-path input/detectree_models/250312_flexi.pth \
-  --run-name my_run
+  --output-dir output/site_a_run \
+  --model-path /path/to/detectree_model.pth \
+  --run-name site_a_run
+```
 
+```bash
 conda run -n dpm-detectree python src/pipeline/01_crown_detection.py \
-  --config output/my_run/pipeline_config.json \
+  --config output/site_a_run/pipeline_config.json \
   --device cpu \
   --threads 6
 ```
 
-## Model Choice
+Use `--device cuda` only after CUDA inference has been tested.
 
-Default first choice:
+## Model
 
-```text
-input/detectree_models/250312_flexi.pth
+Set the model explicitly:
+
+```bash
+DPM_MODEL_PATH=/path/to/detectree_model.pth
 ```
 
-This is the current generalist model used in this project. For a new site, start with it unless you have a reason to use a more specialised model.
-
-Other local models may exist under:
+Local models may live under:
 
 ```text
 input/detectree_models/
 ```
 
-Use `--model-path` or `DPM_MODEL_PATH` to choose one explicitly.
+Record the exact model file used for each run.
 
-## Detection Parameters
+## Defaults
 
-Current defaults:
+| Parameter | Default | Use |
+|---|---|---|
+| Tile width | `25` m | Raster chunk width. |
+| Tile height | `25` m | Raster chunk height. |
+| Tile buffer | `15` m | Tile overlap to reduce edge effects. |
+| Confidence thresholds | `0.15` to `0.65` | Crown-density layers. |
+| Fixed IoU cleanup | `0.7` | Duplicate prediction removal. |
+| Simplify tolerance | `0.3` | Polygon simplification. |
+| Device | `cpu` | Inference device. |
 
-| Parameter | Default |
-|---|---|
-| Tile width | `25` metres |
-| Tile height | `25` metres |
-| Tile buffer | `15` metres |
-| Confidence thresholds | `0.15` to `0.65` in steps of `0.05` |
-| Fixed IoU cleanup | `0.7` |
-| Simplify tolerance | `0.3` |
-| Device | `cpu` |
+Keep defaults for the first pass. Tune after visual inspection.
 
-Use `--device cuda` only when GPU inference is correctly installed and tested.
+## Threshold Layers
 
-## Output Layers
+| Layer | Behaviour | Use |
+|---|---|---|
+| Low, e.g. `conf_0p15` | Dense, more false positives. | Tracking when missed crowns are costly. |
+| Middle, e.g. `conf_0p45` | Balanced. | General inspection and printouts. |
+| High, e.g. `conf_0p65` | Cleaner, more missed crowns. | Conservative checks and alignment anchors. |
 
-The crown GPKG is multi-layer. Common layers:
+There is no universal best threshold.
 
-```text
-conf_0p15
-conf_0p45
-conf_0p65
+## CPU Or GPU
+
+CPU:
+
+```bash
+conda run -n dpm-detectree python src/pipeline/01_crown_detection.py \
+  --config output/site_a_run/pipeline_config.json \
+  --device cpu \
+  --threads 6
 ```
 
-Lower thresholds give denser crown sets. Higher thresholds give cleaner but sparser crown sets. Tracking can choose different layers later with `--base-threshold-tag` and `--align-threshold-tag`.
+GPU:
+
+```bash
+conda run -n dpm-detectree python src/pipeline/01_crown_detection.py \
+  --config output/site_a_run/pipeline_config.json \
+  --device cuda \
+  --threads 6
+```
+
+Test CUDA:
+
+```bash
+conda run -n dpm-detectree python -c "import torch; print(torch.cuda.is_available(), torch.cuda.device_count())"
+```
 
 ## Quality Check
 
-Before tracking, open a few crown GPKGs in QGIS with the matching orthomosaic. Check:
+Open each crown GeoPackage with its matching orthomosaic.
 
-1. Crown boundaries line up with the raster.
-2. The crown count is plausible.
-3. The chosen threshold layer is neither too sparse nor wildly over-detected.
-4. No date is obviously corrupted.
-5. All expected GPKG layers exist.
+Check:
 
-## Reusing Existing Crowns
+1. Polygons align with visible crowns.
+2. Crown count is plausible.
+3. False positives are not dominating buildings, paths, shadows, or bare ground.
+4. Crowns are not systematically missing in one area.
+5. The same threshold layer exists for every date.
+6. One date is not dramatically worse than nearby dates.
+7. Crown CRS matches the orthomosaic.
 
-If crown detection already exists, do not rerun it unnecessarily:
+If one date is poor, inspect the orthomosaic before changing model settings.
+
+## Reuse Existing Detections
 
 ```bash
 bash src/pipeline/run_pipeline.sh \
   --om-dir /path/to/clean_orthomosaics \
   --crowns-dir /path/to/crowns_multithreshold \
-  --output-dir output/my_run \
+  --output-dir output/site_a_run \
   --steps 0,2,3,4
 ```
 
+Use this when testing tracking without rerunning Detectree2.
+
+## Detection Log
+
+```csv
+site,run_name,om_dir,output_dir,model_path,device,thresholds,status,notes
+site_a,site_a_run,/path/to/clean_orthomosaics,output/site_a_run,/path/to/model.pth,cuda,0.15-0.65,checked,
+```
+
+## Handoff
+
+Use the crown outputs for:
+
+1. Tracking: `src/pipeline/README.md`.
+2. Printouts: [04_orthomosaic_printout_crown_ids.md](04_orthomosaic_printout_crown_ids.md).
+3. QField: [05_qfield_crown_annotation.md](05_qfield_crown_annotation.md).
+
+For species annotation across dates, consensus crowns are usually better than raw single-date detections.
+
 ## Troubleshooting
 
-1. If imports fail, check `dpm-detectree`, Detectree2, and Detectron2.
-2. If the model cannot be found, set `DPM_MODEL_PATH` or pass `--model-path`.
-3. If one date fails, open that orthomosaic and check that it is a valid GeoTIFF.
-4. If crowns are shifted or nonsensical, inspect the orthomosaic before tuning Detectree2.
-5. If later tracking cannot read a GPKG, check that the expected confidence layers are present.
+1. Import failure: fix `dpm-detectree`, Detectree2, and Detectron2.
+2. Missing model: set `DPM_MODEL_PATH` or `--model-path`.
+3. One date fails: confirm the orthomosaic is a valid GeoTIFF.
+4. Shifted crowns: check CRS and georeferencing.
+5. Sparse detections: inspect lower threshold layers.
+6. Noisy detections: inspect higher threshold layers and check shadows/non-tree objects.
+7. GPKG read failure: confirm expected layers were written.
+8. GPU failure: rerun on CPU to isolate environment issues.

@@ -1,73 +1,227 @@
 # QField Crown Annotation
 
-Use this workflow to take the orthomosaic and crown polygons into the field and annotate crowns on a phone.
+Prepare a QGIS/QField project for crown-level field annotation.
 
 Main reference:
 
 - https://github.com/jayakrishnascientist/Forest-tree-crown-species-classification-geo-AI/blob/88014b11fc79ba63619e0a6363de2ef3045c356e/QGIS_QField_Tutorial.md
 
-The basic workflow is:
+Use QField when field users need editable crown attributes, photos, standard value lists, or less crowded maps than paper printouts.
 
-1. Prepare the orthomosaic and crown polygons.
-2. Prefer GeoPackage for the crown layer.
-3. Make sure the CRS is consistent.
-4. Create a QGIS project and load the orthomosaic and crown layer.
-5. Add the fields needed for annotation.
-6. Configure the attribute form.
-7. Upload the project with QField Cloud.
-8. Open it in QField on the phone.
-9. Annotate crowns in the field.
-10. Sync the edits back.
+## Inputs
 
-In practice, the desktop side is done in QGIS and the field side is done in QField.
+1. Checked orthomosaic.
+2. Crown polygon layer, preferably GeoPackage.
+3. Stable crown IDs.
+4. Field schema.
+5. Species/value lists if available.
+6. Sync and archive plan.
 
-The normal sequence is:
+For repeated monitoring, consensus crowns are usually better than single-date Detectree2 crowns.
 
-1. Load the orthomosaic and crown polygons in QGIS.
-2. Confirm that the layers align properly.
-3. Add the fields you want to record in the field.
-4. Set up the form so data entry is quick and consistent.
-5. Push the project to QField Cloud.
-6. Download the project on the phone.
-7. Use the phone to locate crowns and update attributes.
-8. Push the edits back and sync them into QGIS.
+## Choose A Crown Layer
 
-When setting up the QGIS project, use the orthomosaic as the visual base layer and the crown polygons as the editable annotation layer. Before uploading anything to QField, check that the project CRS is correct and that the crown polygons sit exactly where they should on the orthomosaic.
+| Layer | Use |
+|---|---|
+| Detectree2 single-date layer | Quick one-date field check. |
+| Consensus crowns | Species labels and repeated monitoring. |
+| Manually cleaned crowns | Final campaigns after geometry review. |
 
-Suggested fields:
+Archive the crown layer before field editing.
 
-- `crown_id`
-- `species`
-- `description`
-- `photo`
-- `status`
-- `tree_type`
-- `health`
+## Field Schema
 
-These can be adjusted depending on the field campaign, but `crown_id` and `species` are the most important ones to keep stable.
+Minimum:
 
-If the purpose of the field visit is species identification, the minimum useful setup is usually `crown_id`, `species`, and a free-text notes field. If the visit is broader, then `status`, `tree_type`, `health`, and `photo` become useful additions.
+```text
+crown_id, species, species_confidence, notes
+```
 
-Useful form setup:
+Broader:
 
-- `species` as a value map if you already have a species list
-- `status` as a small fixed list such as `pending` and `completed`
-- `photo` as an attachment field
+```text
+crown_id, species, species_confidence, status, tree_type, health, photo, notes, observer, visit_date
+```
 
-Using fixed lists where possible helps keep the data clean. Free-text entry is still useful for notes, but it is better not to rely on it for fields that should stay standardized.
+Recommended fields:
 
-For styling, use a transparent polygon fill and a clear outline so the orthomosaic remains visible underneath. If you are tracking progress in the field, style `pending` and `completed` crowns differently so people can see at a glance what is left to do.
+| Field | Type | Use |
+|---|---|---|
+| `crown_id` | text/integer | Stable join key; do not edit in field. |
+| `species` | text/value map | Species label. |
+| `species_confidence` | value map | `high`, `medium`, `low`, `unknown`. |
+| `status` | value map | `pending`, `checked`, `uncertain`, `not_found`. |
+| `tree_type` | value map | `evergreen`, `deciduous`, `unknown`. |
+| `health` | value map/text | Field condition. |
+| `photo` | attachment | Field photo. |
+| `notes` | text | Free notes. |
+| `observer` | text | Collector/team. |
+| `visit_date` | date/text | Annotation date. |
 
-Before sending the project to the phone, make sure the raster is not too heavy for mobile use and that the crown layer is in a format that edits cleanly, usually GeoPackage.
+Keep field names short and stable.
 
-After the field visit, push changes from QField to QField Cloud and sync the updated project back into QGIS or export the updated GeoPackage.
+## Prepare Crown Layer
 
-Once the edited layer is back on the desktop, keep a copy of the updated dataset so the field labels used in later analysis are tied to a known version of the crown layer.
+In QGIS:
 
-Troubleshooting:
+1. Open the crown layer.
+2. Confirm unique `crown_id`.
+3. Add missing schema fields.
+4. Save as GeoPackage if needed.
+5. Prevent geometry edits if users should edit attributes only.
+6. Save a backup before QField sync.
 
-1. If the project opens on the phone but layers are missing or broken, check that paths were prepared properly before upload and that the layer formats are supported cleanly.
-2. If the raster is too slow on the phone, use a lighter orthomosaic for the field project instead of the heaviest original version.
-3. If edits are messy or inconsistent, simplify the form and replace free-text fields with value lists where possible.
-4. If multiple people are working on the same project, agree on the field schema and allowed values before going out.
-5. After syncing back, archive the updated layer version instead of overwriting files casually, especially if those labels will be used for later analysis.
+Avoid temporary or unsaved memory layers.
+
+## Prepare Orthomosaic
+
+1. Confirm alignment with crowns.
+2. Check raster size for phone/tablet use.
+3. Create a lighter field copy if needed.
+4. Keep the analysis-quality raster unchanged.
+
+## Build QGIS Project
+
+1. Create a dedicated project folder.
+2. Create a new QGIS project.
+3. Set project CRS.
+4. Add orthomosaic base layer.
+5. Add editable crown GeoPackage.
+6. Confirm alignment at several zoom levels.
+7. Style crowns with transparent fill and clear outline.
+8. Label crowns with `crown_id` if useful.
+9. Configure attribute forms.
+10. Save the project.
+
+## Configure Forms
+
+| Field | Widget |
+|---|---|
+| `species` | Value map or value relation. |
+| `species_confidence` | Value map. |
+| `status` | Value map. |
+| `tree_type` | Value map. |
+| `photo` | Attachment. |
+| `notes` | Text edit. |
+| `visit_date` | Date/calendar or default value. |
+| `observer` | Text with default value if useful. |
+
+Example value maps:
+
+```text
+species_confidence: high, medium, low, unknown
+status: pending, checked, uncertain, not_found
+health: good, stressed, dead, damaged, unknown
+tree_type: evergreen, deciduous, unknown
+```
+
+Use value maps for standard fields. Use free text only where variation is expected.
+
+## Style For Field Use
+
+1. Transparent polygon fills.
+2. Bright outlines.
+3. Clear selected-crown style.
+4. Optional status-based styling.
+5. Labels that are readable but not overwhelming.
+
+Example status styling:
+
+| Status | Display |
+|---|---|
+| `pending` | Yellow outline. |
+| `checked` | Green outline. |
+| `uncertain` | Orange outline. |
+| `not_found` | Red outline. |
+
+## Test Before Fieldwork
+
+1. Save and reopen QGIS project.
+2. Check layer paths.
+3. Edit a test crown attribute.
+4. Test photo attachments if used.
+5. Sync/package for QField.
+6. Open on phone/tablet.
+7. Test offline access.
+8. Check raster speed.
+9. Check form usability.
+
+## QField Cloud Flow
+
+1. Prepare and save QGIS project.
+2. Upload/sync with QField Cloud.
+3. Open QField on device.
+4. Download project before going to site.
+5. Select crowns and fill forms.
+6. Save edits regularly.
+7. Sync after the visit.
+8. Open synced project in QGIS.
+9. Export/archive edited crown layer.
+
+Test offline mode before fieldwork if connectivity is uncertain.
+
+## Field Protocol
+
+1. Do not edit `crown_id`.
+2. Set `status` for visited crowns.
+3. Use `uncertain` instead of guessing.
+4. Note merged, split, missing, dead, or inaccessible trees.
+5. Attach photos only when useful.
+6. Standardise species spelling before fieldwork.
+7. Split large sites into zones or ID ranges.
+
+## After Fieldwork
+
+1. Save a copy of the edited GeoPackage.
+2. Confirm edits are present.
+3. Confirm `crown_id` values are unique and unchanged.
+4. Check for accidental geometry edits.
+5. Standardise species names.
+6. Preserve uncertain labels.
+7. Export CSV summary if needed.
+8. Archive project, edited layer, and photos.
+
+Suggested names:
+
+```text
+site_a_qfield_project_2026-01-15/
+site_a_crowns_qfield_edited_2026-01-15.gpkg
+site_a_species_labels_2026-01-15.csv
+```
+
+## Join Labels Back
+
+Join on `crown_id`.
+
+Before joining:
+
+1. Edited QField layer came from the analysis crown layer.
+2. Labels are one row per crown unless repeated visits are intended.
+3. `unknown`, `uncertain`, and blanks have clear rules.
+4. Joined output is saved as a new file.
+
+Keep the raw edited QField layer unchanged.
+
+## Problems And Fixes
+
+| Problem | Likely cause | Fix |
+|---|---|---|
+| Layers missing on phone | Broken paths or unsupported setup | Repackage/re-sync; prefer GeoPackage. |
+| Raster too slow | Orthomosaic too large | Use lighter field raster. |
+| Cannot edit layer | Wrong format or editing disabled | Save as GeoPackage and enable editing. |
+| Species names inconsistent | Free-text entry | Use value maps or clean after sync. |
+| IDs changed | `crown_id` edited or wrong layer used | Restore backup and lock ID editing next time. |
+| Sync is huge | Photos or heavy raster | Reduce attachments or field raster size. |
+| Crowns do not align | CRS mismatch or wrong layer pair | Check CRS and source files in QGIS. |
+
+## Deployment Checklist
+
+1. Orthomosaic opens on device.
+2. Crown layer opens and is editable.
+3. Crown IDs display correctly.
+4. Attribute form is simple and complete.
+5. Value lists work.
+6. Test edit syncs back.
+7. Project works offline if needed.
+8. Original crown layer is backed up.
+9. Field team understands each field.

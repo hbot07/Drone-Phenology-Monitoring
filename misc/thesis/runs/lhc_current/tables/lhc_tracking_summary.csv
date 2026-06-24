@@ -1,0 +1,2 @@
+run_name,num_oms,excluded_stems,align_method,base_threshold_tag,align_threshold_tag,total_detected_nodes,total_edges,overall_match_rate,chains_total,consensus_raw,consensus_cleaned,dedup_dropped_total,full_chains,branching_chains,partial_chains_added,min_partial_len,min_partial_ratio
+lhc_pipeline_fixed,8,odm_orthophoto_9_12_25,pcc_tiled,conf_0p45,conf_0p65,3784,2919,0.9211107604922688,141,141,87,54,2,62,77,5,0.9

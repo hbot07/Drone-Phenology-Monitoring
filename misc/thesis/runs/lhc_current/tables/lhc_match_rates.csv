@@ -1,0 +1,8 @@
+pair,from_om,to_om,from_stem,to_stem,matches,possible,rate
+1->2,1,2,odm_orthophoto25_10_25,odm_orthophoto9_11_25,198,144,1.375
+2->3,2,3,odm_orthophoto9_11_25,odm_orthophoto20_11_25,419,513,0.8167641325536062
+3->4,3,4,odm_orthophoto20_11_25,odm_orthophoto26_11_25,403,497,0.8108651911468813
+4->5,4,5,odm_orthophoto26_11_25,odm_orthophoto11_1_26,355,497,0.7142857142857143
+5->6,5,6,odm_orthophoto11_1_26,odm_orthophoto4_02_26,571,541,1.055452865064695
+6->7,6,7,odm_orthophoto4_02_26,odm_orthophoto20_02_26,546,500,1.092
+7->8,7,8,odm_orthophoto20_02_26,odm_orthophoto7_03_26,427,477,0.8951781970649895

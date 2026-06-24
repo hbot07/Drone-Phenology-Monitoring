@@ -1,0 +1,57 @@
+{
+  "average_chain_length": 1.8304936653560506,
+  "chain_length_distribution": {
+    "1": 1592,
+    "2": 250,
+    "3": 158,
+    "4": 113,
+    "5": 45,
+    "6": 34,
+    "7": 33,
+    "8": 64
+  },
+  "match_rate_by_om_pair": {
+    "1->2": {
+      "matches": 198,
+      "possible": 144,
+      "rate": 1.375
+    },
+    "2->3": {
+      "matches": 419,
+      "possible": 513,
+      "rate": 0.8167641325536062
+    },
+    "3->4": {
+      "matches": 403,
+      "possible": 497,
+      "rate": 0.8108651911468813
+    },
+    "4->5": {
+      "matches": 355,
+      "possible": 497,
+      "rate": 0.7142857142857143
+    },
+    "5->6": {
+      "matches": 571,
+      "possible": 541,
+      "rate": 1.055452865064695
+    },
+    "6->7": {
+      "matches": 546,
+      "possible": 500,
+      "rate": 1.092
+    },
+    "7->8": {
+      "matches": 427,
+      "possible": 477,
+      "rate": 0.8951781970649895
+    }
+  },
+  "max_chain_length": 8,
+  "median_chain_length": 1.0,
+  "overall_match_rate": 0.9211107604922688,
+  "successful_matches": 2919,
+  "total_edges": 2919,
+  "total_possible_matches": 3169,
+  "total_trees_detected": 3784
+}

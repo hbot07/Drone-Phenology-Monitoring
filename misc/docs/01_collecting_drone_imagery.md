@@ -1,76 +1,183 @@
-# Collecting Drone Imagery
+# Collect Drone Imagery
 
-This guide covers the collection habits that matter for the phenology pipeline. The detailed flight-planning and drone-operation reference remains Paul Pop's end-to-end manual:
+Main drone-mapping reference:
 
 - https://github.com/paulvpop/drone-mapping-end-to-end-workflow/blob/main/user_manual.md
 
-Use that manual for the mechanics of creating flight paths, exporting missions, uploading them to the drone or controller, handling multi-battery flights, exporting logs, and understanding the general photogrammetry workflow. This project adds one extra requirement: repeatability across dates. The drone imagery is not collected just to make one good map; it is collected so the same tree crowns can be compared through time.
+For repeated monitoring, the priority is consistency: same footprint, altitude, camera angle, overlap, and time-of-day window whenever possible.
 
-## Goal
+## Output
 
-Each visit should produce a photo set that can become an orthomosaic aligned closely enough for crown detection, crown tracking, and crown-level phenology measurements. Small field differences are often amplified later. A slightly different footprint, a lower overlap, harsh shadows, or a wind-disturbed canopy can make the orthomosaic harder to align and can reduce the quality of crown matching.
+For each site/date, produce one raw image folder with:
 
-## Before The Flight
+1. Original drone images.
+2. Mission file or route information.
+3. Flight logs if available.
+4. Short field notes.
 
-Reuse the saved mission whenever possible. Avoid redrawing the polygon or changing flight settings unless there is a clear reason. If something must change, record the change in the field notes for that date.
+Downstream processing expects one checked orthomosaic per site/date.
 
-Check these items before flying:
+## Plan A Site
 
-1. The mission footprint covers the full monitoring area plus a small buffer.
-2. The altitude is the same as the previous monitoring flights for that site.
-3. Forward and side overlap are unchanged.
-4. Camera angle is nadir unless a specific campaign requires otherwise.
-5. The planned speed is not unusually fast for the light and wind conditions.
-6. Batteries, controller storage, and SD card capacity are sufficient for the whole mission.
-7. The drone clock, controller clock, and field notebook date agree.
+Record these before the first flight:
 
-For LHC, SIT, and Sanjay Van, keep site and date naming consistent from collection onward. The later scripts assume that dates and site names can be interpreted reliably, so it is worth fixing names early instead of cleaning them repeatedly later.
+1. Site code.
+2. Boundary or flight polygon.
+3. Spots/subplots if the site is split.
+4. Flight altitude.
+5. Forward and side overlap.
+6. Camera angle, usually nadir.
+7. Revisit interval.
+8. Preferred flight time.
+9. Restrictions, permissions, obstacles, and no-fly areas.
+10. Storage location for images, missions, logs, and orthomosaics.
 
-## During The Flight
+Use short codes such as `site_a`, `north_block`, or `forest_spot1`.
 
-Try to keep the following conditions as similar as practical from one visit to the next:
+## Build A Repeatable Flight Path
 
-1. Flight footprint.
-2. Altitude.
-3. Overlap.
-4. Speed.
-5. Time of day.
-6. Sun and shadow conditions.
-7. Wind conditions.
+Create one saved mission per site and reuse it. Avoid redrawing the polygon each visit.
 
-Do not discard notes about imperfect flights. If the flight was interrupted, if a battery swap changed the timing, if the wind picked up, or if part of the area was reflown, write it down. These notes are useful later when one orthomosaic or crown-detection output looks different from the rest of the time series.
+Check that:
 
-## After The Flight
+1. The polygon covers the monitoring area plus a buffer.
+2. Overlap is high enough for tree canopy reconstruction.
+3. Ground resolution is good enough to see individual crowns.
+4. The drone can finish safely with available batteries.
+5. The route avoids obstacles and restricted areas.
+6. Takeoff and landing are practical for repeat visits.
 
-Keep each flight date in its own image folder. Do not mix dates, sites, spots, or partial reflights unless the folder name and notes make that explicit.
+## Flight Settings
 
-Recommended records to keep:
+| Setting | Use |
+|---|---|
+| Camera angle | Nadir unless the campaign specifies otherwise. |
+| Footprint | Same saved mission each visit. |
+| Altitude | Same altitude each visit. |
+| Forward overlap | High enough for canopy reconstruction. |
+| Side overlap | High enough to avoid gaps and striping. |
+| Speed | Conservative enough to avoid blur. |
+| Time of day | Similar window when possible. |
+| Image format | Original files from the drone. |
+
+## Before Flying
+
+Check:
+
+1. Saved mission is available.
+2. Batteries are charged.
+3. SD card and controller storage have space.
+4. Drone, controller, and notebook dates match.
+5. Weather and wind are acceptable.
+6. Permissions and access are clear.
+7. Folder naming plan is ready.
+
+If altitude, overlap, camera angle, or footprint changes, write it down.
+
+## During Flight
+
+Record anything that may affect the orthomosaic:
+
+1. Pauses or interruptions.
+2. Battery swaps.
+3. Reflown strips.
+4. Strong wind.
+5. Harsh shadows or changing clouds.
+6. People, vehicles, or moving objects.
+7. Missing coverage.
+8. Camera-setting changes.
+
+## After Flight
+
+Keep raw folders unmixed by site/date.
+
+Example:
+
+```text
+raw_drone_images/
+  site_a/
+    2026_01_15/
+      images/
+      notes.txt
+      mission_file/
+      logs/
+    2026_01_29/
+      images/
+      notes.txt
+      mission_file/
+      logs/
+```
+
+## Field Notes
+
+```text
+site: site_a
+date: 2026-01-15
+operator: <name>
+mission file: <mission name or ID>
+flight start/end: <time range>
+altitude: <value>
+forward overlap: <value>
+side overlap: <value>
+camera angle: nadir
+weather/light: <clear/cloudy/shadow notes>
+wind: <calm/moderate/strong>
+interruptions: <none or details>
+reflown sections: <none or details>
+coverage concerns: <none or details>
+comments: <anything unusual>
+```
+
+## Naming
+
+Raw folders can use readable dates such as:
+
+```text
+2026_01_15
+```
+
+Clean orthomosaics should use one stable convention:
+
+```text
+<site>_DD-MM-YY.tif
+<site>_DD-MM-YY_dateNotConfirmed.tif
+<site>_spot<id>_DD-MM-YY.tif
+```
+
+Examples:
+
+```text
+site_a_15-01-26.tif
+site_a_29-01-26.tif
+forest_spot1_10-05-26.tif
+```
+
+If the date is uncertain, mark it instead of inventing one.
+
+## Handoff
+
+Give the orthomosaic-processing person:
 
 1. Raw image folder.
-2. Mission file or saved route.
-3. Flight logs.
-4. Notes about weather, shadows, interruptions, or unusual site conditions.
-5. Any manual changes to the mission settings.
+2. Mission/log files.
+3. Field notes.
+4. Site/date naming convention.
+5. Status: `usable`, `check`, `preview_only`, or `reject`.
 
-The orthomosaic scripts in `misc/ODM/` expect a folder of images from one flight/date. The single-date folder is passed to `misc/ODM/make_om.ps1` or to one of the batch helpers such as `misc/ODM/lhc_sit_make_oms.ps1` and `misc/ODM/sv_make_oms.ps1`.
+## Quick Field Checklist
 
-## Naming And Handoff
+Before leaving:
 
-Use names that keep the site and date visible. For cleaned analysis orthomosaics, the current conventions are documented in `misc/ODM/ODM_QUICKSTART.md`:
-
-1. `input/input_om_lhc`: `lhc_DD-MM-YY.tif`
-2. `input/input_om_sit`: `sit_DD-MM-YY.tif`
-3. `input/input_om_sv/spot_X`: `sv_spotX_DD-MM-YY.tif`
-
-Those names are not required at raw-image collection time, but the raw folders should be clear enough that the orthomosaic and pipeline stages can map them into those cleaned names without guessing.
-
-## Why This Matters
-
-The rest of the project depends on temporal comparability. If the imagery is collected consistently, the downstream steps can focus on biological change. If the imagery is inconsistent, the pipeline may spend its effort explaining technical differences: alignment drift, missing crowns, crown boundary shifts, or noisy phenology signals.
+1. Image count looks reasonable.
+2. Images are copied or backed up.
+3. Mission/log files are saved.
+4. Notes are written.
+5. Date, site, and coverage uncertainty are marked.
 
 ## Troubleshooting
 
-1. If one date later produces a poor orthomosaic, check the field notes for wind, shadow, interrupted flight paths, or mixed image folders.
-2. If crown detection is weak on one date, compare the image sharpness, shadows, and overlap against stronger dates.
-3. If tracking fails between dates, check whether the flight footprint or altitude changed enough to alter the visible crown geometry.
-4. If the date is uncertain, preserve that uncertainty in the filename or notes rather than inventing a date. The SIT workflow has used `dateUnknown` or `dateNotConfirmed` naming for this kind of case.
+1. Poor orthomosaic: check notes for wind, shadows, interruptions, partial reflights, or mixed folders.
+2. Weak crown detection: check blur, exposure, shadows, and overlap.
+3. Tracking failure: check footprint, altitude, and crown-shape consistency.
+4. Missing edge crowns: check whether the flight buffer was too small.
+5. Uncertain date: use `dateNotConfirmed` and document it.

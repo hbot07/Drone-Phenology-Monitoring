@@ -1,0 +1,20 @@
+{
+  "copied_pipeline_figures": [
+    "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/misc/thesis/runs/lhc_current/copied_pipeline_figures/alignment_shifts.png",
+    "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/misc/thesis/runs/lhc_current/copied_pipeline_figures/match_rates_by_pair.png",
+    "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/misc/thesis/runs/lhc_current/copied_pipeline_figures/consensus_overlay_om1.png",
+    "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/misc/thesis/runs/lhc_current/copied_pipeline_figures/phenology_overview.png"
+  ],
+  "crowns_dir": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/output/detectree_om_lhc_multithreshold_smaller_tiles/crowns_multithreshold",
+  "om_dir": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/input/input_om_lhc",
+  "pipeline_output": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/output/lhc_pipeline_fixed",
+  "project_root": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring",
+  "run_dir": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/misc/thesis/runs/lhc_current",
+  "selected_trajectory": {
+    "chain_id": 56,
+    "crop_count": 8,
+    "deciduous_score": 0.9291058003372455,
+    "is_deciduous": true,
+    "source_crop_dir": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/output/lhc_pipeline_fixed/04_viewer/crops/crown_0056"
+  }
+}

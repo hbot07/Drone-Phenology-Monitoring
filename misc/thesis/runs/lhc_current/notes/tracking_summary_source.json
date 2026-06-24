@@ -1,0 +1,125 @@
+{
+  "align_method": "pcc_tiled",
+  "align_threshold_tag": "conf_0p65",
+  "alignment_shifts": {
+    "1": [
+      0.0,
+      0.0
+    ],
+    "2": [
+      1.5183303356170654,
+      1.4691720008850098
+    ],
+    "3": [
+      -1.8078677654266357,
+      -1.6736032962799072
+    ],
+    "4": [
+      2.388054609298706,
+      1.650273323059082
+    ],
+    "5": [
+      -6.387888193130493,
+      2.546122133731842
+    ],
+    "6": [
+      -6.334224779158831,
+      0.9903438687324524
+    ],
+    "7": [
+      -4.580886442214251,
+      -3.319807708263397
+    ],
+    "8": [
+      -3.9695888347923756,
+      -28.45597141981125
+    ]
+  },
+  "base_threshold_tag": "conf_0p45",
+  "chain_breakdown": {
+    "branching_chains": 62,
+    "extracted_backbones": 62,
+    "full_chains": 2,
+    "min_partial_len": 5,
+    "min_partial_ratio": 0.9,
+    "num_oms": 8,
+    "partial_chains_added": 77,
+    "total_consensus_chains": 141
+  },
+  "chains_total": 141,
+  "consensus_cleaned": 87,
+  "consensus_raw": 141,
+  "dedup_summary": {
+    "containment_buffer": 5.0,
+    "dropped_contained": 54,
+    "dropped_iou": 0,
+    "dropped_total": 54,
+    "input_count": 141,
+    "iou_threshold": 0.75,
+    "min_area": 0.0,
+    "output_count": 87,
+    "valid_count": 141
+  },
+  "diagnostics_dir": "/Users/hbot07/VS Code/Drone-Phenology-Monitoring/output/lhc_pipeline_fixed/02_tracking/diagnostics",
+  "min_partial_len_used": 5,
+  "min_partial_ratio_used": 0.9,
+  "num_oms": 8,
+  "quality_metrics": {
+    "average_chain_length": 1.8304936653560506,
+    "chain_length_distribution": {
+      "1": 1592,
+      "2": 250,
+      "3": 158,
+      "4": 113,
+      "5": 45,
+      "6": 34,
+      "7": 33,
+      "8": 64
+    },
+    "match_rate_by_om_pair": {
+      "1->2": {
+        "matches": 198,
+        "possible": 144,
+        "rate": 1.375
+      },
+      "2->3": {
+        "matches": 419,
+        "possible": 513,
+        "rate": 0.8167641325536062
+      },
+      "3->4": {
+        "matches": 403,
+        "possible": 497,
+        "rate": 0.8108651911468813
+      },
+      "4->5": {
+        "matches": 355,
+        "possible": 497,
+        "rate": 0.7142857142857143
+      },
+      "5->6": {
+        "matches": 571,
+        "possible": 541,
+        "rate": 1.055452865064695
+      },
+      "6->7": {
+        "matches": 546,
+        "possible": 500,
+        "rate": 1.092
+      },
+      "7->8": {
+        "matches": 427,
+        "possible": 477,
+        "rate": 0.8951781970649895
+      }
+    },
+    "max_chain_length": 8,
+    "median_chain_length": 1.0,
+    "overall_match_rate": 0.9211107604922688,
+    "successful_matches": 2919,
+    "total_edges": 2919,
+    "total_possible_matches": 3169,
+    "total_trees_detected": 3784
+  },
+  "run_tag": "lhc_pipeline_fixed"
+}

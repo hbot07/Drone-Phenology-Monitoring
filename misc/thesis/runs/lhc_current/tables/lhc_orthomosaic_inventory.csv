@@ -1,0 +1,10 @@
+stem,date,status_in_lhc_pipeline_fixed,file_mb,width_px,height_px,crs,pixel_size_x,pixel_size_y,area_m2,path
+odm_orthophoto25_10_25,2025-10-25,included,179.16,9399,9905,EPSG:32643,0.019999563182300468,0.019999052659908836,37236.26081713826,/Users/hbot07/VS Code/Drone-Phenology-Monitoring/input/input_om_lhc/odm_orthophoto25_10_25.tif
+odm_orthophoto9_11_25,2025-11-09,included,153.74,8653,9236,EPSG:32643,0.021549307305955504,0.021547725197490854,37109.52288785049,/Users/hbot07/VS Code/Drone-Phenology-Monitoring/input/input_om_lhc/odm_orthophoto9_11_25.tif
+odm_orthophoto20_11_25,2025-11-20,included,150.91,8741,9199,EPSG:32643,0.021845574936836008,0.02184364209919463,38369.86492201855,/Users/hbot07/VS Code/Drone-Phenology-Monitoring/input/input_om_lhc/odm_orthophoto20_11_25.tif
+odm_orthophoto26_11_25,2025-11-26,included,154.49,8655,9240,EPSG:32643,0.021544544826030885,0.021545185434160296,37121.59283198141,/Users/hbot07/VS Code/Drone-Phenology-Monitoring/input/input_om_lhc/odm_orthophoto26_11_25.tif
+odm_orthophoto_9_12_25,2025-12-09,excluded,165.52,8896,9887,EPSG:32643,0.021637879994630554,0.021639304088395272,41182.93611218197,/Users/hbot07/VS Code/Drone-Phenology-Monitoring/input/input_om_lhc/odm_orthophoto_9_12_25.tif
+odm_orthophoto11_1_26,2026-01-11,included,151.06,8590,9577,EPSG:32643,0.022406609095641163,0.022406819272086986,41302.75299125532,/Users/hbot07/VS Code/Drone-Phenology-Monitoring/input/input_om_lhc/odm_orthophoto11_1_26.tif
+odm_orthophoto4_02_26,2026-02-04,included,166.17,8721,9651,EPSG:32643,0.02223835373691125,0.022237420778340587,41622.259265841145,/Users/hbot07/VS Code/Drone-Phenology-Monitoring/input/input_om_lhc/odm_orthophoto4_02_26.tif
+odm_orthophoto20_02_26,2026-02-20,included,150.03,7820,9237,EPSG:32643,0.02269193827166565,0.022692822252490055,37196.13382833599,/Users/hbot07/VS Code/Drone-Phenology-Monitoring/input/input_om_lhc/odm_orthophoto20_02_26.tif
+odm_orthophoto7_03_26,2026-03-07,included,164.93,8881,9908,EPSG:32643,0.02167349408853427,0.021673361571722987,41333.585114833586,/Users/hbot07/VS Code/Drone-Phenology-Monitoring/input/input_om_lhc/odm_orthophoto7_03_26.tif

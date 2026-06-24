@@ -137,8 +137,9 @@ before WebODM; CRS WGS84 / UTM 43N. Orthomosaics built in **WebODM**. Imprecise
 EXIF georeferencing + wind/terrain yaw-pitch-roll → distortion; **~5–7 m residual
 offset** even after EXIF-corner placement (this motivates §4.3). External GPS/RTK
 investigated and rejected (cost/accuracy). Drone-mapping collaborators: Craig
-Dsouza, SS Jayakrishna (acknowledge). Flights ~every 2 weeks, ~50–80 m AGL,
-~80% overlap, near-nadir. (Confirm final flight count/dates with the author.)
+Dsouza, SS Jayakrishna (acknowledge). Flights ~every 2 weeks, **80 m AGL** (~80% overlap, near-nadir). Two early flights
+were done at 50 m to test finer resolution — it did not help, so 80 m was used for
+the rest. (Confirm final flight count/dates with the author.)
 
 ### 0.9 Field-labeling workflow (for §3.4)
 
@@ -158,6 +159,21 @@ field photos are pending from the author — remind them.**
 - BUT keep an academic register — the author rejected an overly casual abstract
   rewrite. Aim for clean, precise, standard academic prose, not chatty. Active
   voice where natural ("We detect…", "The tracker links…").
+- Updated 2026-06-15 after a style pass:
+  - **Introduction is written as flowing prose, NOT as subsections.** No 1.1/1.2/...
+    headings inside §1 — it reads like a paper's introduction. (This overrides the
+    earlier skeleton, which had 1.1–1.6; paper.md still shows the old subsections
+    but the LaTeX §1 is the live version.)
+  - **Related Work weaves the relation-to-our-work into the prose** — do NOT write
+    an explicit "Relation to our work:" label; end each theme with a natural
+    sentence or two on how we borrow/depart/fill the gap.
+  - Looser, more organic voice is wanted: occasional contractions ("can't",
+    "isn't") and the odd informal word ("overkill", "shaky", "trouble is") are fine;
+    the author felt earlier drafts were "too concise". Reduce em-dashes (an AI tell)
+    and vary sentence openings/lengths.
+  - Keep the **Methodology precise** — the organic-voice loosening applies to Intro,
+    Related Work, Discussion-type prose; do not inject informality into equations,
+    parameters, or method steps.
 
 ### 0.11 Status / what's blocked on the full data run
 
@@ -165,11 +181,36 @@ Filled now (code-/fact-backed, results-independent): Methodology (§4), §3.2–
 and Introduction framing as it gets written. **Deferred until the full LHC/SIT run
 produces results:** §5 Evaluation and Results, §6 Seasonal Phenology Mapping, the
 §3.1 site specifics and Appendix D inventories, and any numeric claims. Also
-pending: the two-OM unreliability figure (§1.2), the Semal across-time figure
-(§1.3; extractable from the species geojson → crown → aligned crops across LHC/SIT
-OMs), the §4.1 flowcharts (boxes proposed; awaiting author OK then TikZ), the §2
-relation-to-our-work lines, and a manual tracking-validation subset (§5.3.2) +
-consensus-vs-GT IoU evaluation (§5.4, GT already in `input/ground_truth.json`).
+pending: the Semal across-time figure (§1.3; extractable from the species geojson →
+crown → aligned crops across LHC/SIT OMs — parked until the full data is in) and a
+manual tracking-validation subset (§5.3.2) + consensus-vs-GT IoU evaluation (§5.4,
+GT already in `input/ground_truth.json`).
+
+DONE: §1 Introduction and §2 Related Work as flowing paper prose; §3.4 field photos;
+methodology prose expanded for intuition (multi-threshold, association cases,
+split/merge, medoid, deciduousness, chromatic). Flight altitude corrected to 80 m.
+
+IMPORTANT — alignment: do NOT roll your own crown alignment for figures. My early
+centroid-median shift was unreliable (Oct->Feb single step, and the Mar-7 OM).
+Use the pipeline's saved PCC shifts in `output/lhc_pipeline_fixed/pipeline_config.json`
+(`alignment_shifts`) and its consensus crowns / phenology CSV / viewer crops. Note
+the LHC **Mar-7 (OM8) shift is [-4, -28] m = misaligned**; exclude OM8 from figures.
+
+Figures in the paper now (chain 45 = crown_0038 is a deciduous "running example"
+used in both 1.2 and the trajectory):
+- §1.2 leaf-off "missed" (fig_missed_leafoff.png) — chain 45, 25 Oct leafy+detected
+  vs 20 Feb bare (you can see through to the ground/vehicles), proper pipeline
+  alignment so the scene registers. Script scratchpad/missed_pipeline.py.
+- §4 flowcharts: the polished infographics in figures/flowcharts/short/ (overview,
+  alignment, association, consensus, phenology) replaced the TikZ. No "short"
+  detection flowchart, so §4.2 uses the real multi-threshold image instead.
+- §4.2 fig_detection_multithreshold.png (high vs low threshold on real imagery).
+- §4.3 fig_alignment_beforeafter.png (crowns before/after the 3.9 m shift).
+- §4.7/4.8 fig_crop_sequence.png (one deciduous crown's crops + veg trajectory,
+  with the shadowed 20 Nov obs flagged by QC). Scripts in scratchpad/fig_*.py.
+- NOTE: an obviously-visible *merge* example does not exist in LHC's dense canopy;
+  if one is wanted, look in SIT. A real consensus-medoid example (chain polygons +
+  medoid) is still un-made — easy to add if desired.
 
 ### 0.12 Section 2 sources
 
