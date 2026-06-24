@@ -6,7 +6,7 @@ Main reference:
 
 - https://github.com/jayakrishnascientist/Forest-tree-crown-species-classification-geo-AI/blob/88014b11fc79ba63619e0a6363de2ef3045c356e/QGIS_QField_Tutorial.md
 
-Use QField when field users need editable crown attributes, photos, standard value lists, or less crowded maps than paper printouts.
+Use QField for editable crown attributes, photo attachments, standard value lists, and less crowded map interaction than paper printouts.
 
 ## Inputs
 
@@ -55,7 +55,7 @@ Recommended fields:
 | `health` | value map/text | Field condition. |
 | `photo` | attachment | Field photo. |
 | `notes` | text | Free notes. |
-| `observer` | text | Collector/team. |
+| `observer` | text | Annotation source or collector ID. |
 | `visit_date` | date/text | Annotation date. |
 
 Keep field names short and stable.
@@ -68,7 +68,7 @@ In QGIS:
 2. Confirm unique `crown_id`.
 3. Add missing schema fields.
 4. Save as GeoPackage if needed.
-5. Prevent geometry edits if users should edit attributes only.
+5. Prevent geometry edits if only attributes should be edited.
 6. Save a backup before QField sync.
 
 Avoid temporary or unsaved memory layers.
@@ -224,4 +224,4 @@ Keep the raw edited QField layer unchanged.
 6. Test edit syncs back.
 7. Project works offline if needed.
 8. Original crown layer is backed up.
-9. Field team understands each field.
+9. Field schema is documented.

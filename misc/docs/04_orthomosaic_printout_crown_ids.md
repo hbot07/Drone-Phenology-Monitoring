@@ -1,6 +1,6 @@
 # Make Crown-ID Printouts
 
-Create printable orthomosaic maps with numbered crown polygons.
+Create printable orthomosaic maps with numbered crown polygons. The key requirement is traceability: every printed ID should link back to the exact crown layer used for annotation and later analysis.
 
 Use printouts for:
 
@@ -119,15 +119,15 @@ sheet_02,site_a_15-01-26.tif,consensus_crowns_complete_all.gpkg,crown_id,south s
 
 If layouts are made in QGIS, save the QGIS project/export settings.
 
-## Field Packet
+## Annotation Sheet
 
-Include:
+A printout set usually includes:
 
 1. Numbered orthomosaic map.
 2. Blank note table.
 3. Species/code list if used.
 4. Overview map for large sites.
-5. Visit date and team names.
+5. Visit date or survey date.
 
 Minimum table:
 
@@ -141,7 +141,7 @@ Better table:
 crown_id | species | confidence | health/status | photo_id | notes
 ```
 
-## Field Use
+## Annotation
 
 1. Confirm map orientation.
 2. Mark crowns that cannot be located.
@@ -150,14 +150,14 @@ crown_id | species | confidence | health/status | photo_id | notes
 5. Write photo IDs when photos are taken.
 6. Do not change crown IDs unless necessary.
 
-## After Fieldwork
+## Digitise Notes
 
-Digitise notes:
+Store annotations in a table:
 
 ```csv
-crown_id,species,species_confidence,status,photo_id,notes,visit_date,observer
-101,Azadirachta indica,high,checked,IMG_0012,,2026-01-15,observer_a
-102,,low,uncertain,,could not identify,2026-01-15,observer_a
+crown_id,species,species_confidence,status,photo_id,notes,visit_date
+101,Azadirachta indica,high,checked,IMG_0012,,2026-01-15
+102,,low,uncertain,,could not identify,2026-01-15
 ```
 
 Then check:
@@ -190,8 +190,8 @@ site_a_species_notes_2026-01-15.csv
 ## Printout Log
 
 ```csv
-site,visit_date,orthomosaic,crowns,layer,id_field,output_image,printed_by,notes
-site_a,2026-01-15,site_a_15-01-26.tif,consensus_crowns_complete_all.gpkg,,crown_id,site_a_consensus_numbered_crowns.png,<name>,
+site,visit_date,orthomosaic,crowns,layer,id_field,output_image,notes
+site_a,2026-01-15,site_a_15-01-26.tif,consensus_crowns_complete_all.gpkg,,crown_id,site_a_consensus_numbered_crowns.png,
 ```
 
 ## Troubleshooting
@@ -199,6 +199,6 @@ site_a,2026-01-15,site_a_15-01-26.tif,consensus_crowns_complete_all.gpkg,,crown_
 1. Crowns do not line up: check CRS and source files.
 2. Labels overlap: split into smaller sheets or increase size/DPI.
 3. IDs changed: use the archived crown file.
-4. Field team cannot orient: add landmarks or overview map.
+4. Orientation is unclear: add landmarks or overview map.
 5. Species names vary: clean names before joining.
 6. Many crowns cannot be located: check date, site, and crown layer.

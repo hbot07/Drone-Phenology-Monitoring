@@ -156,7 +156,7 @@ If the date is uncertain, mark it instead of inventing one.
 
 ## Handoff
 
-Give the orthomosaic-processing person:
+For orthomosaic processing, provide:
 
 1. Raw image folder.
 2. Mission/log files.
