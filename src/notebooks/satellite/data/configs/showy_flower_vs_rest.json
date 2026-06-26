@@ -1,0 +1,26 @@
+{
+  "name": "showy_flower_vs_rest_exp01",
+  "description": "Binary showy-flowering (1) vs non-showy (0) — exp01. Bottlebrush, Sausage tree, Frangipani and Kasod moved to negative: sub-canopy or ambiguous visibility.",
+  "label_property": "label_showy_flower",
+  "classes": {
+    "1": "showy_flower",
+    "0": "not_showy_flower",
+    "-1": "ignore"
+  },
+  "positive_species": [
+    "Amaltas", "Caribbean trumpet", "Siris",
+    "Gulmohar", "Moulmein Rosewood", "Palash", "Semal",
+    "Kachnar"
+  ],
+  "negative_species": [
+    "Ashok", "Bamboo clump", "Banana", "Bottlebrush", "Chir pine", "Jamun",
+    "Mango", "Maulsari", "Palm tree", "Saptparni",
+    "Banyan", "Imli", "Karanj", "Native acacia", "Neem", "Peepal",
+    "Prosopis Juliflora", "Subabool",
+    "Amla", "Arjun", "Bakain", "Bel", "Chukrasia", "Frangipani", "Goolar",
+    "Kasod", "Kanju", "Marodphali", "Moringa", "Pilkhan", "Sausage tree",
+    "Shahtoot", "Sheesham", "Teak"
+  ],
+  "recommended_first_run": true,
+  "notes": "Bottlebrush (below canopy), Sausage tree (below canopy), Frangipani (sparse, sub-canopy), Kasod (ambiguous satellite signal) all moved to negative."
+}

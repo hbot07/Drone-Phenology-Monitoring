@@ -16,7 +16,7 @@
     "Banyan", "Imli", "Karanj", "Neem", "Peepal",
     "Amaltas", "Amla", "Arjun", "Bakain", "Bel", "Caribbean trumpet",
     "Chukrasia", "Frangipani", "Goolar", "Gulmohar", "Kachnar", "Kanju",
-    "Marodphali", "Moringa", "Palash", "Pilkhan", "Sausage tree",
+    "Marodphali", "Moringa", "Moulmein Rosewood", "Palash", "Pilkhan", "Sausage tree",
     "Semal", "Shahtoot", "Sheesham", "Siris", "Teak"
   ],
   "fallback_field": "tree_type_raw",

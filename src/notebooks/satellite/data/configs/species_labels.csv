@@ -1,0 +1,48 @@
+species_clean,label_acacia,label_deciduous,label_esd,label_esd_class,label_showy_flower,label_yellow_strict,label_red_showy,label_yellow_broad
+Acacia unknown,1,-1,-1,ignore,-1,-1,-1,-1
+Amaltas,0,1,2,deciduous,1,1,0,1
+Amla,0,1,2,deciduous,0,0,0,0
+Anjan,0,1,2,deciduous,0,0,0,0
+Arjun,0,1,2,deciduous,0,0,0,0
+Ashok,0,0,0,evergreen,0,0,0,0
+Bakain,0,1,2,deciduous,0,0,0,0
+Bamboo clump,0,0,0,evergreen,0,0,0,0
+Banana,0,0,0,evergreen,0,0,0,0
+Banyan,0,0,1,semi_evergreen,0,0,0,0
+Bel,0,1,2,deciduous,0,0,0,0
+Bottlebrush,0,0,0,evergreen,0,0,0,0
+Buddha's Coconut,0,1,2,deciduous,0,0,0,0
+Caribbean trumpet,0,1,2,deciduous,1,1,0,1
+Cassia,0,1,2,deciduous,0,0,0,0
+Chamrod,0,1,2,deciduous,0,0,0,0
+Chukrasia,0,1,2,deciduous,0,0,0,0
+Frangipani,0,0,0,evergreen,0,0,0,0
+Goolar,0,1,2,deciduous,0,0,0,0
+Gulmohar,0,1,2,deciduous,1,0,1,0
+Imli,0,0,1,semi_evergreen,0,0,0,0
+Jamun,0,0,0,evergreen,0,0,0,0
+Kachnar,0,1,2,deciduous,1,0,0,0
+Kanju,0,1,2,deciduous,0,0,0,0
+Karanj,0,1,2,deciduous,0,0,0,0
+Kasod,-1,-1,-1,ignore,0,0,0,0
+Mahneem,0,0,1,semi_evergreen,0,0,0,0
+Mango,0,0,0,evergreen,0,0,0,0
+Marodphali,0,1,2,deciduous,0,0,0,0
+Maulsari,0,0,0,evergreen,0,0,0,0
+Moringa,0,1,2,deciduous,0,0,0,0
+Moulmein Rosewood,0,1,2,deciduous,1,0,0,0
+Native acacia,1,0,1,semi_evergreen,0,0,0,0
+Neem,0,0,1,semi_evergreen,0,0,0,0
+Palash,0,1,2,deciduous,1,0,1,0
+Palm tree,0,0,0,evergreen,0,0,0,0
+Peepal,0,0,1,semi_evergreen,0,0,0,0
+Pilkhan,0,1,2,deciduous,0,0,0,0
+Prosopis Juliflora,1,0,1,semi_evergreen,0,0,0,-1
+Saptparni,0,0,0,evergreen,0,0,0,0
+Sausage tree,0,0,0,evergreen,0,0,0,0
+Semal,0,1,2,deciduous,1,0,1,0
+Shahtoot,0,1,2,deciduous,0,0,0,0
+Sheesham,0,1,2,deciduous,0,0,0,0
+Siris,0,1,2,deciduous,1,0,0,1
+Subabool,1,0,1,semi_evergreen,0,0,0,0
+Teak,0,1,2,deciduous,0,0,0,0

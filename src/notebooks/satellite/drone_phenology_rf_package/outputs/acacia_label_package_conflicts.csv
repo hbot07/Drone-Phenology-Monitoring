@@ -64,9 +64,15 @@ SV_S2:crown_0542,SV_S2,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_c
 SV_S2:crown_0550,SV_S2,-1,0,-1,1,"{""clustering"": 1, ""field"": 0}",clean_plus_clustering
 SV_S2:crown_0562,SV_S2,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
 SV_S2:crown_0574,SV_S2,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
+SV_S3:crown_0008,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0020,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
 SV_S3:crown_0022,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
 SV_S3:crown_0024,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
+SV_S3:crown_0030,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
 SV_S3:crown_0032,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
+SV_S3:crown_0037,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0060,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0086,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
 SV_S3:crown_0093,SV_S3,-1,-1,0,1,"{""clustering"": 1, ""desk"": 0}",clean_plus_clustering
 SV_S3:crown_0142,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
 SV_S3:crown_0172,SV_S3,-1,-1,0,1,"{""clustering"": 1, ""desk"": 0}",clean_plus_clustering
@@ -74,16 +80,33 @@ SV_S3:crown_0177,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_c
 SV_S3:crown_0181,SV_S3,1,1,1,0,"{""clustering"": 0, ""desk"": 1, ""field"": 1, ""species"": 1}",clean_plus_clustering
 SV_S3:crown_0197,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
 SV_S3:crown_0211,SV_S3,-1,-1,0,1,"{""clustering"": 1, ""desk"": 0}",clean_plus_clustering
+SV_S3:crown_0260,SV_S3,-1,0,-1,1,"{""clustering"": 1, ""field"": 0}",clean_plus_clustering
 SV_S3:crown_0267,SV_S3,-1,-1,0,1,"{""clustering"": 1, ""desk"": 0}",clean_plus_clustering
+SV_S3:crown_0279,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0282,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0292,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0294,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
 SV_S3:crown_0299,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
 SV_S3:crown_0303,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
 SV_S3:crown_0325,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
+SV_S3:crown_0339,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
 SV_S3:crown_0377,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
 SV_S3:crown_0388,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
 SV_S3:crown_0405,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
 SV_S3:crown_0421,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
-SV_S3:crown_0445,SV_S3,-1,-1,1,0,"{""clustering"": 0, ""desk"": 1}",clean_plus_clustering
+SV_S3:crown_0445,SV_S3,-1,1,1,0,"{""clustering"": 0, ""desk"": 1, ""field"": 1}",clean_plus_clustering
 SV_S3:crown_0466,SV_S3,-1,-1,0,1,"{""clustering"": 1, ""desk"": 0}",clean_plus_clustering
+SV_S3:crown_0500,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0504,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0508,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0513,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0517,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0547,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0548,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0558,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0600,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
+SV_S3:crown_0603,SV_S3,-1,0,-1,1,"{""clustering"": 1, ""field"": 0}",clean_plus_clustering
+SV_S3:crown_0617,SV_S3,-1,1,-1,0,"{""clustering"": 0, ""field"": 1}",clean_plus_clustering
 SV_S4:crown_0021,SV_S4,-1,-1,0,1,"{""clustering"": 1, ""desk"": 0}",clean_plus_clustering
 SV_S4:crown_0044,SV_S4,0,0,0,1,"{""clustering"": 1, ""desk"": 0, ""field"": 0, ""species"": 0}",clean_plus_clustering
 SV_S4:crown_0051,SV_S4,-1,-1,0,1,"{""clustering"": 1, ""desk"": 0}",clean_plus_clustering
