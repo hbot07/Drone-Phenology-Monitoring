@@ -1,6 +1,8 @@
 flask
 geopandas
+imageio
 matplotlib
+mercantile
 networkx
 numpy==1.26.*
 opencv-python
