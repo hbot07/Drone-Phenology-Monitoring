@@ -19,4 +19,5 @@ dependencies:
   - scipy
   - matplotlib
   - flask
+  - gdal
   - pip
