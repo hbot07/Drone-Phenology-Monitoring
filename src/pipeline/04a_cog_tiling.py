@@ -245,27 +245,81 @@ def generate_xyz_tiles(cog_path: str, tiles_dir: Path,
     Tries gdal2tiles first (fastest). Falls back to pure-rasterio + mercantile.
     Returns dict with bounds and zoom range for the manifest.
     """
-    import subprocess, shutil
+    import subprocess, shutil, sys as _sys, os as _os
+    from pathlib import Path as _Path
     tiles_dir.mkdir(parents=True, exist_ok=True)
 
-    gdal2tiles = shutil.which("gdal2tiles") or shutil.which("gdal2tiles.py")
+    # ── Locate gdal2tiles ────────────────────────────────────────────────────
+    # shutil.which only searches $PATH. When running via conda run without full
+    # activation, the env bin/ is not on PATH, so also check sys.prefix/bin/.
+    _env_bin = _Path(_sys.prefix) / "bin"
+    gdal2tiles = (
+        shutil.which("gdal2tiles")
+        or shutil.which("gdal2tiles.py")
+        or (str(_env_bin / "gdal2tiles")    if (_env_bin / "gdal2tiles").exists()    else None)
+        or (str(_env_bin / "gdal2tiles.py") if (_env_bin / "gdal2tiles.py").exists() else None)
+    )
+
     if gdal2tiles:
-        result = subprocess.run([
-            gdal2tiles,
+        print(f"    Using gdal2tiles: {gdal2tiles}")
+        # Always call via sys.executable for consistent env
+        cmd = [_sys.executable, gdal2tiles]
+
+        # Ensure env bin/ is on PATH and GDAL data files are found
+        _env = {**_os.environ,
+                "PATH": str(_env_bin) + ":" + _os.environ.get("PATH", ""),
+                "GDAL_DATA": str(_Path(_sys.prefix) / "share" / "gdal"),
+                "PROJ_LIB":  str(_Path(_sys.prefix) / "share" / "proj")}
+
+        _help = subprocess.run(cmd + ["--help"], capture_output=True, text=True, env=_env)
+        _help_txt = (_help.stdout or "") + (_help.stderr or "")
+
+        # Build args
+        base_args = [
             "--zoom", f"0-{max_zoom}",
-            "--tile-size", str(tile_size),
             "--processes", "4",
             "--webviewer", "none",
             "--resampling", "average",
-            str(cog_path),
-            str(tiles_dir),
-        ], capture_output=True, text=True)
-        if result.returncode == 0:
-            return _read_tile_bounds(tiles_dir)
-        else:
-            print(f"    gdal2tiles failed, using pure-rasterio tiler")
+        ]
 
-    return _pure_rasterio_tile(cog_path, tiles_dir, tile_size, max_zoom)
+        # --xyz makes gdal2tiles output XYZ tiles instead of TMS (Y-flipped).
+        # This matches what Leaflet expects with tms:false (the default).
+        uses_tms = True
+        if "--xyz" in _help_txt:
+            base_args.append("--xyz")
+            uses_tms = False   # XYZ output → Leaflet tms:false
+
+        if "--tile-size" in _help_txt:
+            base_args += ["--tile-size", str(tile_size)]
+        elif "--tilesize" in _help_txt:
+            base_args += ["--tilesize", str(tile_size)]
+
+        inputs = [str(cog_path), str(tiles_dir)]
+
+        # Attempt 1: with --srcnodata (makes edges transparent)
+        srcnodata_flag = ["--srcnodata", "0", "0", "0"] if "--srcnodata" in _help_txt else []
+        result = subprocess.run(
+            cmd + base_args + srcnodata_flag + inputs,
+            capture_output=True, text=True, env=_env
+        )
+
+        if result.returncode != 0:
+            # Attempt 2: without --srcnodata
+            result = subprocess.run(cmd + base_args + inputs, capture_output=True, text=True, env=_env)
+
+        if result.returncode == 0:
+            bounds = _read_tile_bounds(tiles_dir)
+            bounds["tms"] = uses_tms
+            return bounds
+        else:
+            err = (result.stderr or result.stdout or "").strip()
+            print(f"    gdal2tiles failed (rc={result.returncode}): {err}")
+            print(f"    Falling back to pure-rasterio tiler")
+
+    print(f"    Using pure-rasterio tiler")
+    bounds = _pure_rasterio_tile(cog_path, tiles_dir, tile_size, max_zoom)
+    bounds["tms"] = False   # rasterio tiler uses native XYZ coordinates
+    return bounds
 
 
 def _read_tile_bounds(tiles_dir: Path) -> dict:
@@ -777,13 +831,14 @@ def main() -> int:
     parser.add_argument("--config", required=True)
     parser.add_argument("--underlay-om", default="last",
                         help="Which OM to use as default map underlay: 'first', 'last', or N")
-    parser.add_argument("--tile-size", type=int, default=256)
+    parser.add_argument("--tile-size", type=int, default=128)
     parser.add_argument("--max-cog-zoom", type=int, default=22)
     parser.add_argument("--force-regen-cogs", action="store_true",
                         help="Rebuild COGs and tiles even if they already exist")
     parser.add_argument("--skip-if-done", action="store_true",
                         help="Skip if tile_manifest.json already exists")
     args = parser.parse_args()
+    tile_size = args.tile_size  # px per tile — used in manifest and passed to tilers
 
     config_path = Path(args.config).resolve()
     if not config_path.exists():
@@ -820,6 +875,7 @@ def main() -> int:
     underlay_om_id = max(1, min(underlay_om_id, num_oms))
 
     print(f"Generating COGs and XYZ tiles for {num_oms} OMs \u2026")
+    print(f"PROGRESS:04a_cog_tiling:0/{num_oms}:Starting COG tiling", flush=True)
     om_tile_entries = []
 
     for om_id, (_gpkg, ortho_path, stem) in enumerate(pairs, start=1):
@@ -831,6 +887,7 @@ def main() -> int:
                       or not any(om_tile_dir.iterdir())
 
         print(f"  OM{om_id:02d} \u2014 {stem}")
+        print(f"PROGRESS:04a_cog_tiling:{om_id - 1}/{num_oms}:Processing OM{om_id:02d} {stem}", flush=True)
 
         if needs_cog:
             print(f"    Building COG \u2026")
@@ -858,6 +915,8 @@ def main() -> int:
             print(f"    Tiles exist \u2014 skipping")
             tile_bounds = _read_tile_bounds(om_tile_dir)
 
+        print(f"PROGRESS:04a_cog_tiling:{om_id}/{num_oms}:Done OM{om_id:02d} {stem}", flush=True)
+
         # Relative tile URL (served from viewer_dir root)
         tile_url = f"tiles/OM{om_id:02d}_{stem}/{{z}}/{{x}}/{{y}}.png"
 
@@ -872,19 +931,28 @@ def main() -> int:
             e = tile_bounds.get("max_lon",  180)
             n = tile_bounds.get("max_lat",   90)
 
+        # cog_url is relative to the run output dir — server.py resolves it
+        cog_rel = f"04_viewer/cogs/OM{om_id:02d}_{stem}.tif"
         om_tile_entries.append({
             "om_id":    int(om_id),
             "stem":     stem,
             "tile_url": tile_url,
+            "cog_url":  cog_rel,   # relative path for TiTiler crop endpoint
             "bounds":   {"w": w, "s": s, "e": e, "n": n},
             "min_zoom": int(tile_bounds.get("min_zoom", 10)),
             "max_zoom": int(tile_bounds.get("max_zoom", 20)),
+            "tms":      bool(tile_bounds.get("tms", False)),
         })
+
+    # Determine tms flag for manifest — all OMs use the same tiler so take first
+    manifest_tms = om_tile_entries[0]["tms"] if om_tile_entries else False
 
     # Write tile manifest consumed by 04b
     manifest = {
         "underlay_om_id": int(underlay_om_id),
         "num_oms":        int(num_oms),
+        "tms":            manifest_tms,  # True=gdal2tiles(TMS), False=rasterio(XYZ)
+        "tile_size":      tile_size,     # px per tile — viewer needs this for tileSize option
         "oms":            om_tile_entries,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2))
