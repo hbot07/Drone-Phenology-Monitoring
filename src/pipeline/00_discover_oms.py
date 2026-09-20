@@ -147,28 +147,6 @@ def discover_and_sort_stems(om_dir: Path, exclude_stems: List[str]) -> List[str]
     return sorted_stems
 
 
-# ---------------------------------------------------------------------------
-# Model path discovery
-# ---------------------------------------------------------------------------
-
-def find_model_path(project_root: Path, hint: Optional[str] = None) -> str:
-    if hint:
-        p = Path(hint)
-        if not p.is_absolute():
-            p = (project_root / hint).resolve()
-        if p.exists():
-            return str(p)
-        raise FileNotFoundError(f"Model not found at: {p}")
-
-    # Auto-discover
-    candidates = sorted((project_root / "input" / "detectree_models").glob("*.pth"))
-    if candidates:
-        return str(candidates[0])
-    raise FileNotFoundError(
-        "No .pth model found under input/detectree_models/. "
-        "Pass --model-path explicitly."
-    )
-
 
 # ---------------------------------------------------------------------------
 # Config writer
@@ -244,6 +222,12 @@ def main() -> int:
     parser.add_argument("--tile-height", type=int, default=25)
     parser.add_argument("--tile-buffer", type=int, default=15)
     parser.add_argument(
+        "--project-root",
+        default=None,
+        help="Explicit project root (skips auto-detection). "
+             "Pass this when running via a server that knows the layout.",
+    )
+    parser.add_argument(
         "--run-name",
         default=None,
         help="Human-readable run name (default: derived from om_dir folder name + timestamp)",
@@ -274,7 +258,22 @@ def main() -> int:
         print(f"ERROR: orthomosaic directory not found: {om_dir}", file=sys.stderr)
         return 1
 
-    project_root = find_project_root(om_dir)
+    # Resolve project root: use explicit arg first, then auto-detect, then error clearly.
+    if getattr(args, "project_root", None):
+        project_root = Path(args.project_root).resolve()
+        print(f"Project root (explicit): {project_root}")
+    else:
+        try:
+            project_root = find_project_root(om_dir)
+            print(f"Project root (auto-detected): {project_root}")
+        except FileNotFoundError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            print(
+                "ERROR: Pass --project-root explicitly or run via the FastAPI server "
+                "which injects it automatically.",
+                file=sys.stderr,
+            )
+            return 1
 
     exclude_stems = [s.strip() for s in args.exclude_stems.split(",") if s.strip()]
 
@@ -287,12 +286,13 @@ def main() -> int:
     for i, s in enumerate(stems, 1):
         print(f"  OM{i:02d}: {s}")
 
-    try:
-        model_path = find_model_path(project_root, args.model_path)
+    # Model path is optional for step 0 — only used in the config
+    # Step 1+ will need it, but step 0 just discovers OMs
+    model_path = args.model_path or ""
+    if model_path:
         print(f"Model: {model_path}")
-    except FileNotFoundError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        return 1
+    else:
+        print("Note: Model path not provided — step 1 will need it.")
 
     # Build run name
     if args.run_name:
