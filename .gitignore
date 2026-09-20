@@ -2,6 +2,7 @@ input/
 output/
 misc/ODM/*.tar
 misc/thesis/weekly meetings/
+src/flask_app_tracking/runs
 misc/thesis/prof emails/
 misc/thesis/drone-phenology-thesis-overleaf/
 .venv/
@@ -9,3 +10,4 @@ misc/thesis/drone-phenology-thesis-overleaf/
 .vscode/
 __pycache__/
 .DS_Store
+.env
