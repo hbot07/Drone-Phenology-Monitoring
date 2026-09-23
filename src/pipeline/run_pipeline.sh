@@ -3,162 +3,79 @@
 # run_pipeline.sh  —  Drone Phenology Monitoring Full Pipeline Orchestrator
 # =============================================================================
 #
-# Runs the complete pipeline:
-#   Step 0:  Discover orthomosaics and write pipeline_config.json  (dpm-detectree)
-#   Step 1:  Multi-threshold Detectree2 crown detection            (dpm-detectree)
-#   Step 2:  Crown tracking + consensus crown generation           (dpm-tracking)
-#   Step 3:  Phenology / leaf-shed analysis                        (dpm-tracking)
-#   Step 4a: COG tiling (builds cogs/ and tiles/ for the viewer)   (dpm-tracking)
-#   Step 4b: Interactive HTML viewer generation                    (dpm-tracking)
+# Direct bash translation of the working run_pipeline.ps1.
+# Runs all 6 steps in sequence and emits STEP: markers for the frontend.
 #
-# Usage:
-#   bash run_pipeline.sh --om-dir /path/to/orthomosaics [OPTIONS]
-#   bash run_pipeline.sh --env-file /path/to/pipeline.env
-#
-# Required:
-#   --om-dir PATH           Folder containing .tif orthomosaics, unless set in .env
-#
-# Options:
-#   --run-name NAME         Human-readable run name (default: auto-generated)
-#   --output-dir PATH       Output directory (default: <project_root>/output/<run_name>)
-#   --model-path PATH       Path to .pth model (default: auto-discover)
-#   --exclude-stems STEMS   Comma-separated stems to exclude from tracking
-#                           Use this for any known-bad date. Local LHC example: lhc_09-12-25.
-#                           (that OM has gross misalignment and corrupts tracking)
-#   --crowns-dir PATH       Use existing crowns directory instead of running step 1
-#   --tile-width N          Detectree tile width in metres (default: 25)
-#   --tile-height N         Detectree tile height in metres (default: 25)
-#   --tile-buffer N         Detectree tile buffer in metres (default: 15)
-#   --device cpu|cuda       Inference device (default: cpu)
-#   --threads N             CPU thread count for detection (default: 6)
-#   --skip-existing         Skip crown detection if GPKG already valid (default: on)
-#   --no-skip-existing      Force re-run detection even if GPKG is valid
-#   --align-method METHOD   Alignment method for step 2 (default: pcc_tiled)
-#                           Options: pcc_tiled, pcc, ecc, crowns
-#   --base-threshold-tag T  Crown threshold used as base population (default: conf_0p45)
-#   --align-threshold-tag T Crown threshold used for alignment (default: conf_0p65)
-#   --min-partial-len N     Min chain length to include as partial chain (default: 5)
-#   --min-partial-ratio R   Min one-to-one ratio for partial chains (default: 0.9)
-#   --skip-chain-viz        Skip chain strip visualizations (faster tracking)
-#   --skip-consensus-viz    Skip consensus strip visualizations (faster tracking)
-#   --underlay-om last|first|N  Which OM to use as HTML viewer underlay (default: last)
-#   --steps STEPS           Comma-separated steps to run: 0,1,2,3,4a,4b (default: all)
-#   --base-env NAME         Conda environment for steps 0-1 (default: dpm-detectree)
-#   --tracking-env NAME     Conda environment for steps 2-4 (default: dpm-tracking)
-#   --env-file PATH         Optional shell-style env file. CLI flags override it.
-#
-# Examples:
-#   # Full pipeline, LHC dataset (MUST exclude the bad Dec-9 OM):
+# Usage (from server.py):
 #   bash run_pipeline.sh \
-#       --om-dir /path/to/project/input/input_om_lhc \
-#       --exclude-stems lhc_09-12-25 \
-#       --crowns-dir /path/to/project/output/detectree_om_lhc_multithreshold_smaller_tiles/crowns_multithreshold \
-#       --steps 0,2,3,4a,4b
-#
-#   # Resume tracking step only (skip detection), using existing crowns:
-#   bash run_pipeline.sh \
-#       --om-dir /path/to/project/input/input_om_lhc \
-#       --exclude-stems lhc_09-12-25 \
-#       --crowns-dir /path/to/crowns_multithreshold \
-#       --steps 2,3,4a,4b \
-#       --output-dir /path/to/existing/output/dir
-#
-#   # SIT dataset:
-#   bash run_pipeline.sh \
-#       --om-dir /path/to/project/input/input_om_sit \
-#       --crowns-dir /path/to/project/output/detectree_om_sit_multithreshold/crowns_multithreshold \
-#       --steps 0,2,3,4a,4b
-#
+#       --om-dir "..." --output-dir "..." --run-name "..." [OPTIONS]
 # =============================================================================
 
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
-# Resolve script/project directories and optionally load .env
+# Resolve script/project directories
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-ENV_FILE="${PROJECT_ROOT}/.env"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
-for ((i=1; i<=$#; i++)); do
-    if [[ "${!i}" == "--env-file" ]]; then
-        next_index=$((i + 1))
-        if [[ $next_index -le $# ]]; then
-            ENV_FILE="${!next_index}"
-        fi
-        break
-    fi
-done
-
-if [[ -f "$ENV_FILE" ]]; then
-    set -a
-    # shellcheck disable=SC1090
-    source "$ENV_FILE"
-    set +a
-fi
+# ---------------------------------------------------------------------------
+# Defaults (mirror PS1 param block exactly)
+# ---------------------------------------------------------------------------
+OM_DIR=""
+RUN_NAME=""
+OUTPUT_DIR=""
+MODEL_PATH=""
+EXCLUDE_STEMS=""
+CROWNS_DIR=""
+TILE_WIDTH=25
+TILE_HEIGHT=25
+TILE_BUFFER=15
+SKIP_EXISTING="--skip-existing"
+ALIGN_METHOD="pcc_tiled"
+UNDERLAY_OM="first"
+COG_TILE_SIZE=256
+BASE_THRESH_TAG="conf_0p45"
+ALIGN_THRESH_TAG="conf_0p65"
+MIN_PARTIAL_LEN=""
+MIN_PARTIAL_RATIO=""
+SKIP_CHAIN_VIZ=""
+SKIP_CONSENSUS_VIZ=""
+STEPS="0,1,2,3,4a,4b"
+BASE_ENV="dpm-detectree"
+TRACKING_ENV="dpm-tracking"
+PROJECT_ROOT_ARG=""
 
 # ---------------------------------------------------------------------------
 # Parse arguments
 # ---------------------------------------------------------------------------
-OM_DIR="${DPM_OM_DIR:-}"
-RUN_NAME="${DPM_RUN_NAME:-}"
-OUTPUT_DIR="${DPM_OUTPUT_DIR:-}"
-MODEL_PATH="${DPM_MODEL_PATH:-}"
-EXCLUDE_STEMS="${DPM_EXCLUDE_STEMS:-}"
-TILE_WIDTH="${DPM_TILE_WIDTH:-25}"
-TILE_HEIGHT="${DPM_TILE_HEIGHT:-25}"
-TILE_BUFFER="${DPM_TILE_BUFFER:-15}"
-DEVICE="${DPM_DEVICE:-cpu}"
-THREADS="${DPM_THREADS:-6}"
-SKIP_EXISTING_FLAG="--skip-existing"
-SKIP_CHAIN_VIZ=""
-SKIP_CONSENSUS_VIZ=""
-UNDERLAY_OM="${DPM_UNDERLAY_OM:-last}"
-STEPS="${DPM_STEPS:-0,1,2,3,4a,4b}"
-BASE_ENV="${DPM_BASE_ENV:-dpm-detectree}"
-TRACKING_ENV="${DPM_TRACKING_ENV:-dpm-tracking}"
-CROWNS_DIR="${DPM_CROWNS_DIR:-}"
-ALIGN_METHOD="${DPM_ALIGN_METHOD:-pcc_tiled}"
-BASE_THRESH_TAG="${DPM_BASE_THRESHOLD_TAG:-conf_0p45}"
-ALIGN_THRESH_TAG="${DPM_ALIGN_THRESHOLD_TAG:-conf_0p65}"
-MIN_PARTIAL_LEN="${DPM_MIN_PARTIAL_LEN:-}"
-MIN_PARTIAL_RATIO="${DPM_MIN_PARTIAL_RATIO:-}"
-
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --om-dir)           OM_DIR="$2";        shift 2 ;;
-        --run-name)         RUN_NAME="$2";      shift 2 ;;
-        --output-dir)       OUTPUT_DIR="$2";    shift 2 ;;
-        --model-path)       MODEL_PATH="$2";    shift 2 ;;
-        --exclude-stems)    EXCLUDE_STEMS="$2"; shift 2 ;;
-        --tile-width)       TILE_WIDTH="$2";    shift 2 ;;
-        --tile-height)      TILE_HEIGHT="$2";   shift 2 ;;
-        --tile-buffer)      TILE_BUFFER="$2";   shift 2 ;;
-        --device)           DEVICE="$2";        shift 2 ;;
-        --threads)          THREADS="$2";       shift 2 ;;
-        --skip-existing)    SKIP_EXISTING_FLAG="--skip-existing";   shift ;;
-        --no-skip-existing) SKIP_EXISTING_FLAG="--no-skip-existing"; shift ;;
-        --skip-chain-viz)   SKIP_CHAIN_VIZ="--skip-chain-viz";     shift ;;
-        --skip-consensus-viz) SKIP_CONSENSUS_VIZ="--skip-consensus-viz"; shift ;;
-        --underlay-om)      UNDERLAY_OM="$2";   shift 2 ;;
-        --steps)            STEPS="$2";         shift 2 ;;
-        --base-env)         BASE_ENV="$2";      shift 2 ;;
-        --tracking-env)     TRACKING_ENV="$2";  shift 2 ;;
-        --env-file)         ENV_FILE="$2";      shift 2 ;;
-        --crowns-dir)       CROWNS_DIR="$2";    shift 2 ;;
-        --align-method)     ALIGN_METHOD="$2";  shift 2 ;;
-        --base-threshold-tag) BASE_THRESH_TAG="$2"; shift 2 ;;
-        --align-threshold-tag) ALIGN_THRESH_TAG="$2"; shift 2 ;;
-        --min-partial-len)  MIN_PARTIAL_LEN="$2"; shift 2 ;;
-        --min-partial-ratio) MIN_PARTIAL_RATIO="$2"; shift 2 ;;
-        -h|--help)
-            sed -n '/#\s*Usage:/,/^# =====/p' "$0" | head -60
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1" >&2
-            exit 1
-            ;;
+        --om-dir)              OM_DIR="$2";             shift 2 ;;
+        --run-name)            RUN_NAME="$2";           shift 2 ;;
+        --output-dir)          OUTPUT_DIR="$2";         shift 2 ;;
+        --model-path)          MODEL_PATH="$2";         shift 2 ;;
+        --exclude-stems)       EXCLUDE_STEMS="$2";      shift 2 ;;
+        --crowns-dir)          CROWNS_DIR="$2";         shift 2 ;;
+        --tile-width)          TILE_WIDTH="$2";         shift 2 ;;
+        --tile-height)         TILE_HEIGHT="$2";        shift 2 ;;
+        --tile-buffer)         TILE_BUFFER="$2";        shift 2 ;;
+        --skip-existing)       SKIP_EXISTING="--skip-existing";    shift ;;
+        --no-skip-existing)    SKIP_EXISTING="--no-skip-existing"; shift ;;
+        --align-method)        ALIGN_METHOD="$2";       shift 2 ;;
+        --underlay-om)         UNDERLAY_OM="$2";        shift 2 ;;
+        --cog-tile-size)       COG_TILE_SIZE="$2";      shift 2 ;;
+        --base-threshold-tag)  BASE_THRESH_TAG="$2";   shift 2 ;;
+        --align-threshold-tag) ALIGN_THRESH_TAG="$2";  shift 2 ;;
+        --min-partial-len)     MIN_PARTIAL_LEN="$2";   shift 2 ;;
+        --min-partial-ratio)   MIN_PARTIAL_RATIO="$2"; shift 2 ;;
+        --skip-chain-viz)      SKIP_CHAIN_VIZ="--skip-chain-viz";         shift ;;
+        --skip-consensus-viz)  SKIP_CONSENSUS_VIZ="--skip-consensus-viz"; shift ;;
+        --steps)               STEPS="$2";              shift 2 ;;
+        --base-env)            BASE_ENV="$2";           shift 2 ;;
+        --tracking-env)        TRACKING_ENV="$2";       shift 2 ;;
+        --project-root)        PROJECT_ROOT_ARG="$2";   shift 2 ;;
+        *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
 
@@ -168,174 +85,273 @@ if [[ -z "$OM_DIR" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Utility: run a python command in a specific conda environment
+# Resolve paths (mirror PS1 logic)
 # ---------------------------------------------------------------------------
+if [[ -n "$PROJECT_ROOT_ARG" ]]; then
+    PROJECT_ROOT="$PROJECT_ROOT_ARG"
+fi
+
+if [[ -z "$OUTPUT_DIR" ]]; then
+    OUTPUT_DIR="${PROJECT_ROOT}/output/${RUN_NAME}"
+fi
+
+if [[ -z "$MODEL_PATH" ]]; then
+    MODEL_PATH="${PROJECT_ROOT}/input/detectree_models/250312_flexi.pth"
+fi
+
+mkdir -p "$OUTPUT_DIR"
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+announce_step() {
+    local step_key="$1"
+    local label="$2"
+    echo ""
+    echo "========================================================"
+    echo "  ${label}"
+    echo "========================================================"
+    echo ""
+    # Machine-readable marker — server.py watches for "STEP:<key>"
+    echo "STEP:${step_key}"
+}
+
+should_run() {
+    local step="$1"
+    echo "$STEPS" | tr ',' '\n' | grep -qx "$step"
+}
+
 run_in_env() {
     local env_name="$1"; shift
     echo ""
-    echo "=== Running in conda env '${env_name}': $* ==="
+    echo "=== Running in conda env '${env_name}': python $* ==="
     echo ""
+    # Prepend the conda env bin/ to PATH so subprocess calls like gdal2tiles
+    # are found. conda run alone does NOT fully activate the env — it runs
+    # Python with the right interpreter but leaves PATH unchanged, so tools
+    # installed in the env are invisible to child processes.
+    local env_prefix
+    env_prefix=$(conda run -n "${env_name}" python -c "import sys; print(sys.prefix)" 2>/dev/null)
+    if [[ -n "$env_prefix" ]]; then
+        export PATH="${env_prefix}/bin:${PATH}"
+        export GDAL_DATA="${env_prefix}/share/gdal"
+        export PROJ_LIB="${env_prefix}/share/proj"
+    fi
     conda run --no-capture-output -n "${env_name}" python "$@"
 }
 
 # ---------------------------------------------------------------------------
-# Helper to check if a step should run
-# ---------------------------------------------------------------------------
-should_run_step() {
-    local step="$1"
-    # Check if step number appears in the comma-separated STEPS list
-    echo "$STEPS" | tr ',' '\n' | grep -qx "$step"
-}
-
-# ---------------------------------------------------------------------------
-# Step 0: Discover OMs and write pipeline_config.json
+# Step 0: Discover OMs
 # ---------------------------------------------------------------------------
 CONFIG_PATH=""
 
-if should_run_step 0; then
-    echo ""
-    echo "========================================================"
-    echo "  STEP 0: Discovering orthomosaics"
-    echo "========================================================"
+if should_run 0; then
+    announce_step "00_discover_oms" "STEP 0: Discovering orthomosaics"
+
+    DISCOVER_SCRIPT="${SCRIPT_DIR}/00_discover_oms.py"
+    if [[ ! -f "$DISCOVER_SCRIPT" ]]; then
+        echo "ERROR: 00_discover_oms.py not found at $DISCOVER_SCRIPT" >&2
+        exit 1
+    fi
 
     DISCOVER_ARGS=(
-        "${SCRIPT_DIR}/00_discover_oms.py"
-        --om-dir "${OM_DIR}"
-        --tile-width "${TILE_WIDTH}"
-        --tile-height "${TILE_HEIGHT}"
-        --tile-buffer "${TILE_BUFFER}"
+        "$DISCOVER_SCRIPT"
+        "--om-dir"      "$OM_DIR"
+        "--tile-width"  "$TILE_WIDTH"
+        "--tile-height" "$TILE_HEIGHT"
+        "--tile-buffer" "$TILE_BUFFER"
     )
-    [[ -n "$RUN_NAME" ]]   && DISCOVER_ARGS+=(--run-name "${RUN_NAME}")
-    [[ -n "$OUTPUT_DIR" ]] && DISCOVER_ARGS+=(--output-dir "${OUTPUT_DIR}")
-    [[ -n "$MODEL_PATH" ]] && DISCOVER_ARGS+=(--model-path "${MODEL_PATH}")
-    [[ -n "$EXCLUDE_STEMS" ]] && DISCOVER_ARGS+=(--exclude-stems "${EXCLUDE_STEMS}")
-    [[ -n "$CROWNS_DIR" ]]    && DISCOVER_ARGS+=(--crowns-dir "${CROWNS_DIR}")
+    [[ -n "$RUN_NAME" ]]         && DISCOVER_ARGS+=("--run-name"      "$RUN_NAME")
+    [[ -n "$OUTPUT_DIR" ]]       && DISCOVER_ARGS+=("--output-dir"    "$OUTPUT_DIR")
+    [[ -n "$EXCLUDE_STEMS" ]]    && DISCOVER_ARGS+=("--exclude-stems" "$EXCLUDE_STEMS")
+    [[ -n "$CROWNS_DIR" ]]       && DISCOVER_ARGS+=("--crowns-dir"    "$CROWNS_DIR")
+    [[ -n "$PROJECT_ROOT_ARG" ]] && DISCOVER_ARGS+=("--project-root"  "$PROJECT_ROOT_ARG")
+    [[ -n "$MODEL_PATH" ]]       && DISCOVER_ARGS+=("--model-path"    "$MODEL_PATH")
 
-    # Capture output to extract config path
-    STEP0_OUT=$(conda run --no-capture-output -n "${BASE_ENV}" python "${DISCOVER_ARGS[@]}" 2>&1)
+    # Capture output to extract config path and stream it live
+    STEP0_OUT=$(python "${DISCOVER_ARGS[@]}" 2>&1)
     echo "$STEP0_OUT"
 
     CONFIG_PATH=$(echo "$STEP0_OUT" | grep "^PIPELINE_CONFIG=" | tail -1 | cut -d= -f2-)
+
     if [[ -z "$CONFIG_PATH" || ! -f "$CONFIG_PATH" ]]; then
         echo "ERROR: Step 0 failed to write pipeline_config.json" >&2
         exit 1
     fi
+
     echo ""
     echo "Config: $CONFIG_PATH"
+    echo ""
+    echo "========================================================"
+    echo "  STEP 0 COMPLETE"
+    echo "========================================================"
 else
-    # Config path must be derived from output dir
-    if [[ -n "$OUTPUT_DIR" ]]; then
-        CONFIG_PATH="${OUTPUT_DIR}/pipeline_config.json"
-    else
+    if [[ -z "$OUTPUT_DIR" ]]; then
         echo "ERROR: When skipping step 0, --output-dir must be set and contain pipeline_config.json." >&2
         exit 1
     fi
+    CONFIG_PATH="${OUTPUT_DIR}/pipeline_config.json"
     if [[ ! -f "$CONFIG_PATH" ]]; then
-        echo "ERROR: pipeline_config.json not found at: $CONFIG_PATH" >&2
+        echo "ERROR: pipeline_config.json not found at $CONFIG_PATH" >&2
         exit 1
     fi
     echo "Using existing config: $CONFIG_PATH"
 fi
 
 # ---------------------------------------------------------------------------
-# Step 1: Crown detection  (dpm-detectree conda env — has detectree2/detectron2)
+# Step 1: Crown detection  (dpm-detectree conda env)
 # ---------------------------------------------------------------------------
-if should_run_step 1; then
-    echo ""
-    echo "========================================================"
-    echo "  STEP 1: Crown detection (conda: ${BASE_ENV})"
-    echo "========================================================"
+if should_run 1; then
+    announce_step "01_crown_detection" "STEP 1: Crown detection (conda: ${BASE_ENV})"
 
     DETECT_ARGS=(
         "${SCRIPT_DIR}/01_crown_detection.py"
-        --config "${CONFIG_PATH}"
-        --device "${DEVICE}"
-        --threads "${THREADS}"
-        ${SKIP_EXISTING_FLAG}
+        "--config" "$CONFIG_PATH"
+        "--device" "cuda"
+        "$SKIP_EXISTING"
     )
+    # Note: model_path comes from pipeline_config.json (written by Step 0), not CLI.
 
-    run_in_env "${BASE_ENV}" "${DETECT_ARGS[@]}"
+    run_in_env "$BASE_ENV" "${DETECT_ARGS[@]}"
+
+    echo ""
+    echo "========================================================"
+    echo "  STEP 1 COMPLETE"
+    echo "========================================================"
 fi
 
 # ---------------------------------------------------------------------------
 # Step 2: Crown tracking + consensus crowns  (dpm-tracking conda env)
 # ---------------------------------------------------------------------------
-if should_run_step 2; then
-    echo ""
-    echo "========================================================"
-    echo "  STEP 2: Crown tracking (conda: ${TRACKING_ENV})"
-    echo "========================================================"
+if should_run 2; then
+    announce_step "02_crown_tracking" "STEP 2: Crown tracking (conda: ${TRACKING_ENV})"
 
     TRACK_ARGS=(
         "${SCRIPT_DIR}/02_crown_tracking.py"
-        --config "${CONFIG_PATH}"
-        --base-threshold-tag "${BASE_THRESH_TAG}"
-        --align-method "${ALIGN_METHOD}"
-        --align-threshold-tag "${ALIGN_THRESH_TAG}"
-        ${SKIP_CHAIN_VIZ}
-        ${SKIP_CONSENSUS_VIZ}
+        "--config"              "$CONFIG_PATH"
+        "--base-threshold-tag"  "$BASE_THRESH_TAG"
+        "--align-method"        "$ALIGN_METHOD"
+        "--align-threshold-tag" "$ALIGN_THRESH_TAG"
     )
-    [[ -n "$MIN_PARTIAL_LEN" ]]   && TRACK_ARGS+=(--min-partial-len "${MIN_PARTIAL_LEN}")
-    [[ -n "$MIN_PARTIAL_RATIO" ]] && TRACK_ARGS+=(--min-partial-ratio "${MIN_PARTIAL_RATIO}")
+    [[ -n "$SKIP_CHAIN_VIZ" ]]     && TRACK_ARGS+=("$SKIP_CHAIN_VIZ")
+    [[ -n "$SKIP_CONSENSUS_VIZ" ]] && TRACK_ARGS+=("$SKIP_CONSENSUS_VIZ")
+    [[ -n "$MIN_PARTIAL_LEN" ]]    && TRACK_ARGS+=("--min-partial-len"   "$MIN_PARTIAL_LEN")
+    [[ -n "$MIN_PARTIAL_RATIO" ]]  && TRACK_ARGS+=("--min-partial-ratio" "$MIN_PARTIAL_RATIO")
 
-    run_in_env "${TRACKING_ENV}" "${TRACK_ARGS[@]}"
+    run_in_env "$TRACKING_ENV" "${TRACK_ARGS[@]}"
+
+    echo ""
+    echo "========================================================"
+    echo "  STEP 2 COMPLETE"
+    echo "========================================================"
 fi
 
 # ---------------------------------------------------------------------------
 # Step 3: Phenology analysis  (dpm-tracking conda env)
 # ---------------------------------------------------------------------------
-if should_run_step 3; then
-    echo ""
-    echo "========================================================"
-    echo "  STEP 3: Phenology analysis (conda: ${TRACKING_ENV})"
-    echo "========================================================"
+if should_run 3; then
+    announce_step "03_phenology_analysis" "STEP 3: Phenology analysis (conda: ${TRACKING_ENV})"
 
     PHENO_ARGS=(
         "${SCRIPT_DIR}/03_phenology_analysis.py"
-        --config "${CONFIG_PATH}"
+        "--config" "$CONFIG_PATH"
     )
 
-    run_in_env "${TRACKING_ENV}" "${PHENO_ARGS[@]}"
+    run_in_env "$TRACKING_ENV" "${PHENO_ARGS[@]}"
+
+    echo ""
+    echo "========================================================"
+    echo "  STEP 3 COMPLETE"
+    echo "========================================================"
+fi
+
+# ---------------------------------------------------------------------------
+# Step 3b: Phenophase classification  (dpm-tracking conda env)
+# ---------------------------------------------------------------------------
+if should_run 3; then
+    announce_step "03b_phenophase_classification" "STEP 3b: Phenophase classification (conda: ${TRACKING_ENV})"
+
+    # Script must exist in the pipeline directory
+    PHENOCLF_SCRIPT="${SCRIPT_DIR}/12_apply_phenophase_to_geojson.py"
+    if [[ ! -f "$PHENOCLF_SCRIPT" ]]; then
+        echo "WARNING: 12_apply_phenophase_to_geojson.py not found at ${PHENOCLF_SCRIPT} — skipping Step 3b" >&2
+    else
+        # Model: use --model-path CLI arg if provided, otherwise fall back to
+        # the fixed location in the project tree
+        PHENOCLF_MODEL=""
+        if [[ -n "$MODEL_PATH" && -f "$MODEL_PATH" && "$MODEL_PATH" == *phenophase* ]]; then
+            PHENOCLF_MODEL="$MODEL_PATH"
+        else
+            # Fixed location where the model is stored
+            FIXED_MODEL="${PROJECT_ROOT}/model_for_phenology/phenophase_gb.joblib"
+            if [[ -f "$FIXED_MODEL" ]]; then
+                PHENOCLF_MODEL="$FIXED_MODEL"
+            fi
+        fi
+
+        if [[ -z "$PHENOCLF_MODEL" ]]; then
+            echo "WARNING: phenophase_gb.joblib not found — skipping Step 3b" >&2
+            echo "  Expected at: ${PROJECT_ROOT}/model_for_phenology/phenophase_gb.joblib" >&2
+        else
+            echo "  Using model: ${PHENOCLF_MODEL}"
+            PHENOCLF_ARGS=(
+                "$PHENOCLF_SCRIPT"
+                "--config"     "$CONFIG_PATH"
+                "--model"      "$PHENOCLF_MODEL"
+                "--min-run"    "2"
+                "--flip-below" "0.90"
+            )
+
+            run_in_env "$TRACKING_ENV" "${PHENOCLF_ARGS[@]}"
+        fi
+    fi
+
+    echo ""
+    echo "========================================================"
+    echo "  STEP 3b COMPLETE"
+    echo "========================================================"
 fi
 
 # ---------------------------------------------------------------------------
 # Step 4a: COG tiling  (dpm-tracking conda env)
-# Builds the cloud-optimized GeoTIFFs and map tiles consumed by Step 4b:
-#   <output_dir>/04_viewer/cogs
-#   <output_dir>/04_viewer/tiles
 # ---------------------------------------------------------------------------
-if should_run_step 4a; then
-    echo ""
-    echo "========================================================"
-    echo "  STEP 4a: COG tiling (conda: ${TRACKING_ENV})"
-    echo "========================================================"
+if should_run 4a; then
+    announce_step "04a_cog_tiling" "STEP 4a: COG tiling (conda: ${TRACKING_ENV})"
 
     COG_ARGS=(
         "${SCRIPT_DIR}/04a_cog_tiling.py"
-        --config "${CONFIG_PATH}"
-        --underlay-om "${UNDERLAY_OM}"
+        "--config"      "$CONFIG_PATH"
+        "--underlay-om" "$UNDERLAY_OM"
+        "--tile-size"   "$COG_TILE_SIZE"
     )
 
-    run_in_env "${TRACKING_ENV}" "${COG_ARGS[@]}"
+    run_in_env "$TRACKING_ENV" "${COG_ARGS[@]}"
+
+    echo ""
+    echo "========================================================"
+    echo "  STEP 4a COMPLETE"
+    echo "========================================================"
 fi
 
 # ---------------------------------------------------------------------------
 # Step 4b: Interactive viewer  (dpm-tracking conda env)
-# Consumes the cogs/ and tiles/ produced by Step 4a.
 # ---------------------------------------------------------------------------
-if should_run_step 4b; then
-    echo ""
-    echo "========================================================"
-    echo "  STEP 4b: Interactive viewer (conda: ${TRACKING_ENV})"
-    echo "========================================================"
+if should_run 4b; then
+    announce_step "04b_interactive_viz" "STEP 4b: Interactive viewer (conda: ${TRACKING_ENV})"
 
     VIZ_ARGS=(
         "${SCRIPT_DIR}/04b_interactive_viz.py"
-        --config "${CONFIG_PATH}"
-        --underlay-om "${UNDERLAY_OM}"
+        "--config" "$CONFIG_PATH"
+        # Note: --underlay-om not accepted by 04b; it reads underlay_om_id
+        # from tile_manifest.json written by Step 4a.
     )
 
-    run_in_env "${TRACKING_ENV}" "${VIZ_ARGS[@]}"
+    run_in_env "$TRACKING_ENV" "${VIZ_ARGS[@]}"
+
+    echo ""
+    echo "========================================================"
+    echo "  STEP 4b COMPLETE"
+    echo "========================================================"
 fi
 
 # ---------------------------------------------------------------------------
@@ -349,17 +365,15 @@ echo ""
 echo "Config: ${CONFIG_PATH}"
 
 if [[ -f "$CONFIG_PATH" ]]; then
-    OUTPUT_DIR_FINAL=$(python3 -c "import json; c=json.load(open('${CONFIG_PATH}')); print(c.get('output_dir','?'))" 2>/dev/null || echo "?")
-    VIEWER_HTML=$(python3 -c "import json; c=json.load(open('${CONFIG_PATH}')); print(c.get('viewer_html','?'))" 2>/dev/null || echo "?")
-    CONSENSUS_GPKG=$(python3 -c "import json; c=json.load(open('${CONFIG_PATH}')); print(c.get('consensus_gpkg','?'))" 2>/dev/null || echo "?")
-    SCORES_CSV=$(python3 -c "import json; c=json.load(open('${CONFIG_PATH}')); print(c.get('phenology_scores_csv','?'))" 2>/dev/null || echo "?")
-    STEPS_DONE=$(python3 -c "import json; c=json.load(open('${CONFIG_PATH}')); print(', '.join(c.get('steps_completed',[])))" 2>/dev/null || echo "?")
-
-    echo "Output dir:     ${OUTPUT_DIR_FINAL}"
-    echo "Consensus GPKG: ${CONSENSUS_GPKG}"
-    echo "Scores CSV:     ${SCORES_CSV}"
-    echo "Viewer:         ${VIEWER_HTML}"
-    echo "Steps done:     ${STEPS_DONE}"
+    python3 -c "
+import json
+c = json.load(open('${CONFIG_PATH}'))
+print('Output dir:    ', c.get('output_dir', '?'))
+print('Consensus GPKG:', c.get('consensus_gpkg', '?'))
+print('Scores CSV:    ', c.get('phenology_scores_csv', '?'))
+print('Viewer:        ', c.get('viewer_html', '?'))
+print('Steps done:    ', ', '.join(c.get('steps_completed', [])))
+" 2>/dev/null || true
 fi
 
 echo ""
