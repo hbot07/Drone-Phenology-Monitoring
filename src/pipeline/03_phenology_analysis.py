@@ -427,10 +427,13 @@ def main() -> int:
     # --- Extract patch features ---
     n_crowns = len(crowns)
     print(f"\nExtracting patch features for {n_crowns} crowns × {num_oms} OMs...")
+    print(f"PROGRESS:03_phenology_analysis:0/{n_crowns}:Extracting phenology features", flush=True)
     veg_cfg = VegMaskConfig()
     qc_cfg = PatchQCConfig()
     records: List[Dict] = []
 
+    _done = 0
+    _emit_every = max(1, n_crowns // 40)
     for idx, row in crowns.iterrows():
         chain_id = int(row["chain_id"])
         poly = row.geometry
@@ -450,10 +453,14 @@ def main() -> int:
             rec.update(feats)
             records.append(rec)
 
-        if (idx + 1) % 20 == 0:
-            print(f"  Processed {idx + 1}/{n_crowns} crowns...", end="\r")
+        _done += 1
+        if _done % 20 == 0:
+            print(f"  Processed {_done}/{n_crowns} crowns...", end="\r")
+        if _done % _emit_every == 0 or _done == n_crowns:
+            print(f"PROGRESS:03_phenology_analysis:{_done}/{n_crowns}:Phenology crown {_done}/{n_crowns}", flush=True)
 
     print(f"\n  Total feature records: {len(records)}")
+    print(f"PROGRESS:03_phenology_analysis:{n_crowns}/{n_crowns}:Scoring phenophases", flush=True)
     features_df = pd.DataFrame(records).sort_values(["chain_id", "om_id"]).reset_index(drop=True)
     if "is_bad_observation" not in features_df.columns:
         features_df["is_bad_observation"] = False
