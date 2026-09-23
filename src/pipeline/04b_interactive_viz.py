@@ -171,6 +171,7 @@ def build_html(
     manifest_inline: str,
     pheno_inline: str,
     crs_epsg: int,           # source CRS for pixel↔latlon; 3857 after COG
+    per_om_bounds_inline: str = "{}",  # JSON: {crown_label:{om_id:[minx,miny,maxx,maxy]}} WGS84
 ) -> str:
 
     return f'''<!doctype html>
@@ -317,16 +318,15 @@ def build_html(
     /* COG tile viewer embed inside right panel */
     #tile-view-section {{
       flex:0 0 auto; display:none; position:relative; background:var(--bg2);
-      border-bottom:1px solid var(--bd); width:100%; aspect-ratio:1/1;
+      border-bottom:1px solid var(--bd); width:100%; height:260px;
     }}
-    #tile-map {{ width:100%; height:100%; }}
     .tile-om-lbl {{
       position:absolute; top:6px; left:6px; z-index:500;
       background:rgba(0,0,0,.6); color:#eee; font-size:10px;
       padding:2px 7px; border-radius:3px; pointer-events:none;
     }}
 
-    #content {{ flex:1 1 auto; overflow-y:auto; padding:10px 12px; }}
+    #content {{ flex:0 0 auto; padding:10px 12px; }}
     .om-card {{
       border:1px solid var(--bd); border-radius:5px;
       margin-bottom:8px; background:var(--bg2); overflow:hidden;
@@ -500,6 +500,8 @@ def build_html(
     </div>
 
     <!-- OM timeline slider -->
+    <div id="panel-scroll" style="flex:1 1 auto;overflow-y:auto;overflow-x:hidden">
+
     <div id="om-select-section">
       <div id="om-select-label">
         <span>Observation month</span>
@@ -514,7 +516,10 @@ def build_html(
 
     <!-- Embedded tile map showing just this crown's area -->
     <div id="tile-view-section">
-      <div id="tile-map"></div>
+      <img id="crown-crop-img" src="" alt=""
+           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2;display:none;"
+           onload="this.style.display='block';"
+           onerror="this.style.display='none';"/>
       <div class="tile-om-lbl" id="tile-om-lbl"></div>
     </div>
 
@@ -523,7 +528,9 @@ def build_html(
         Click any crown on the map to explore its observations.
       </div>
     </div>
-  </div>
+
+    </div><!-- #panel-scroll -->
+  </div><!-- #panel -->
 
   <div id="cmp-panel">
     <div id="cmp-inner">
@@ -594,6 +601,7 @@ const MANIFEST     = {manifest_inline};
 const PHENOLOGY    = {pheno_inline};
 const OM_TILES     = {om_tile_manifest};   // [{{om_id, stem, tile_url, bounds:{{w,s,e,n}}, min_zoom, max_zoom}}, ...]
 const UNDERLAY_OM  = {underlay_om_id};
+const PER_OM_BOUNDS = {per_om_bounds_inline};  // {{crown_label:{{om_id:[minx,miny,maxx,maxy]}}}} WGS84
 
 // Build stem → tile-info lookup
 const OM_BY_ID  = {{}};   // om_id (int) → tile entry
@@ -799,20 +807,7 @@ let tileMap    = null;   // Leaflet map inside #tile-map
 let tileLayer  = null;   // current tile layer on tileMap
 let curCrownBounds = null;
 
-function initTileMap() {{
-  if (tileMap) return;
-  tileMap = L.map('tile-map', {{
-    crs: L.CRS.EPSG3857,
-    zoomControl:      false,
-    attributionControl: false,
-    dragging:         false,
-    scrollWheelZoom:  false,
-    doubleClickZoom:  false,
-    touchZoom:        false,
-    keyboard:         false,
-    boxZoom:          false,
-  }});
-}}
+function initTileMap() {{ /* no-op */ }}
 
 function loadPanel(feature) {{
   const lbl=feature.properties.crown_label;
@@ -841,6 +836,8 @@ function loadPanel(feature) {{
 
   // OM card list in content
   renderOMCards(lbl);
+  const _slOm = orderedOMs[parseInt(omSlider ? omSlider.value : 0) || 0];
+  if (_slOm && lyrBounds) updateCrownCropImg(_slOm, lyrBounds);
 }}
 
 // Registry of per-OM mini Leaflet maps inside the time-series grid.
@@ -880,7 +877,13 @@ function renderOMCards(lbl) {{
         <div class="${{lblCls}}">
           <em>${{omLabel}}</em> ${{om.stem}}
         </div>
-        <div class="ts-map" id="ts-map-${{om.om_id}}"></div>
+        <div class="ts-map" id="ts-map-${{om.om_id}}">
+          <div class="ts-crop-loading" id="ts-load-${{om.om_id}}">loading</div>
+          <img class="ts-crop-img" id="ts-img-${{om.om_id}}" src="" alt=""
+               style="display:none" data-omid="${{om.om_id}}"
+               onload="this.style.display='block';var l=document.getElementById('ts-load-'+this.dataset.omid);if(l)l.style.display='none';"
+               onerror="var l=document.getElementById('ts-load-'+this.dataset.omid);if(l)l.textContent='no data';"/>
+        </div>
       </div>`;
   }});
 
@@ -892,52 +895,56 @@ function renderOMCards(lbl) {{
   if (!curCrownBounds) return;
   const sw  = curCrownBounds.getSouthWest();
   const ne  = curCrownBounds.getNorthEast();
-  const buf = 0.00005;
+  // Proportional: 15% of crown span, min 0.00002°, max 0.00006°
+  const latSpan = ne.lat - sw.lat;
+  const lngSpan = ne.lng - sw.lng;
+  const buf = Math.min(0.00006, Math.max(0.00002, Math.max(latSpan, lngSpan) * 0.15));
   const tight = L.latLngBounds(
     [sw.lat - buf, sw.lng - buf],
     [ne.lat + buf, ne.lng + buf]
   );
 
-  // Destroy old mini-maps from previous crown before building new ones
   destroyTsMaps();
 
-  setTimeout(() => {{
-    OM_TILES.forEach(om => {{
-      const el = document.getElementById('ts-map-' + om.om_id);
-      if (!el) return;
+  // Fetch crown crops via TiTiler — each OM uses its own aligned crown bounds
+  // for pixel-precise centering (PER_OM_BOUNDS has per-OM WGS84 bounds).
+  const RUN_ID = window.location.pathname.split('/')[2] || '';
+  const crownLabel = curCrownId;
+  const omBoundsMap = PER_OM_BOUNDS[crownLabel] || {{}};
 
-      const m = L.map(el, {{
-        crs:              L.CRS.EPSG3857,
-        zoomControl:      false,
-        attributionControl: false,
-        dragging:         false,    // thumbnail — panning disabled
-        scrollWheelZoom:  false,
-        doubleClickZoom:  false,
-        touchZoom:        false,
-        keyboard:         false,
-      }});
+  OM_TILES.forEach(om => {{
+    const img  = document.getElementById('ts-img-'  + om.om_id);
+    const load = document.getElementById('ts-load-' + om.om_id);
+    if (!img) return;
+    const container = document.getElementById('ts-map-' + om.om_id);
+    const W = (container && container.offsetWidth)  || 256;
+    const H = (container && container.offsetHeight) || 160;
 
-      L.tileLayer(om.tile_url, {{
-        tms:           false,
-        minZoom:       om.min_zoom,
-        maxZoom:       22,
-        maxNativeZoom: om.max_zoom,
-        opacity:       1,
-        attribution:   '',
-        errorTileUrl:  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-      }}).addTo(m);
+    // Use this OM's own aligned bounds if available, else fall back to consensus
+    const b = omBoundsMap[om.om_id];
+    let bMinx, bMiny, bMaxx, bMaxy;
+    if (b) {{
+      bMinx = b[0]; bMiny = b[1]; bMaxx = b[2]; bMaxy = b[3];
+    }} else {{
+      bMinx = sw.lng; bMiny = sw.lat; bMaxx = ne.lng; bMaxy = ne.lat;
+    }}
+    const bcLng = (bMinx + bMaxx) / 2;
+    const bcLat = (bMiny + bMaxy) / 2;
+    const bsLng = bMaxx - bMinx;
+    const bsLat = bMaxy - bMiny;
+    const bcosLat = Math.cos(bcLat * Math.PI / 180);
 
-      m.fitBounds(tight, {{ animate: false }});
+    // 30% padding around this OM's crown, matched to container aspect ratio
+    let hLat = bsLat * 0.65, hLng = bsLng * 0.65;
+    const cr = W / H;
+    const br = (hLng * bcosLat) / hLat;
+    if (br < cr) hLng = hLat * cr / bcosLat;
+    else hLat = hLng * bcosLat / cr;
 
-      // Lock: cannot zoom out past the initial fitted view
-      m.once('zoomend', function() {{
-        m.setMinZoom(m.getZoom());
-        m.setMaxZoom(22);
-      }});
-
-      tsMaps[om.om_id] = m;
-    }});
-  }}, 30);
+    if (load) {{ load.style.display = 'flex'; load.textContent = 'loading'; }}
+    img.style.display = 'none';
+    img.src = `/api/runs/${{RUN_ID}}/crop/${{om.om_id}}?minx=${{(bcLng-hLng).toFixed(7)}}&miny=${{(bcLat-hLat).toFixed(7)}}&maxx=${{(bcLng+hLng).toFixed(7)}}&maxy=${{(bcLat+hLat).toFixed(7)}}&width=${{W}}&height=${{H}}`;
+  }});
 }}
 
 function selectOM(idx) {{
@@ -957,34 +964,32 @@ function updateOmLabel(idx) {{
     om?'OM'+String(om.om_id).padStart(2,'0')+' — '+om.stem:'';
 }}
 
-function showCrownOnTileMap(omId, crownBounds) {{
-  const info = OM_BY_ID[omId]; if(!info) return;
-  if(tileLayer) tileMap.removeLayer(tileLayer);
-  tileLayer = L.tileLayer(info.tile_url, {{
-    tms: false,
-    minZoom: info.min_zoom,
-    maxZoom: 22,                          // allow over-zoom past native tiles
-    maxNativeZoom: info.max_zoom,         // highest zoom with actual tiles
-    opacity: 1, attribution: '',
-    errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-  }}).addTo(tileMap);
-  if(crownBounds) {{
-    // Fixed geographic buffer: ~0.00015° ≈ 15m — just enough context, not a huge area
-    const sw = crownBounds.getSouthWest();
-    const ne = crownBounds.getNorthEast();
-    const buf = 0.00015;  // degrees — ~15 metres at this latitude
-    const tight = L.latLngBounds(
-      [sw.lat - buf, sw.lng - buf],
-      [ne.lat + buf, ne.lng + buf]
-    );
-    tileMap.fitBounds(tight, {{ animate: false }});
-
-    // Lock: cannot zoom out past the initial crown view.
-    // zoomend fires once after fitBounds resolves the zoom level.
-    tileMap.once('zoomend', function() {{
-      tileMap.setMinZoom(tileMap.getZoom());
-    }});
+function updateCrownCropImg(omId, crownBounds) {{
+  const img = document.getElementById('crown-crop-img');
+  if (!img || !crownBounds) {{ if(img) img.style.display='none'; return; }}
+  // Prefer this OM's own aligned bounds for precise centering
+  const omBoundsMap = PER_OM_BOUNDS[curCrownId] || {{}};
+  const b = omBoundsMap[omId];
+  let cLng, cLat, sLng, sLat;
+  if (b) {{
+    cLng=(b[0]+b[2])/2; cLat=(b[1]+b[3])/2; sLng=b[2]-b[0]; sLat=b[3]-b[1];
+  }} else {{
+    const sw=crownBounds.getSouthWest(), ne=crownBounds.getNorthEast();
+    cLat=(sw.lat+ne.lat)/2; cLng=(sw.lng+ne.lng)/2; sLat=ne.lat-sw.lat; sLng=ne.lng-sw.lng;
   }}
+  const cosL=Math.cos(cLat*Math.PI/180);
+  const sec=document.getElementById('tile-view-section');
+  const W=(sec&&sec.offsetWidth)||400, H=(sec&&sec.offsetHeight)||260;
+  let hLat=sLat*0.65, hLng=sLng*0.65;
+  const cr=W/H, br=(hLng*cosL)/hLat;
+  if(br<cr) hLng=hLat*cr/cosL; else hLat=hLng*cosL/cr;
+  const RUN_ID=window.location.pathname.split('/')[2]||'';
+  img.style.display='none';
+  img.src=`/api/runs/${{RUN_ID}}/crop/${{omId}}?minx=${{(cLng-hLng).toFixed(7)}}&miny=${{(cLat-hLat).toFixed(7)}}&maxx=${{(cLng+hLng).toFixed(7)}}&maxy=${{(cLat+hLat).toFixed(7)}}&width=${{W}}&height=${{H}}`;
+}}
+
+function showCrownOnTileMap(omId, crownBounds) {{
+  // No-op — Leaflet tile map removed. updateCrownCropImg handles the display.
 }}
 
 omSlider.addEventListener('input', function() {{
@@ -992,7 +997,7 @@ omSlider.addEventListener('input', function() {{
   updateOmLabel(idx);
   const omId=orderedOMs[idx];
   // Update crown tile view only — DO NOT touch main map
-  if(curCrownBounds) showCrownOnTileMap(omId, curCrownBounds);
+  if(curCrownBounds) {{ showCrownOnTileMap(omId, curCrownBounds); updateCrownCropImg(omId, curCrownBounds); }}
   if(curCrownId) renderOMCards(curCrownId);
 }});
 
@@ -1106,7 +1111,9 @@ function showSlotTile(s, idx) {{
     errorTileUrl:'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
   }}).addTo(slotMaps[s]);
   if(d.bounds) {{
-    const sb=d.bounds, buf=0.00015;
+    const sb=d.bounds;
+    const latSpan5 = sb.n - sb.s, lngSpan5 = sb.e - sb.w;
+    const buf = Math.min(0.00008, Math.max(0.00002, Math.max(latSpan5, lngSpan5) * 0.15));
     slotMaps[s].fitBounds(
       L.latLngBounds([sb.getSouthWest().lat-buf,sb.getSouthWest().lng-buf],
                      [sb.getNorthEast().lat+buf,sb.getNorthEast().lng+buf]),
@@ -1274,6 +1281,7 @@ def main() -> int:
     underlay_om_id  = tile_manifest["underlay_om_id"]
     num_oms         = tile_manifest["num_oms"]
     print(f"Loaded tile manifest: {num_oms} OMs, underlay = OM{underlay_om_id:02d}")
+    print("PROGRESS:04b_interactive_viz:0/3:Building interactive viewer", flush=True)
 
     import geopandas as gpd
     import rasterio
@@ -1379,6 +1387,57 @@ def main() -> int:
     geojson_path.write_text(json.dumps(crowns_geojson))
     print(f"\nCrowns GeoJSON (WGS84): {geojson_path.name} ({len(features)} features)")
 
+    # ── Per-OM crown bounds for precise on-the-fly crop centering ─────────────
+    # The consensus crown at reference position P corresponds to raw imagery
+    # position P - (dx, dy) in OM_k (since the shift moves OM_k's crowns by
+    # +(dx,dy) into the reference frame). We compute each crown's bounds in
+    # each OM's imagery, in WGS84, so the viewer can crop precisely centered.
+    print("PROGRESS:04b_interactive_viz:1/3:Computing crown bounds", flush=True)
+    print("Building per-OM crown bounds for precise cropping …")
+    from shapely.affinity import affine_transform as _affine
+    from shapely.geometry import box as _box
+    import pyproj as _pyproj
+    from shapely.ops import transform as _shp_transform
+
+    # crowns_display is in raster_crs (projected meters). Build a transformer
+    # from raster_crs → WGS84 for converting shifted bounds.
+    if raster_crs:
+        _to_wgs84 = _pyproj.Transformer.from_crs(
+            raster_crs, "EPSG:4326", always_xy=True).transform
+    else:
+        _to_wgs84 = None
+
+    # Per-OM crown bounds: {crown_label: {om_id: [minx, miny, maxx, maxy]}}  (WGS84)
+    per_om_bounds = {}
+    for i, row in crowns_display.iterrows():
+        geom = row.geometry
+        if geom is None or geom.is_empty:
+            continue
+        label = f"crown_{i:04d}"
+        per_om_bounds[label] = {}
+        for om_id in range(1, num_oms + 1):
+            dx, dy = saved_shifts.get(om_id, (0.0, 0.0))
+            # Shift the consensus crown by -(dx,dy) to land in OM_k's imagery frame
+            if dx == 0.0 and dy == 0.0:
+                geom_om = geom
+            else:
+                geom_om = _affine(geom, (1.0, 0.0, 0.0, 1.0, -dx, -dy))
+            # Convert this OM-specific geometry's bounds to WGS84
+            if _to_wgs84:
+                geom_wgs = _shp_transform(_to_wgs84, geom_om)
+            else:
+                geom_wgs = geom_om
+            minx, miny, maxx, maxy = geom_wgs.bounds
+            per_om_bounds[label][om_id] = [
+                round(minx, 7), round(miny, 7), round(maxx, 7), round(maxy, 7)
+            ]
+
+    per_om_bounds_path = viewer_dir / "per_om_crown_bounds.json"
+    per_om_bounds_path.write_text(json.dumps(per_om_bounds))
+    print(f"Per-OM crown bounds: {per_om_bounds_path.name} "
+          f"({len(per_om_bounds)} crowns × {num_oms} OMs)")
+    per_om_bounds_inline = json.dumps(per_om_bounds)
+
     # ── Manifest ──────────────────────────────────────────────────────────────
     manifest_blob = {
         "dataset":        dataset_name,
@@ -1405,7 +1464,9 @@ def main() -> int:
         manifest_inline   = json.dumps(manifest_blob),
         pheno_inline      = json.dumps(pheno_data),
         crs_epsg          = 4326,
+        per_om_bounds_inline=per_om_bounds_inline,
     )
+    print("PROGRESS:04b_interactive_viz:2/3:Rendering viewer HTML", flush=True)
     html_path.write_text(html, encoding="utf-8")
     print(f"\nWrote: {html_path}")
 
@@ -1424,6 +1485,7 @@ def main() -> int:
     save_config(config, config_path)
     print(f"Config updated: {config_path}")
 
+    print("PROGRESS:04b_interactive_viz:3/3:Viewer ready", flush=True)
     print(f"\nStep 4b complete.")
     print(f"Serve the viewer with:")
     print(f"  cd {viewer_dir}")
