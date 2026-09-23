@@ -63,6 +63,33 @@ from typing import Any, Dict, List, Optional, Tuple
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _numeric_to_threshold_tag(value):
+    """
+    Convert a numeric threshold value (0-100) to conf_0pXX format.
+    If input is already in conf_0pXX format, return as-is.
+    
+    Args:
+        value: Either a numeric string/int (0-100) or already formatted (conf_0pXX)
+    
+    Returns:
+        str: Formatted threshold tag (e.g., "conf_0p45", "conf_0p65")
+    """
+    s = str(value).strip()
+    if s.startswith('conf_'):
+        return s  # Already in correct format
+    
+    try:
+        num = float(s)
+        if num < 0 or num > 100:
+            raise ValueError(f"Threshold must be 0-100, got {num}")
+        # Convert 45 -> 0.45 -> conf_0p45
+        normalized = num / 100
+        tag = f"conf_{normalized:.2f}".replace("0.", "0p").replace(".", "p")
+        return tag
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Invalid threshold value '{value}': {e}")
+
+
 def load_config(config_path: Path) -> dict:
     with open(config_path) as f:
         return json.load(f)
@@ -332,8 +359,10 @@ def save_raw_overlay_png(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Pipeline Step 2: Crown Tracking")
     parser.add_argument("--config", required=True)
-    parser.add_argument("--base-threshold-tag", default="conf_0p45")
-    parser.add_argument("--align-threshold-tag", default="conf_0p65")
+    parser.add_argument("--base-threshold-tag", type=str, default="45",
+                        help="Base threshold for crown detection (0-100 or conf_0pXX format)")
+    parser.add_argument("--align-threshold-tag", type=str, default="65",
+                        help="Alignment threshold (0-100 or conf_0pXX format)")
     parser.add_argument("--align-method", default="pcc_tiled")
     parser.add_argument("--base-max-dist", type=float, default=30.0)
     parser.add_argument("--overlap-gate", type=float, default=0.10)
@@ -424,14 +453,20 @@ def main() -> int:
     tracker.base_threshold_tag = None
 
     # --- Load and align ---
+    print(f"PROGRESS:02_crown_tracking:0/6:Starting crown tracking", flush=True)
     print(f"\nLoading multithreshold crowns (base={args.base_threshold_tag}, "
           f"align={args.align_method}/{args.align_threshold_tag})...")
+    print(f"PROGRESS:02_crown_tracking:1/6:Loading & aligning crowns", flush=True)
+    # Convert numeric thresholds (0-100) to conf_0pXX format
+    base_tag = _numeric_to_threshold_tag(args.base_threshold_tag)
+    align_tag = _numeric_to_threshold_tag(args.align_threshold_tag)
+    
     tracker.load_multithreshold_data(
-        base_threshold_tag=args.base_threshold_tag,
+        base_threshold_tag=base_tag,
         load_images=True,
         align=True,
         align_method=args.align_method,
-        align_threshold_tag=args.align_threshold_tag,
+        align_threshold_tag=align_tag,
     )
     print("Alignment shifts:")
     for om_id in tracker.om_ids:
@@ -451,6 +486,7 @@ def main() -> int:
     save_alignment_viz(tracker, om_stems, diag_dir / "alignment_shifts.png")
 
     # --- Build graph ---
+    print(f"PROGRESS:02_crown_tracking:2/6:Building tracking graph", flush=True)
     print(f"\nBuilding tracking graph (base_max_dist={args.base_max_dist}, "
           f"classify_mode={args.classify_mode})...")
     tracker.case_configs = tracker.make_strict_aligned_configs()
@@ -478,6 +514,7 @@ def main() -> int:
         print("  [skip-diagnostics] Skipping graph stat charts")
 
     # --- Assemble chains ---
+    print("PROGRESS:02_crown_tracking:3/6:Assembling crown chains", flush=True)
     print("\nAssembling high-quality chains...")
     hq_result = tracker.assemble_high_quality_chains()
     cats = hq_result.get("categories", {})
@@ -575,6 +612,7 @@ def main() -> int:
             print(f"  Warning: chain viz failed: {e}")
 
     # --- Generate consensus crowns ---
+    print("PROGRESS:02_crown_tracking:4/6:Generating consensus crowns", flush=True)
     print("\nGenerating consensus crowns...")
     consensus_gdf_raw = tracker.generate_consensus_crowns(all_extracted_chains)
     print(f"  Raw consensus crowns: {len(consensus_gdf_raw)}")
@@ -610,6 +648,7 @@ def main() -> int:
     consensus_gdf.to_file(str(consensus_gpkg), driver="GPKG",
                           layer="consensus_crowns")
     print(f"  Saved cleaned: {consensus_gpkg.name}")
+    print(f"PROGRESS:02_crown_tracking:5/6:Saving tracking outputs", flush=True)
 
     # --- Consensus visualizations (optional) ---
     if not args.skip_consensus_viz:
@@ -660,8 +699,8 @@ def main() -> int:
         "dedup_summary": dedup_summary,
         "quality_metrics": quality_metrics,
         "align_method": args.align_method,
-        "base_threshold_tag": args.base_threshold_tag,
-        "align_threshold_tag": args.align_threshold_tag,
+        "base_threshold_tag": base_tag,
+        "align_threshold_tag": align_tag,
         "gap_fill": gapfill_summary,
         "alignment_shifts": {
             str(oid): list(tracker.alignment_shifts.get(oid, (0.0, 0.0)))
@@ -742,13 +781,14 @@ def main() -> int:
         for oid in tracker.om_ids
     }
     config["align_method"] = args.align_method
-    config["base_threshold_tag"] = args.base_threshold_tag
-    config["align_threshold_tag"] = args.align_threshold_tag
+    config["base_threshold_tag"] = base_tag
+    config["align_threshold_tag"] = align_tag
     if "02_crown_tracking" not in config["steps_completed"]:
         config["steps_completed"].append("02_crown_tracking")
     save_config(config, config_path)
     print(f"Config updated: {config_path}")
 
+    print(f"PROGRESS:02_crown_tracking:6/6:Crown tracking complete", flush=True)
     print(f"\nStep 2 complete. {len(consensus_gdf)} consensus crowns saved.")
     return 0
 
