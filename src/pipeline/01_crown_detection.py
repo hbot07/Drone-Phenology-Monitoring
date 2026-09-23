@@ -431,14 +431,19 @@ def main() -> int:
     run_rows = []
     failed = []
 
+    _n_stems = len(stems)
+    print(f"PROGRESS:01_crown_detection:0/{_n_stems}:Starting crown detection", flush=True)
+
     for i, stem in enumerate(stems, 1):
         om_path = om_dir / f"{stem}.tif"
         if not om_path.exists():
             print(f"[{i}/{len(stems)}] ERROR: {stem} — TIF not found: {om_path}")
+            print(f"PROGRESS:01_crown_detection:{i}/{_n_stems}:Skipped OM{i:02d} {stem}", flush=True)
             failed.append(stem)
             continue
 
         print(f"\n[{i}/{len(stems)}] === {stem} ===")
+        print(f"PROGRESS:01_crown_detection:{i-1}/{_n_stems}:Detecting OM{i:02d} {stem}", flush=True)
         result = process_one_orthomosaic(
             om_path=om_path,
             stem=stem,
@@ -461,6 +466,7 @@ def main() -> int:
             print(f"  FAILED: {result.get('reason', '?')}")
         else:
             print(f"  Done: {result['status']}")
+        print(f"PROGRESS:01_crown_detection:{i}/{_n_stems}:Detected OM{i:02d} {stem}", flush=True)
 
     # --- Save run summary ---
     summary = {
