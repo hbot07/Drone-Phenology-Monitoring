@@ -1,0 +1,109 @@
+# =============================================================================
+# Drone Phenology Monitoring — dashboard + Postgres + TiTiler
+#
+# Usage (from repo root):
+#   docker compose up -d
+#   docker compose logs -f dashboard
+#   open http://localhost:8090
+#
+# The pipeline image (dpm-pipeline:latest) must already be built:
+#   docker build -t dpm-pipeline:latest -f Dockerfile .
+#
+# All credentials and secrets live in .env (gitignored).
+# Copy .env.example → .env and fill in your values.
+# =============================================================================
+
+networks:
+  dpm-net:
+    name: dpm-net
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — persists users and runs
+  # ---------------------------------------------------------------------------
+  dpm-postgres:
+    image: postgres:16
+    container_name: dpm-postgres
+    networks:
+      - dpm-net
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DPM_DB_NAME}
+      POSTGRES_USER: ${DPM_DB_USER}
+      POSTGRES_PASSWORD: ${DPM_DB_PASSWORD}
+    volumes:
+      - dpm-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DPM_DB_USER} -d ${DPM_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Dashboard — FastAPI server (reuses the pipeline image for conda envs)
+  # ---------------------------------------------------------------------------
+  dashboard:
+    image: dpm-pipeline:latest
+    container_name: dpm-dashboard
+    pull_policy: never
+    networks:
+      - dpm-net
+    depends_on:
+      dpm-postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: "dpm-titiler,dpm-postgres,localhost,127.0.0.1"
+      no_proxy: "dpm-titiler,dpm-postgres,localhost,127.0.0.1"
+      DPM_DB_HOST: dpm-postgres
+      DPM_DB_PORT: "5432"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - ./:/workspace
+      - ./data/logs/dashboard:/workspace/logs
+    ports:
+      - "8090:8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    entrypoint: []
+    command:
+      - /bin/bash
+      - -c
+      - |
+        cd /workspace/src/flask_app_tracking
+        /opt/conda/envs/dpm-tracking/bin/uvicorn server:app \
+          --host 0.0.0.0 --port 8000 \
+          --log-level ${LOG_LEVEL:-info}
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # TiTiler — dynamic tile server for crown crop extraction from COGs
+  # ---------------------------------------------------------------------------
+  titiler:
+    image: ghcr.io/developmentseed/titiler:latest
+    container_name: dpm-titiler
+    pull_policy: always
+    networks:
+      - dpm-net
+    ports:
+      - "8002:80"
+    environment:
+      WORKERS_PER_CORE: "1"
+      HOST: "0.0.0.0"
+      PORT: "80"
+    volumes:
+      - ./:/workspace:ro
+    restart: unless-stopped
+
+volumes:
+  dpm-pgdata:
