@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pipeline Walkthrough — Drone Phenology Monitoring</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --paper:#f6f4ec; --card:#fffdf7; --ink:#22281f; --muted:#6f7468;
+      --line:#e4e0d3; --green:#2f6b3f; --green-d:#234e2e; --green-l:#eaf1e7;
+      --warn:#b4791f; --err:#a23b2f; --ok:#2f6b3f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);
+      font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+    h1,h2,h3{font-family:"Source Serif 4",Georgia,"Times New Roman",serif;font-weight:600;letter-spacing:.1px}
+    a{color:var(--green-d)}
+
+    /* ── header ── */
+    header.top{border-bottom:1px solid var(--line);background:linear-gradient(#fbfaf4,#f4f1e8);
+      padding:14px 0}
+    .wrap{max-width:820px;margin:0 auto;padding:0 20px}
+    header .hrow{max-width:1180px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    header h1{margin:0;font-size:22px;color:var(--green-d)}
+    .nav-link{color:var(--green-d);font-size:13px;font-weight:600;text-decoration:none;
+      border-bottom:1px solid transparent}
+    .nav-link:hover{border-bottom-color:var(--green-d)}
+    .nav-links{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+
+    /* ── shell: sticky rail + content ── */
+    .wt-shell{max-width:1180px;margin:0 auto;padding:22px 20px 60px;display:flex;gap:28px;align-items:flex-start}
+    .wt-main{flex:1;min-width:0;max-width:860px}
+    .wt-rail{width:210px;flex:none;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto}
+    @media(max-width:1000px){
+      .wt-shell{flex-direction:column;align-items:stretch;gap:12px;padding-top:12px}
+      .wt-rail{width:100%;position:sticky;top:0;z-index:20;max-height:none;
+        background:var(--paper);padding:8px 0 6px;box-shadow:0 6px 10px -8px rgba(0,0,0,.25)}
+    }
+    .wt-railcard{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 12px 10px}
+    .wt-railcard > b{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin:0 0 9px}
+    .wt-steps{list-style:none;margin:0;padding:0;position:relative}
+    .wt-steps::before{content:"";position:absolute;left:9px;top:11px;bottom:11px;width:2px;background:var(--line);border-radius:2px}
+    .wt-steps li{position:relative;margin:0}
+    /* Last item: clip the rail line so it doesn't hang below the final dot */
+    .wt-steps li:last-child::after{content:"";position:absolute;left:9px;top:21px;bottom:0;width:2px;background:var(--paper);z-index:2}
+    .wt-steps a{display:flex;gap:10px;align-items:flex-start;padding:5px 4px 5px 0;
+      font-size:12.5px;line-height:1.35;color:#4a5043;text-decoration:none;border-radius:4px}
+    .wt-steps a:hover{color:var(--green-d)}
+    .wt-dot{flex:none;width:20px;height:20px;border-radius:50%;background:var(--card);
+      border:2px solid var(--line);color:var(--muted);font:600 10.5px/1 "Source Serif 4",Georgia,serif;
+      display:grid;place-items:center;position:relative;z-index:1;transition:background .2s,border-color .2s,color .2s}
+    .wt-steps a.active{color:var(--green-d);font-weight:700}
+    .wt-steps a.active .wt-dot{background:var(--green);border-color:var(--green);color:#fff}
+    .wt-steps a.active .wt-lbl small{color:var(--green-d)}
+    .wt-lbl{padding-top:2px;min-width:0}
+    .wt-lbl small{display:block;font-size:11px;color:var(--muted);font-weight:400}
+    @media(max-width:1000px){
+      .wt-railcard > b{display:none}
+      .wt-steps{display:flex;gap:4px;overflow-x:auto;padding-bottom:2px}
+      .wt-steps::before{left:0;right:0;top:14px;bottom:auto;height:2px;width:auto}
+      .wt-steps li{flex:none}
+      .wt-steps a{flex-direction:column;align-items:center;gap:3px;width:78px;text-align:center;padding:0 2px}
+      .wt-lbl{padding-top:0;font-size:11px}
+      .wt-lbl small{display:none}
+    }
+
+    /* ── intro hero ── */
+    .wt-hero{background:var(--card);border:1px solid var(--line);border-radius:6px;
+      padding:20px 22px;margin:0 0 18px}
+    .wt-kicker{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--warn);
+      letter-spacing:.1em;display:block;margin-bottom:8px}
+    .wt-hero h2{font-size:22px;margin:0 0 8px}
+    .wt-hero p{margin:0 0 10px;font-size:14.5px;line-height:1.65;color:var(--muted)}
+    .wt-hero p:last-child{margin:0}
+
+    /* ── animated pipeline flow diagram ── */
+    .flow-diagram{background:var(--card);border:1px solid var(--line);border-radius:6px;
+      padding:20px;margin:0 0 18px;overflow:visible}
+    .flow-diagram h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;
+      color:var(--muted);margin:0 0 16px;font-family:-apple-system,sans-serif;font-weight:600}
+    .flow-nodes{display:flex;align-items:center;gap:0;padding:4px 0 10px;width:100%}
+    .flow-node{
+      display:flex;flex-direction:column;align-items:center;gap:4px;
+      padding:10px 10px 8px;background:var(--green-l);border:1px solid #cfe0ca;border-radius:6px;
+      cursor:pointer;transition:transform .15s,box-shadow .15s;flex:1;min-width:0;
+    }
+    .flow-node:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(47,107,63,.18)}
+    .flow-node .fn-num{width:22px;height:22px;border-radius:50%;background:var(--green);
+      color:#fff;font:700 11px/1 "Source Serif 4",Georgia,serif;display:grid;place-items:center}
+    .flow-node .fn-label{font-size:11.5px;font-weight:700;color:var(--green-d);text-align:center;line-height:1.2}
+    .flow-arrow{display:flex;align-items:center;padding:0 8px;flex:none}
+    .flow-arrow svg{color:var(--muted)}
+    /* animated progress bar under the flow */
+    .flow-progress{height:3px;background:var(--line);border-radius:3px;margin-top:14px;overflow:hidden}
+    .flow-progress-bar{height:100%;width:12%;background:var(--green);border-radius:3px;
+      animation:flowPulse 2.4s cubic-bezier(.4,0,.2,1) infinite}
+    @keyframes flowPulse{0%{width:0%;margin-left:0}60%{width:30%}100%{width:0%;margin-left:100%}}
+
+    /* ── collapsible step cards ── */
+    /* ── shadcn-style accordion ── */
+    .wt-accordion{border:1px solid var(--line);border-radius:8px;overflow:hidden;
+      margin:0 0 0;scroll-margin-top:20px;background:var(--card)}
+    @media(max-width:1000px){.wt-accordion{scroll-margin-top:64px}}
+    .wt-stage{border-bottom:1px solid var(--line);}
+    .wt-stage:last-child{border-bottom:none}
+    .wt-head{display:flex;align-items:center;gap:12px;width:100%;
+      background:transparent;border:0;
+      padding:16px 18px;margin:0;text-align:left;cursor:pointer;font:inherit;
+      color:var(--ink);transition:background .15s;user-select:none}
+    .wt-head:hover{background:rgba(61,107,58,.04)}
+    .wt-n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--green);
+      color:#fff;font:700 13px/1 "Source Serif 4",Georgia,serif;display:grid;place-items:center}
+    .wt-head h2{display:block;margin:0;font-size:16px;line-height:1.3;
+      font-family:"Source Serif 4",Georgia,serif;font-weight:600}
+    .wt-sub{display:block;font-size:12.5px;color:var(--muted);font-weight:400;margin-top:2px;
+      font-family:-apple-system,sans-serif}
+    .wt-chev{margin-left:auto;flex:none;color:var(--muted);line-height:1;
+      transition:transform .2s ease;display:flex;align-items:center}
+    .wt-chev svg{width:16px;height:16px;stroke:var(--muted);stroke-width:2;
+      fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .wt-stage.wt-closed .wt-chev{transform:rotate(-90deg)}
+    .wt-stage.wt-closed .wt-body{display:none}
+    .wt-body{padding:0 18px 20px 58px;border-top:1px solid var(--line)}
+    .wt-body p{margin:12px 0 11px;font-size:14px;line-height:1.65}
+    .wt-body h3{font-size:12.5px;margin:18px 0 5px;color:var(--green-d);text-transform:uppercase;
+      letter-spacing:.05em;font-family:-apple-system,sans-serif;font-weight:700}
+    .wt-body ul{margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.6}
+    .wt-body li{margin:4px 0}
+    .wt-body code{background:#f1eee4;border-radius:3px;padding:1px 5px;
+      font:12.5px/1.4 "DM Mono",ui-monospace,monospace}
+    .wt-body a{color:var(--green-d)}
+    /* IO grid inside step bodies */
+    .io-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+    @media(max-width:560px){.io-grid{grid-template-columns:1fr}}
+    .io-box{background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:10px 13px}
+    .io-box b{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+      color:var(--muted);margin-bottom:5px;font-family:-apple-system,sans-serif}
+    .io-box ul{margin:0;padding-left:16px;font-size:13px;line-height:1.5}
+    .io-box li{margin:2px 0}
+    /* env badge */
+    .env-badge{display:inline-block;background:#eef2ff;color:#445;border:1px solid #d0d8f0;
+      border-radius:4px;padding:1px 8px;font-size:11px;font-family:"DM Mono",monospace;
+      vertical-align:2px;margin-left:8px}
+    /* param link */
+    .wt-body a.plink{color:var(--green-d);font-weight:600;text-decoration:underline;
+      text-decoration-style:dotted}
+    /* guide CTA at bottom */
+    .guide-cta-block{background:var(--green-l);border:1px solid #cfe0ca;border-radius:6px;
+      padding:16px 20px;margin:24px 0 0;display:flex;align-items:center;justify-content:space-between;
+      gap:14px;flex-wrap:wrap}
+    .guide-cta-block p{margin:0;font-size:13.5px;color:var(--green-d);line-height:1.5}
+    .guide-cta-block p b{color:var(--ink)}
+    .btn-guide{display:inline-flex;align-items:center;gap:8px;background:var(--green);
+      color:#fff;font-size:13px;font-weight:600;border-radius:4px;padding:9px 18px;
+      text-decoration:none;white-space:nowrap;transition:background .15s;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .btn-guide:hover{background:var(--green-d)}
+    footer{color:var(--muted);font-size:12px;text-align:center;padding:6px 0 30px}
+  </style>
+</head>
+<body>
+
+<header class="top">
+  <div class="hrow">
+    
+    <div>
+      <h1>Pipeline Walkthrough</h1>
+      <p style="margin:3px 0 0;color:var(--muted);font-style:italic;font-size:13.5px">Four steps from raw drone imagery to interactive phenology viewer</p>
+    </div>
+    <div class="nav-links">
+      <a class="nav-link" href="/">&larr; Home</a>
+    </div>
+  </div>
+</header>
+
+<div class="wt-shell">
+
+  <!-- sticky rail nav -->
+  <nav class="wt-rail" aria-label="Sections">
+    <div class="wt-railcard">
+      <b>Steps</b>
+      <ul class="wt-steps" id="wt-steps-nav">
+        <li><a href="#wt-intro" class="active"><span class="wt-dot">&bull;</span><span class="wt-lbl">Overview<small>What this pipeline does</small></span></a></li>
+        <li><a href="#wt-s0"><span class="wt-dot">0</span><span class="wt-lbl">Discover<small>Scan + sort OMs</small></span></a></li>
+        <li><a href="#wt-s1"><span class="wt-dot">1</span><span class="wt-lbl">Detect<small>Tree crowns</small></span></a></li>
+        <li><a href="#wt-s2"><span class="wt-dot">2</span><span class="wt-lbl">Track<small>Chains + consensus</small></span></a></li>
+        <li><a href="#wt-s3"><span class="wt-dot">3</span><span class="wt-lbl">Phenology<small>Analysis &amp; classification</small></span></a></li>
+        <li><a href="#wt-s4"><span class="wt-dot">4</span><span class="wt-lbl">Viewer<small>Tiling &amp; interactive map</small></span></a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- main content -->
+  <div class="wt-main">
+
+    <!-- intro -->
+    <section class="wt-hero" id="wt-intro">
+      <span class="wt-kicker">Drone Phenology Monitoring</span>
+      <h2>From orthomosaics to phenology curves</h2>
+      <p>
+        Upload a series of georeferenced drone orthomosaics, each from a different date,
+        press Run, and the pipeline does the rest: it delineates every tree crown,
+        links the same tree across all your survey dates, measures its greenness through time,
+        and builds an interactive viewer where you can click any crown and see its seasonal curve.
+      </p>
+      <p>
+        The four steps below show exactly what happens under the hood. Every step reads a shared
+        <code>pipeline_config.json</code> and writes outputs the next step consumes — so if any
+        step fails, you can re-run from that point without redoing earlier work.
+      </p>
+    </section>
+
+    <!-- animated flow -->
+    <div class="flow-diagram" id="wt-flow">
+      <h3>Pipeline flow</h3>
+      <div class="flow-nodes">
+        <div class="flow-node" onclick="scrollToStep('wt-s0')">
+          <div class="fn-num">0</div>
+          <div class="fn-label">Discover</div>
+        </div>
+        <div class="flow-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="flow-node" onclick="scrollToStep('wt-s1')">
+          <div class="fn-num">1</div>
+          <div class="fn-label">Detect</div>
+        </div>
+        <div class="flow-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="flow-node" onclick="scrollToStep('wt-s2')">
+          <div class="fn-num">2</div>
+          <div class="fn-label">Track</div>
+        </div>
+        <div class="flow-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="flow-node" onclick="scrollToStep('wt-s3')">
+          <div class="fn-num">3</div>
+          <div class="fn-label">Phenology</div>
+        </div>
+        <div class="flow-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+        <div class="flow-node" onclick="scrollToStep('wt-s4')">
+          <div class="fn-num">4</div>
+          <div class="fn-label">Viewer</div>
+        </div>
+      </div>
+      <div class="flow-progress"><div class="flow-progress-bar"></div></div>
+    </div>
+
+    <div class="wt-accordion">
+
+    <!-- Step 0 -->
+    <div class="wt-stage" id="wt-s0">
+      <button class="wt-head" onclick="toggleStage(this)">
+        <div class="wt-n">0</div>
+        <div>
+          <h2>Discover orthomosaics</h2>
+          <span class="wt-sub">Scan uploaded files, sort by date, write the shared config</span>
+        </div>
+        <span class="wt-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </button>
+      <div class="wt-body">
+        <p>
+          Step 0 is the pipeline's bootstrap. It reads your uploaded <code>.tif</code> files,
+          matches each to the acquisition date you entered on the dashboard, and produces a
+          <code>pipeline_config.json</code> that every later step reads. Nothing else happens
+          until this file exists.
+        </p>
+        <h3>What it does</h3>
+        <ul>
+          <li>Internally renames files to <code>sit_DD-MM-YY.tif</code> so they sort chronologically — your original filenames are always shown in the dashboard.</li>
+          <li>Records tile geometry (width, height, buffer) for the detector in Step 1.</li>
+          <li>Writes every path the pipeline will produce, so later steps know where to read and write without any further configuration.</li>
+          <li>Auto-detects the project root or uses the path the server injects.</li>
+        </ul>
+        <div class="io-grid">
+          <div class="io-box"><b>Reads</b><ul><li>Uploaded <code>.tif</code> files</li><li>User-entered acquisition dates</li><li>Tile width, height, buffer params</li></ul></div>
+          <div class="io-box"><b>Writes</b><ul><li><code>pipeline_config.json</code></li><li>Renamed <code>sit_*.tif</code> files</li></ul></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="wt-stage" id="wt-s1">
+      <button class="wt-head" onclick="toggleStage(this)">
+        <div class="wt-n">1</div>
+        <div>
+          <h2>Crown detection</h2>
+          <span class="wt-sub">Detectree2 deep-learning model delineates every tree crown</span>
+        </div>
+        <span class="wt-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </button>
+      <div class="wt-body">
+        <p>
+          The most compute-intensive step. For every orthomosaic in your series, Detectree2 — a
+          Mask R-CNN model fine-tuned on drone canopy imagery — predicts a polygon for each
+          tree crown visible from above. It runs on GPU if available, otherwise CPU (much slower).
+        </p>
+        <h3>How tiling works</h3>
+        <ul>
+          <li>Each orthomosaic is cut into small overlapping tiles (controlled by <a class="plink" href="/parameter-guide#doc-tile_width">tile width</a>, <a class="plink" href="/parameter-guide#doc-tile_height">tile height</a>, and <a class="plink" href="/parameter-guide#doc-tile_buffer">buffer</a>).</li>
+          <li>The model runs inference on each tile independently and outputs per-tile polygon sets.</li>
+          <li>Overlapping predictions from adjacent tiles are merged: the <a class="plink" href="/parameter-guide#doc-iou_threshold">IoU threshold</a> controls how aggressively near-duplicates are removed.</li>
+        </ul>
+        <h3>Output confidence thresholds</h3>
+        <p>
+          The model outputs crowns at multiple confidence levels. These are stored as tagged
+          GeoPackage files (e.g. <code>_conf_0p45_multithreshold.gpkg</code>), one set per date.
+          Step 2 picks which confidence level to use for tracking via the threshold tags.
+        </p>
+        <div class="io-grid">
+          <div class="io-box"><b>Reads</b><ul><li>All <code>sit_*.tif</code> orthomosaics</li><li>Detectree2 model weights (<code>.pth</code>)</li></ul></div>
+          <div class="io-box"><b>Writes</b><ul><li>Per-date multi-threshold crown GeoPackages</li><li><code>01_detectree/</code> folder</li></ul></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="wt-stage" id="wt-s2">
+      <button class="wt-head" onclick="toggleStage(this)">
+        <div class="wt-n">2</div>
+        <div>
+          <h2>Crown tracking</h2>
+          <span class="wt-sub">Link the same tree across all observation dates</span>
+        </div>
+        <span class="wt-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </button>
+      <div class="wt-body">
+        <p>
+          Detection gives you a set of crown polygons per date, but the pipeline needs to know
+          which polygon in date 3 is the same tree as polygon 47 in date 1. Crown tracking does
+          exactly that: it aligns the dates against each other and links corresponding crowns into
+          temporal <em>chains</em>.
+        </p>
+        <h3>Alignment</h3>
+        <ul>
+          <li>Each Orthomosaic is registered to the next using high-confidence anchor crowns (controlled by the <a class="plink" href="/parameter-guide#doc-align_threshold_tag">align threshold</a>). Only very confident, stable detections are used as anchors — they're less likely to move between dates.</li>
+          <li>Registration uses phase-cross-correlation on tiled windows (<code>pcc_tiled</code>), which is robust to slight GPS offsets and wind movement.</li>
+        </ul>
+        <h3>Chain building</h3>
+        <ul>
+          <li>At the <a class="plink" href="/parameter-guide#doc-base_threshold_tag">base threshold</a>, crowns are matched date to date by spatial overlap.</li>
+          <li>Each resulting chain is a list of (date, polygon) pairs representing one physical tree over time.</li>
+          <li>A consensus polygon is derived for each chain — the stable median footprint of that tree across all dates it was detected.</li>
+        </ul>
+        <div class="io-grid">
+          <div class="io-box"><b>Reads</b><ul><li>Per-date crown GeoPackages from Step 1</li></ul></div>
+          <div class="io-box"><b>Writes</b><ul><li>Crown chains GeoJSON</li><li>Consensus crowns GeoPackage</li><li><code>02_tracking/</code> folder</li></ul></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 (combined 3 + 3b) -->
+    <div class="wt-stage" id="wt-s3">
+      <button class="wt-head" onclick="toggleStage(this)">
+        <div class="wt-n">3</div>
+        <div>
+          <h2>Phenology analysis and classification</h2>
+          <span class="wt-sub">Measure seasonal greenness, score deciduousness, and label phenophases</span>
+        </div>
+        <span class="wt-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </button>
+      <div class="wt-body">
+        <p>
+          For every tree chain, Step 3 extracts a time series of spectral and texture measurements
+          from the orthomosaics inside the consensus crown boundary. These signals are combined into
+          a <em>deciduousness score</em> that separates seasonally-leafing trees from evergreens,
+          then a classifier labels each (tree, date) pair with a discrete phenophase.
+        </p>
+        <h3>Signals measured per tree per date</h3>
+        <ul>
+          <li><strong>Vegetation fraction</strong> — HSV-based greenness, normalised within the crown.</li>
+          <li><strong>GCC</strong> — Green Chromatic Coordinate, a colour-ratio index robust to illumination changes.</li>
+          <li><strong>Texture</strong> — Laplacian variance, measuring how "rough" the canopy surface looks (bare branches vs dense leaves).</li>
+        </ul>
+        <h3>Deciduousness score (DS)</h3>
+        <p>
+          DS combines the seasonal amplitude of four signals with user-adjustable weights:
+          <code>DS = w_veg_amp·s_veg + w_depth·s_depth + w_gcc_amp·s_gcc + w_tex·s_tex</code>.
+          Trees above the DS threshold are classified as deciduous and sent for phenophase labelling; the rest are assigned <em>leaf-on</em> for all dates.
+        </p>
+        <h3>Phenophase classification</h3>
+        <ul>
+          <li>A gradient-boosting model (HistGradientBoosting) predicts phenophase — <code>leaf_on</code>, <code>leaf_off</code>, or <code>transitioning</code> — from local-trough features built on the greenness curves.</li>
+          <li>Evergreen trees (DS below threshold) are automatically assigned <code>leaf_on</code> for every date.</li>
+        </ul>
+        <h3>Temporal smoothening</h3>
+        <ul>
+          <li>Short isolated label runs — a single date labelled <code>leaf_off</code> sandwiched between <code>leaf_on</code> dates — are corrected by flipping them to match their neighbours.</li>
+          <li>A confidence gate prevents flipping labels where the model was very certain (controlled by <code>flip_below</code>).</li>
+        </ul>
+        <h3>Derived events</h3>
+        <p>
+          From the smoothed per-OM labels, three event dates are derived per tree: leaf-off start,
+          full leaf-off, and leaf-on return. These are written back into the GeoJSON under
+          <code>classification</code>.
+        </p>
+        <div class="io-grid">
+          <div class="io-box"><b>Reads</b><ul><li>Consensus crowns from Step 2</li><li>All orthomosaics</li><li>Optional pre-trained model (<code>.joblib</code>)</li></ul></div>
+          <div class="io-box"><b>Writes</b><ul><li><code>tree_master_geojson.geojson</code></li><li><code>..._phenoclf.geojson</code></li><li>Phenology scores CSV + patch report</li><li><code>03_phenology/</code> folder</li></ul></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 (combined 4a + 4b) -->
+    <div class="wt-stage" id="wt-s4">
+      <button class="wt-head" onclick="toggleStage(this)">
+        <div class="wt-n">4</div>
+        <div>
+          <h2>Tiling and interactive viewer</h2>
+          <span class="wt-sub">Convert orthomosaics to tile pyramids and build the interactive map</span>
+        </div>
+        <span class="wt-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </button>
+      <div class="wt-body">
+        <p>
+          The viewer needs the orthomosaics in a format a web browser can load efficiently at any
+          zoom level. This step converts each orthomosaic to a Cloud-Optimized GeoTIFF, pre-renders
+          an XYZ tile pyramid, then assembles a self-contained interactive map combining the tiles,
+          crown layer, and classified phenology data.
+        </p>
+        <h3>COG conversion</h3>
+        <p>
+          A Cloud-Optimized GeoTIFF stores data in a layout that allows a client to fetch only the
+          pixels it needs for the current view, instead of downloading the whole file. Each
+          orthomosaic is renamed to <code>OM01_*.tif</code> to match its order in the series.
+        </p>
+        <h3>XYZ tile pyramid</h3>
+        <ul>
+          <li>Tiles are rendered from zoom 10 to the max zoom you set (typically z22 = native 5 cm/px).</li>
+          <li>Each tile is a <code>z/x/y.png</code> file at 256×256 px (the web standard).</li>
+          <li>A tile manifest records the bounds, zoom range, and which date is the default underlay.</li>
+        </ul>
+        <h3>What you can do in the viewer</h3>
+        <ul>
+          <li><strong>Pan and zoom</strong> over the study site at full drone resolution.</li>
+          <li><strong>Switch dates</strong> — each orthomosaic is a separate layer you can toggle to see the canopy at different points in the season.</li>
+          <li><strong>Click a crown</strong> to open a popup with its chain ID, deciduousness score, and a per-date phenophase timeline.</li>
+          <li><strong>Filter by phenophase</strong> — highlight leaf-off crowns, transitioning crowns, or evergreens.</li>
+        </ul>
+        <h3>Sharing</h3>
+        <p>
+          Because the viewer is a single HTML file with all data embedded or referenced locally,
+          you can copy the <code>04_viewer/</code> folder to any web server (or share the ZIP)
+          and it will work without any backend.
+        </p>
+        <div class="io-grid">
+          <div class="io-box"><b>Reads</b><ul><li>All orthomosaics</li><li>Classified GeoJSON from Step 3</li></ul></div>
+          <div class="io-box"><b>Writes</b><ul><li>COGs + <code>z/x/y.png</code> tile pyramids</li><li><code>tile_manifest.json</code></li><li><code>04_viewer/index.html</code></li></ul></div>
+        </div>
+      </div>
+    </div>
+
+    </div><!-- wt-accordion -->
+
+  </div><!-- wt-main -->
+</div><!-- wt-shell -->
+
+<footer class="wrap">Drone Phenology Monitoring · Pipeline Walkthrough</footer>
+
+<script>
+  function toggleStage(btn) {
+    const stage = btn.closest('.wt-stage');
+    stage.classList.toggle('wt-closed');
+  }
+
+  function scrollToStep(id) {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('wt-closed'); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }
+
+  // Rail: mark active section on scroll using IntersectionObserver
+  const navLinks = document.querySelectorAll('#wt-steps-nav a');
+  const sections = Array.from(navLinks).map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+      }
+    });
+  }, { rootMargin: '-20% 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  // Animate flow diagram: each node lights up in turn
+  const nodes = document.querySelectorAll('.flow-node');
+  let current = 0;
+  function animateFlow() {
+    nodes.forEach((n, i) => {
+      n.style.background = i === current ? 'var(--green)' : '';
+      n.style.borderColor = i === current ? 'var(--green-d)' : '';
+      n.querySelectorAll('.fn-label').forEach(el => {
+        el.style.color = i === current ? '#fff' : '';
+      });
+      n.querySelector('.fn-num').style.background = i === current ? '#fff' : '';
+      n.querySelector('.fn-num').style.color = i === current ? 'var(--green-d)' : '';
+    });
+    current = (current + 1) % nodes.length;
+  }
+  setInterval(animateFlow, 900);
+</script>
+</body>
+</html>
