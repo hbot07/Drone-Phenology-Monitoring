@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Drone Flight Guide — Drone Phenology Monitoring</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f3f5f0; --card:#fafaf7; --ink:#2c3220; --muted:#6b7560;
+  --border:#d4d9c8; --accent:#3d6b3a; --accent-d:#2c5229; --accent-l:#eef4eb;
+  --primary:#1e2714; --warn-bg:#fdf8ec; --warn-border:#e8d9a0; --warn-text:#6a5520;
+  --shadow-sm:0 1px 3px 0 rgb(30 39 20/.06); --radius:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font:15px/1.7 'DM Sans',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:'Source Serif 4',Georgia,serif;font-weight:600;color:var(--primary);line-height:1.3}
+a{color:var(--accent-d)}
+code{background:#edeee8;border-radius:3px;padding:1px 5px;font:13px/1.4 'DM Mono',monospace}
+
+/* Nav */
+nav{position:sticky;top:0;z-index:100;background:rgba(243,245,240,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px}
+.nav-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px;gap:16px}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--primary)}
+.nav-brand-icon{width:32px;height:32px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.nav-brand span{font-family:'Source Serif 4',serif;font-weight:600;font-size:17px;letter-spacing:-.02em}
+.nav-links{display:flex;align-items:center;gap:20px}
+.nav-links a{font-size:13px;font-weight:500;color:var(--muted);text-decoration:none}
+.nav-links a:hover{color:var(--primary)}
+
+/* Layout */
+.container{max-width:740px;margin:0 auto;padding:0 24px}
+.hero{padding:60px 0 40px;border-bottom:1px solid var(--border)}
+.hero h1{font-size:32px;font-weight:700;letter-spacing:-.02em;margin-bottom:10px}
+.hero p{color:var(--muted);font-size:15px;max-width:580px;line-height:1.7}
+
+/* TOC */
+.toc{padding:28px 0;border-bottom:1px solid var(--border)}
+.toc h2{font-size:16px;margin-bottom:12px}
+.toc ol{list-style:none;counter-reset:toc;padding:0}
+.toc li{counter-increment:toc}
+.toc li a{display:flex;align-items:baseline;gap:10px;padding:6px 0;font-size:14px;text-decoration:none;color:var(--ink);border-bottom:1px solid transparent}
+.toc li a:hover{color:var(--accent-d);border-bottom-color:var(--border)}
+.toc li a::before{content:counter(toc);font-family:'Source Serif 4',serif;font-weight:600;color:var(--accent);font-size:14px;flex:none;width:20px}
+
+/* Section */
+.guide-section{padding:40px 0;border-bottom:1px solid var(--border)}
+.guide-section:last-child{border-bottom:none;padding-bottom:80px}
+.guide-section h2{font-size:22px;margin-bottom:6px}
+.section-lead{color:var(--muted);font-family:'Source Serif 4',serif;font-style:italic;font-size:14px;margin-bottom:28px}
+
+/* Steps */
+.step{margin-bottom:24px}
+.step-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-family:'Source Serif 4',serif;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+.step-num.optional{background:var(--muted)}
+.step h3{font-size:15px;line-height:1.4}
+.step h3 .opt-tag{font-size:11px;font-weight:500;color:var(--muted);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 7px;margin-left:8px;vertical-align:2px;font-family:'DM Sans',sans-serif}
+.step p,.step ul{font-size:14px;color:var(--ink);line-height:1.7;margin-left:40px;max-width:620px}
+.step ul{padding-left:18px;margin-top:4px}
+.step li{margin-bottom:4px}
+
+/* Callout */
+.callout{background:var(--accent-l);border:1px solid rgba(61,107,58,.18);border-radius:var(--radius);padding:14px 18px;margin:16px 0 16px 40px;font-size:13.5px;line-height:1.6;max-width:620px}
+.callout strong{color:var(--accent-d)}
+.callout.warn{background:var(--warn-bg);border-color:var(--warn-border);color:var(--warn-text)}
+.callout.warn strong{color:#5a4818}
+
+/* Spec table */
+.spec-table{margin:16px 0 16px 40px;border-collapse:collapse;font-size:13.5px;max-width:520px}
+.spec-table th,.spec-table td{text-align:left;padding:6px 16px 6px 0;border-bottom:1px solid var(--border)}
+.spec-table th{font-weight:600;color:var(--accent-d);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.spec-table td:first-child{font-weight:500;white-space:nowrap}
+.spec-table td:last-child{color:var(--muted)}
+
+/* Path display */
+.path-display{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;margin:10px 0 10px 40px;font-family:'DM Mono',monospace;font-size:12.5px;color:var(--accent-d);line-height:1.5;overflow-x:auto;max-width:620px}
+
+/* Footer */
+footer{border-top:1px solid var(--border);padding:28px 0;text-align:center;font-size:12.5px;color:var(--muted)}
+footer a{color:var(--accent-d);text-decoration:none}
+footer a:hover{text-decoration:underline}
+.footer-links{display:flex;gap:20px;justify-content:center;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    
+    <a href="/" class="nav-brand">
+      <div class="nav-brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 22c4-4 8-7.5 8-12a8 8 0 10-16 0c0 4.5 4 8 8 12z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <span>Drone Phenology Monitoring</span>
+    </a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/walkthrough">Pipeline walkthrough</a>
+      <a href="/dashboard">Dashboard</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <h1>Drone flight guide</h1>
+    <p>
+      A step-by-step walkthrough for designing flight paths, uploading them to your
+      drone, flying the survey, and building orthomosaics from the captured imagery.
+      This guide uses Map Pilot Pro for flight planning and WebODM for orthomosaic
+      generation.
+    </p>
+  </div>
+</section>
+
+<div class="toc">
+  <div class="container">
+    <h2>Sections</h2>
+    <ol>
+      <li><a href="#s1">Create and export flight paths</a></li>
+      <li><a href="#s2">Upload the flight path to your drone</a></li>
+      <li><a href="#s3">Fly the survey mission</a></li>
+      <li><a href="#s4">Build the orthomosaic in WebODM</a></li>
+    </ol>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Section 1: Create and export flight paths                              -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="guide-section" id="s1">
+  <div class="container">
+    <h2>1. Create and export flight paths</h2>
+    <p class="section-lead">Use Map Pilot Pro on your phone to draw the survey area, configure flight parameters, and export a KMZ file.</p>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">1</div><h3>Install Map Pilot Pro</h3></div>
+      <p>Install Map Pilot Pro from the Google Play Store or Apple App Store. It is free for basic flight planning and KMZ export.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">2</div><h3>Open the app and go to Settings</h3></div>
+      <p>From the home screen, tap Settings to configure the app for KMZ export.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">3</div><h3>Enable "Export Simple KMZ" in Advanced Settings</h3></div>
+      <p>Go to Advanced Settings and turn on Export Simple KMZ. Without this, flight paths can only be exported in the MME format, which is not recognized by other drone apps or GIS software.</p>
+      <div class="callout warn"><strong>Required.</strong> If this toggle is off, the export option in later steps will not produce a KMZ file.</div>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">4</div><h3>Select an "Export Only" camera model</h3></div>
+      <p>Go to Flight Camera, then Model, and select a camera that shows "(Export Only)" in the name. This is required to enable KMZ export.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">5</div><h3>Create a new mission</h3></div>
+      <p>Go back to the home screen and tap New Mission. Dismiss any popup dialogs that appear.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">6</div><h3>Navigate to your survey area</h3></div>
+      <p>The default viewport shows Lower Manhattan. Zoom out and navigate to your site. If your phone GPS is on and you are near the site, the map will center on your location automatically.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">7</div><h3>Set flight parameters</h3></div>
+      <p>Configure the altitude, speed, and overlap. Tap Norm Mission, then Normal.</p>
+      <table class="spec-table">
+        <tr><th>Parameter</th><th>Recommended value</th></tr>
+        <tr><td>Altitude</td><td>80 m (ideal for phenology)</td></tr>
+        <tr><td>Speed</td><td>3 m/s (slow for sharp images)</td></tr>
+        <tr><td>Front overlap</td><td>80%</td></tr>
+        <tr><td>Side overlap</td><td>80%</td></tr>
+      </table>
+      <div class="callout"><strong>GSD guidance.</strong> For class-specific overlap recommendations and ground sampling distance, see the <a href="https://docs.webodm.net/getting-started/image-capture/" target="_blank">WebODM image capture guide</a>.</div>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">8</div><h3>Minimize the top bar for better visibility</h3></div>
+      <p>Tap the bar that shows "Export Only" to collapse it, giving you a larger view of the map while drawing the boundary.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">9</div><h3>Set the Home point</h3></div>
+      <p>Long-press on the map to place the purple Home point dot. This is where the drone will return after completing the flight path.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">10</div><h3>Draw the survey boundary</h3></div>
+      <p>Long-press to place orange Boundary dots around your survey area. Start with the initial three dots to roughly cover the area, then adjust the smaller orange midpoint dots to refine the boundary shape.</p>
+      <div class="callout warn"><strong>No undo.</strong> There is no undo or redo for boundary edits. If you make a mistake, delete the entire flight path using the trash icon at the top left and start over.</div>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">11</div><h3>Save the mission <span class="opt-tag">optional</span></h3></div>
+      <p>Tap the floppy disk icon at the top left, give the mission a name, and save it. This lets you reload the same flight path for repeated surveys at the same site.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">12</div><h3>Export as KMZ</h3></div>
+      <p>Tap the drone/airplane icon at the top right, then tap Export. Click No on the Terrain Awareness popup (this feature requires a paid account). Give the flight path a name, tap Export, then OK.</p>
+      <p>The KMZ file will be saved to the Downloads folder on your phone.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">13</div><h3>Exit the mission editor</h3></div>
+      <p>Tap the left-facing triangle to reveal the Exit icon, then tap it to return to the home screen.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num optional">+</div><h3>Use boundary files as reference <span class="opt-tag">optional</span></h3></div>
+      <p>If you have a shapefile or KML of your region of interest, you can import it to use as a visual guide while drawing the flight boundary.</p>
+      <p>Convert your shapefile to KMZ format using QGIS, then in Map Pilot Pro go to File Manager, tap Import, navigate to the file, and import it. Under Imported Overlay Files, turn on Show KML, then tap Sync so the boundary appears on the map. Create a new mission and draw the flight path using the imported boundary as a guide.</p>
+      <div class="callout"><strong>Multi-battery flights.</strong> If the boundary is large, the flight path will show white line segments (first battery) and grey segments (additional batteries required). The drone returns to the Home point when the first battery is depleted, and continues from where it left off after a battery swap.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Section 2: Upload the flight path to the drone                         -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="guide-section" id="s2">
+  <div class="container">
+    <h2>2. Upload the flight path to your drone</h2>
+    <p class="section-lead">For DJI drones with a remote controller (RC), the KMZ file needs to be placed in the correct directory on the RC's internal storage.</p>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">1</div><h3>Connect the drone and open the DJI Fly app</h3></div>
+      <p>In the RC or DJI Fly app, connect the drone and press Go Fly. Make sure the drone is placed outside for adequate satellite signal.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">2</div><h3>Open the map view</h3></div>
+      <p>Tap the map at the bottom-left corner. Make sure your current position is shown on the map.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">3</div><h3>Create a dummy waypoint mission</h3></div>
+      <p>Tap the waypoint icon on the left side and create a waypoint with at least 2 points. This creates the folder structure the DJI app expects.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">4</div><h3>Save the dummy waypoint</h3></div>
+      <p>Tap the note/paper icon to the left of "Waypoint", select the waypoint, then press SAVE, then Save. Return to the home screen and press Save and Exit.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">5</div><h3>Connect the RC to your computer</h3></div>
+      <p>Use USB to connect the remote controller to your desktop or laptop. Navigate to:</p>
+      <div class="path-display">DJI RC 2 > Internal Shared Storage > Android > data > Dji.go.v5 > files > waypoint</div>
+      <p>Open the most recently created folder. It will contain the dummy waypoint's KMZ file.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">6</div><h3>Copy the KMZ filename</h3></div>
+      <p>Copy the name of the KMZ file inside that folder (it will be a UUID like <code>90A8341C-CFE2-4E84-8681-B5B081E5C815.kmz</code>).</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">7</div><h3>Rename and replace</h3></div>
+      <p>Rename your Map Pilot Pro KMZ file to match the copied UUID filename. Then copy it into the waypoint folder on the RC, replacing the original dummy file. Disconnect the RC from the computer.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">8</div><h3>Verify on the RC</h3></div>
+      <p>Connect the RC to the drone. Navigate to the waypoint list using the note/paper icon. The Map Pilot Pro flight path should now appear in the saved waypoints.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Section 3: Flying the drone                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="guide-section" id="s3">
+  <div class="container">
+    <h2>3. Fly the survey mission</h2>
+    <p class="section-lead">Execute the uploaded flight path using the DJI Fly app's waypoint mode. These steps apply to the DJI Mini 4 Pro and DJI Mini 5 Pro.</p>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">1</div><h3>Connect and move to an open area</h3></div>
+      <p>Power on the drone and RC. Ensure you are in an open area with clear line of sight and no overhead obstructions.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">2</div><h3>Select waypoint mode</h3></div>
+      <p>In the DJI Fly app, select the waypoint flight mode icon.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">3</div><h3>Load the flight path</h3></div>
+      <p>Tap the list button, then select the flight path you uploaded in Section 2. It will display the number of waypoints. Tap Next.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">4</div><h3>Verify settings and launch</h3></div>
+      <p>All fields will be pre-filled from the Map Pilot Pro configuration (altitude, speed, overlap). Review the settings, then press Go to launch the survey flight.</p>
+      <div class="callout warn"><strong>Safety.</strong> Maintain visual line of sight with the drone at all times. Be prepared to take manual control using the RC sticks if the drone approaches obstacles.</div>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">5</div><h3>Handle multi-battery flights</h3></div>
+      <p>If the survey area requires multiple batteries (grey segments in the flight plan), the drone will return to the Home point when the first battery is depleted. Replace the battery and resume the mission from the waypoint list. The drone will continue from where it stopped.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">6</div><h3>Transfer images from the drone</h3></div>
+      <p>After the flight is complete, connect the drone or remove the SD card and copy all captured images to your computer. Keep all images from a single flight in one folder.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Section 4: Build orthomosaic in WebODM                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="guide-section" id="s4">
+  <div class="container">
+    <h2>4. Build the orthomosaic in WebODM</h2>
+    <p class="section-lead">WebODM is a free, open-source tool that stitches drone photos into a georeferenced orthomosaic. The output is a GeoTIFF file ready for the phenology pipeline.</p>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">1</div><h3>Install WebODM</h3></div>
+      <p>Follow the <a href="https://docs.webodm.org/installation/#docker" target="_blank">official installation guide</a>. WebODM runs on Linux, Windows (via WSL2), and macOS. Docker and Git are prerequisites.</p>
+      <div class="callout">
+        <strong>WSL2 troubleshooting.</strong> If you have trouble installing WSL2 on Windows, see <a href="https://github.com/paulvpop/gis-land-cover-mapping/blob/main/01.%20Software%20installation.md#52-podman-and-windows-subsystem-for-linux-2-use-this-for-windows" target="_blank">this installation guide with troubleshooting</a>.
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">2</div><h3>Allocate sufficient memory (Windows)</h3></div>
+      <p>On Windows, open WSL Settings and increase the Memory Size allocation. For a machine with 32 GB RAM, set it to approximately 28,000 MB, leaving some memory for Windows itself. More RAM dramatically improves processing speed for large image sets.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">3</div><h3>Launch WebODM and create an account</h3></div>
+      <p>Start WebODM from the command line, then open it in a browser at <code>http://localhost:8000</code>. Create an account on first launch.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">4</div><h3>Upload images</h3></div>
+      <p>Click Select Images and GCP. Navigate to the folder containing all images from your flight, select them all, and click Open.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">5</div><h3>Configure processing options</h3></div>
+      <p>Click Edit under Options and set the following parameters:</p>
+      <table class="spec-table">
+        <tr><th>Option</th><th>Recommendation</th></tr>
+        <tr><td>Fast Orthophoto</td><td>Enable (consistently produces fewer distortions)</td></tr>
+        <tr><td>skip-3dmodel</td><td>Enable (saves significant time, no effect on orthomosaic quality)</td></tr>
+        <tr><td>max-concurrency</td><td>Reduce if you experience memory issues</td></tr>
+        <tr><td>optimize-disk-space</td><td>Enable if low on disk space (deletes intermediate files)</td></tr>
+      </table>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">6</div><h3>Start processing</h3></div>
+      <p>Click Review, then Start Processing. Close other memory-heavy applications (QGIS, many browser tabs) before starting. Processing time depends on the number of images and available hardware.</p>
+    </div>
+
+    <div class="step">
+      <div class="step-header"><div class="step-num">7</div><h3>Download the orthomosaic</h3></div>
+      <p>Once processing completes, download the orthomosaic as a GeoTIFF (.tif) file from WebODM's interface. This file is what you upload to the Drone Phenology Monitoring dashboard as an orthomosaic.</p>
+      <div class="callout"><strong>Repeat for each survey date.</strong> You need at least 5 orthomosaics of the same site at different dates to run the phenology pipeline. Fly the same flight path each time to ensure consistent coverage.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/walkthrough">Pipeline walkthrough</a>
+      <a href="/parameter-guide">Parameter guide</a>
+    </div>
+    <p>Drone Phenology Monitoring. Guide content adapted from the <a href="https://github.com/hbot07/Drone-Phenology-Monitoring/blob/main/misc/guide_for%20_drone_tasks/user_manual.md" target="_blank">project user manual</a>.</p>
+  </div>
+</footer>
+
+</body>
+</html>

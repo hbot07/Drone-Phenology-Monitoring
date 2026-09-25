@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>New Run — Phenology Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-color: #f3f5f0;
+  --card-bg: #fafaf7;
+  --text-main: #2c3220;
+  --text-muted: #6b7560;
+  --border-color: #d4d9c8;
+  --primary: #1e2714;
+  --accent: #3d6b3a;
+  --accent-d: #2c5229;
+  --accent-l: #eef4eb;
+  --accent-mid: #5a8f56;
+  --warn: #8a6820;
+  --err: #8b3a2e;
+  --err-bg: #fdf2f0;
+  --err-border: #f0c4bc;
+  --ok: #2c6e3a;
+  --shadow-sm: 0 1px 3px 0 rgb(30 39 20 / 0.07);
+  --shadow-md: 0 4px 12px -2px rgb(30 39 20 / 0.10);
+  --radius: 9px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg-color);
+  color: var(--text-main);
+  font-family: 'DM Sans', sans-serif;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+h1, h2, h3 { font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; color: var(--primary); letter-spacing: -0.01em; }
+
+/* header */
+header {
+  border-bottom: 1px solid var(--border-color);
+  background: #f7f9f4;
+  padding: 14px 20px;
+  box-shadow: var(--shadow-sm);
+}
+.hdr { max-width: 1020px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex: none; }
+.brand-icon svg { display: block; }
+header h1 { font-size: 20px; white-space: nowrap; cursor: pointer; font-weight: 600; letter-spacing: -0.02em; color: var(--primary); }
+.tag { font-size: 12px; color: var(--text-muted); font-style: italic; font-family: 'Source Serif 4', serif; letter-spacing: 0.01em; }
+.wrap { max-width: 1020px; margin: 0 auto; padding: 30px 20px 64px; }
+
+/* cards */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  margin: 0 0 18px;
+  box-shadow: var(--shadow-sm);
+}
+.card h2 { font-size: 16.5px; display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+.card h2 .n {
+  font-size: 12px; color: var(--accent); background: var(--accent-l);
+  border: 1px solid rgba(61,107,58,0.22); border-radius: 6px;
+  width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', sans-serif; font-weight: 600;
+}
+.lead { color: var(--text-muted); font-size: 13.5px; margin: 0 0 16px; line-height: 1.6; font-family: 'Source Serif 4', serif; font-style: italic; font-weight: 300; }
+label { display: block; font-size: 12.5px; color: var(--primary); margin: 12px 0 4px; font-weight: 500; letter-spacing: 0.01em; }
+.hint { display: block; font-size: 11.5px; color: var(--text-muted); margin: 2px 0 6px; font-weight: 400; line-height: 1.45; }
+.info-wrap { position:relative; display:inline-flex; align-items:center; margin-left:6px; }
+.info-btn {
+  display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px;
+  border-radius:50%; background:#a8b0a0; color:#fff; font-size:10px; font-family:Georgia,serif;
+  font-style:italic; cursor:help; user-select:none; border:0; padding:0; line-height:1;
+  transition:background .15s;
+}
+.info-btn:hover { background:var(--accent); }
+.step-tip {
+  display:none; position:absolute; left:22px; top:50%; transform:translateY(-50%);
+  background:#1c2a20; color:#cfe8d4; padding:11px 14px; border-radius:6px; font-size:12.5px;
+  line-height:1.55; width:280px; z-index:400; font-weight:400; text-align:left;
+  box-shadow:0 4px 20px rgba(0,0,0,.3); font-style:normal;
+}
+.step-tip b { color:#9dd4a8; }
+.step-tip a { color:#9dd4a8; text-decoration:underline; }
+.info-wrap:hover .step-tip { display:block; }
+.step-tip::before { content:none; }
+
+/* nav */
+.hdr-nav { display:flex; align-items:center; gap:14px; margin-left:auto; }
+.hdr-nav a { color:var(--accent); text-decoration:none; font-size:13px; font-weight:600; white-space:nowrap; }
+.hdr-nav a:hover { text-decoration:underline; }
+.nav-user { position:relative; display:flex; align-items:center; }
+.nav-avatar {
+  width:34px; height:34px; border-radius:50%;
+  background:var(--accent); color:#fff;
+  font-family:'Source Serif 4',serif; font-weight:600; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; border:2px solid transparent;
+  transition:border-color .15s, box-shadow .15s;
+  overflow:hidden; flex:none;
+}
+.nav-avatar:hover { border-color:var(--accent); box-shadow:0 0 0 3px rgba(61,107,58,.18); }
+.nav-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.nav-user-wrap { position:relative; }
+.nav-user-wrap::before {
+  content:attr(data-name);
+  position:absolute; top:calc(100% + 8px); right:0;
+  background:var(--primary); color:#fff;
+  font-size:12px; font-weight:500; white-space:nowrap;
+  padding:4px 10px; border-radius:5px; pointer-events:none;
+  opacity:0; transform:translateY(-4px);
+  transition:opacity .15s, transform .15s;
+  font-family:'DM Sans','Source Serif 4',sans-serif;
+  z-index:300;
+}
+.nav-user-wrap:hover::before { opacity:1; transform:translateY(0); }
+.nav-dropdown {
+  position:absolute; top:calc(100% + 10px); right:0;
+  background:#fff; border:1px solid var(--border-color);
+  border-radius:8px; box-shadow:0 8px 24px -4px rgba(30,39,20,.14);
+  min-width:220px; z-index:400;
+  display:none; flex-direction:column; overflow:hidden;
+}
+.nav-dropdown.open { display:flex; }
+.nav-dropdown-header { padding:14px 16px 10px; border-bottom:1px solid var(--border-color); }
+.nav-dropdown-header .dd-label { font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:3px; }
+.nav-dropdown-header .dd-email { font-size:12.5px; color:var(--primary); font-weight:500; word-break:break-all; font-family:'DM Mono',monospace; }
+.nav-dropdown-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 16px; font-size:13.5px; font-weight:500;
+  cursor:pointer; border:none; background:none;
+  width:100%; text-align:left; font-family:inherit;
+  text-decoration:none; transition:background .12s; color:var(--primary);
+}
+.nav-dropdown-item:hover { background:#f7f9f4; }
+.nav-dropdown-item.danger { color:#c0392b; }
+.nav-dropdown-item.danger:hover { background:#fdf2f2; }
+
+.form-locked { opacity:0.55; pointer-events:none; filter:grayscale(0.3); }
+.running-banner {
+  display:none; background:var(--green-l, #e7f0e4); border:1px solid var(--accent);
+  color:var(--green-d, #2b5e33); border-radius:8px; padding:12px 16px; margin:14px 0;
+  font-size:13.5px; font-weight:600;
+}
+.running-banner.show { display:block; }
+
+input, select {
+  width: 100%; padding: 8px 11px; border: 1px solid var(--border-color); border-radius: 6px;
+  background: #f5f7f2; font-family: 'DM Sans', sans-serif; color: var(--text-main); font-size: 13.5px;
+  transition: all 0.18s ease;
+}
+input:focus, select:focus { outline: none; border-color: var(--accent-mid); background: #fff; box-shadow: 0 0 0 3px rgba(61,107,58,0.12); }
+code { font-family: 'DM Mono', monospace; font-size: 12px; background: #e8ecdf; border-radius: 4px; padding: 1px 5px; color: var(--accent-d); }
+.grid1 { display: grid; grid-template-columns: 1fr; gap: 8px 16px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 16px; }
+@media(max-width: 600px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+.btn {
+  font-family: 'DM Sans', sans-serif; font-weight: 500; border: 0; border-radius: 7px; padding: 10px 20px; cursor: pointer;
+  background: var(--accent); color: #fff; transition: all 0.18s; display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px;
+  box-shadow: 0 1px 3px rgb(30 39 20 / 0.18), 0 0 0 1px rgb(30 39 20 / 0.08);
+  letter-spacing: 0.01em;
+}
+.btn:hover { background: var(--accent-d); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-ghost { background: transparent; color: var(--accent); border: 1px solid var(--border-color); box-shadow: none; }
+.btn-ghost:hover { background: var(--accent-l); border-color: var(--accent-mid); box-shadow: none; transform: none; }
+.btn-sm { padding: 6px 13px; font-size: 12.5px; }
+.btn-danger { background: transparent; color: var(--err); border: 1px solid var(--err-border); box-shadow: none; }
+.btn-danger:hover { background: var(--err-bg); transform: none; }
+.btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
+.alert { padding: 12px 16px; border-radius: 7px; font-size: 13.5px; line-height: 1.55; border: 1px solid; margin-top: 12px; }
+.alert-ok { background: #edf7ee; border-color: #b4d9b8; color: #1e5a28; }
+.alert-err { background: var(--err-bg); border-color: var(--err-border); color: #7a2a1e; }
+.alert-warn { background: #fdf8ec; border-color: #e8d48a; color: #6b4d10; }
+details > summary { cursor: pointer; font-size: 13.5px; font-weight: 500; color: var(--primary); padding: 9px 0; user-select: none; list-style: none; font-family: 'DM Sans', sans-serif; letter-spacing: 0.01em; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: "▸ "; font-size: 11px; color: var(--accent-mid); }
+details[open] > summary::before { content: "▾ "; }
+details > .inner { padding: 10px 0 0; }
+hr.subtle { border: 0; border-top: 1px solid var(--border-color); margin: 16px 0; }
+.section-label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--accent); margin-bottom: 4px; display: block; }
+
+/* progress bar */
+.pbar-wrap { margin: 6px 0 12px; }
+.pbar-top { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:7px; }
+.pbar-label { font-size:13.5px; font-weight:600; color:var(--text-main); font-family:'Source Serif 4',serif; }
+.pbar-pct { font-size:12.5px; font-weight:700; color:var(--accent); font-family:'DM Mono',monospace; flex:none; }
+.pbar-track { position:relative; height:9px; border-radius:999px; background:var(--border-color); overflow:hidden; }
+.pbar-fill { position:absolute; left:0; top:0; bottom:0; width:0%; border-radius:999px;
+  background:var(--accent); transition:width .5s cubic-bezier(.4,0,.2,1); }
+.pbar-fill.fail { background:var(--err); }
+.pbar-track.indet .pbar-fill { width:35% !important;
+  animation:pbarIndet 1.25s ease-in-out infinite; }
+@keyframes pbarIndet { 0%{left:-35%} 100%{left:100%} }
+.pbar-sub { margin-top:7px; font-size:11.5px; color:var(--text-muted);
+  font-family:'DM Mono',monospace; min-height:14px; }
+.pbar-sub .om { color:var(--accent); font-weight:600; }
+
+.dropzone {
+  border: 2px dashed var(--border-color); border-radius: var(--radius); padding: 32px 20px; text-align: center;
+  cursor: pointer; transition: all 0.18s; background: #f0f3eb; position: relative;
+}
+.dropzone.drag { border-color: var(--accent-mid); background: var(--accent-l); }
+.dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.dz-icon { font-size: 28px; display: block; margin: 0 0 8px; }
+.dz-txt { font-size: 14px; color: var(--primary); font-weight: 500; }
+.dz-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-family: 'Source Serif 4', serif; font-style: italic; }
+.flist { display: flex; flex-direction: column; gap: 5px; margin-top: 14px; }
+.frow {
+  display: flex; align-items: center; gap: 10px; background: #f5f7f2; border: 1px solid var(--border-color);
+  border-radius: 6px; padding: 7px 12px; font-size: 13px; box-shadow: var(--shadow-sm);
+}
+.frow .fn { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; font-family: 'DM Mono', monospace; font-size: 12px; }
+.frow .fs { color: var(--text-muted); flex: none; font-size: 11.5px; }
+.frow .fd { background: none; border: 0; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0 4px; flex: none; }
+.frow .fd:hover { color: var(--err); }
+.frow .fdate {
+  width: 140px; flex: none; padding: 5px 10px; font-size: 12px; font-family: 'DM Sans', sans-serif;
+  border: 1px solid var(--border-color); border-radius: 6px; background: #fff; color: var(--text-main);
+  cursor: pointer; transition: border-color .15s, box-shadow .15s;
+}
+.frow .fdate:focus { outline: none; border-color: var(--accent-mid); box-shadow: 0 0 0 2px rgba(61,107,58,0.12); }
+.frow .fdate.err { border-color: var(--err); background: #fff5f5; }
+.frow .fdate::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+.frow .fdate::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+.fsummary { font-size: 12px; color: var(--text-muted); margin-top: 8px; font-style: italic; font-family: 'Source Serif 4', serif; }
+
+.log-box {
+  background: #141a0d; color: #c8d4b8; border-radius: var(--radius); padding: 14px;
+  font: 12px/1.6 'DM Mono', ui-monospace, monospace;
+  max-height: 250px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-top: 12px;
+  box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.25);
+}
+.log-err { color: #f4a49a; } .log-ok { color: #86d9a0; }
+
+.viewer-wrap { border: 1px solid var(--border-color); border-radius: var(--radius); overflow: hidden; margin-top: 16px; }
+.viewer-wrap iframe { display: block; width: 100%; height: 75vh; border: 0; background: #f5f7f2; }
+.viewer-bar {
+  display: flex; justify-content: flex-end; gap: 10px; padding: 10px 14px;
+  border-top: 1px solid var(--border-color); background: #f0f3eb;
+}
+
+/* date modal */
+.date-input-row { display:grid; grid-template-columns:1fr 140px; gap:10px; align-items:center; background:#f8faf6; border:1px solid var(--border-color); border-radius:6px; padding:10px 12px; }
+.date-input-row .om-name { font-size:12px; font-weight:500; font-family:'DM Mono',monospace; color:var(--text-main); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.date-input-row input[type="date"] { font-size:12px; padding:6px 10px; border-radius:6px; border:1px solid var(--border-color); background:#fff; font-family:'DM Sans',sans-serif; width:100%; cursor:pointer; color:var(--text-main); transition:border-color .15s,box-shadow .15s; }
+.date-input-row input[type="date"]:focus { outline:none; border-color:var(--accent-mid); box-shadow:0 0 0 2px rgba(61,107,58,0.12); }
+.date-input-row input[type="date"].err { border-color:var(--err); background:var(--err-bg,#fff5f5); }
+.date-input-row input::-webkit-calendar-picker-indicator { cursor:pointer; opacity:0.6; }
+.date-input-row input::-webkit-calendar-picker-indicator:hover { opacity:1; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+footer {
+  color: var(--text-muted); font-size: 12px; text-align: center; padding: 10px 0 34px;
+  font-family: 'Source Serif 4', serif; font-style: italic; font-weight: 300;
+  border-top: 1px solid var(--border-color); margin-top: 10px;
+}
+@media(max-width: 640px) { header h1 { font-size: 18px; } .tag { display: none; } .wrap { padding: 18px 14px 40px; } }
+</style>
+</head>
+<body>
+
+<header><div class="hdr">
+  <span class="brand" onclick="window.location.href='/'" style="cursor:pointer">
+    <span class="brand-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 22c4-4 8-7.5 8-12a8 8 0 10-16 0c0 4.5 4 8 8 12z"/><circle cx="12" cy="10" r="3"/></svg>
+    </span>
+    <span>
+      <h1>Drone Phenology Monitoring</h1>
+      <span class="tag">new run</span>
+    </span>
+  </span>
+  <span class="hdr-nav">
+    <a href="/dashboard" class="btn btn-ghost btn-sm" style="text-decoration:none">← All runs</a>
+    <div class="nav-user-wrap" id="nav-user-wrap" data-name="">
+      <div class="nav-avatar" id="nav-avatar" onclick="toggleAvatarDropdown(event)">
+        <span id="av-initials"></span>
+      </div>
+      <div class="nav-dropdown" id="nav-dropdown">
+        <div class="nav-dropdown-header">
+          <div class="dd-label">Signed in as</div>
+          <div class="dd-email" id="dd-email"></div>
+        </div>
+        <button class="nav-dropdown-item danger" onclick="dpmSignOut()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign out
+        </button>
+      </div>
+    </div>
+  </span>
+</div></header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2><span class="n">1</span> Name the run</h2>
+    <p class="lead">Used as the output folder name. No spaces — underscores are fine.</p>
+    <label>Run name</label>
+    <input id="nr-name" placeholder="e.g. my_sit_run_2026" maxlength="80"/>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span> Upload orthomosaics</h2>
+    <p class="lead">A minimum of 5 observations are required.</p>
+    <div class="dropzone" id="nr-dz">
+      <input type="file" id="nr-tif-input" accept=".tif,.tiff" multiple onchange="nrAddTifs(this.files)"/>
+      <span class="dz-txt">Drop .tif files here or click to browse</span>
+      <span class="dz-sub">Multiple files · .tif / .tiff only</span>
+    </div>
+    <div id="nr-name-err" class="alert alert-err" style="display:none;margin-top:10px"></div>
+    <div class="flist" id="nr-flist"></div>
+    <div class="fsummary" id="nr-fsummary"></div>
+    <!-- Date modal backdrop -->
+    <div id="nr-date-modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center;">
+      <div style="background:var(--card-bg);border-radius:var(--radius);padding:28px 28px 22px;width:min(480px,92vw);box-shadow:0 8px 40px rgba(0,0,0,0.22);max-height:80vh;overflow-y:auto;">
+        <div style="font-weight:700;font-size:15px;color:var(--primary);margin-bottom:6px;">Enter acquisition dates</div>
+        <p style="font-size:12px;color:var(--text-muted);margin:0 0 16px;line-height:1.6">
+          Could not extract dates from metadata for the following files.<br/>
+          Select the date each orthomosaic was captured.
+        </p>
+        <div id="nr-date-inputs-container" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <div style="display:flex;gap:10px;margin-top:20px;">
+          <button class="btn" onclick="nrConfirmMissingDates()" style="flex:1;">✓ Confirm &amp; continue</button>
+          <button class="btn" onclick="nrCloseDateModal()" style="background:var(--bg);border:1px solid var(--border-color);color:var(--text-muted);flex:none;padding:0 16px;">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">3</span> Detection model &amp; inference settings</h2>
+    <p class="lead">Choose the Detectree2 model variant and configure how crown detection is run on each orthomosaic.</p>
+
+    <div class="grid2">
+      <div>
+        <label>Active model</label>
+        <span class="hint">Select the model to use for crown delineation. All variants use Detectree2.</span>
+        <select id="nr-model-select">
+          <option value="250312_flexi" selected>250312_flexi (default — flexible multi-site)</option>
+          <option value="urban_canopy">urban_canopy (urban street trees)</option>
+          <option value="tropical_dense">tropical_dense (dense tropical canopy)</option>
+        </select>
+      </div>
+    </div>
+
+    <hr class="subtle" style="margin:16px 0"/>
+
+    <span class="section-label">Tiling &amp; detection parameters</span>
+    <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px;line-height:1.5">
+      These control how each orthomosaic is split into tiles for inference. Tile size is in metres; buffer adds overlap to reduce edge artifacts.
+    </p>
+
+    <div class="grid3">
+      <div>
+        <label>Tile width (m)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-tile_width','_blank')">i</button><span class="step-tip">Detection tile width. Smaller = finer &amp; more tiles, but slower. (keep tile width and height equal)</span></span></label>
+        <span class="hint">Width of each inference tile in metres.</span>
+        <input id="nr-tile-w" type="number" min="10" max="200" value="25"/>
+      </div>
+      <div>
+        <label>Tile height (m)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-tile_height','_blank')">i</button><span class="step-tip">Detection tile height. Smaller = finer &amp; more tiles, but slower. (keep tile width and height equal)</span></span></label>
+        <span class="hint">Height of each inference tile in metres.</span>
+        <input id="nr-tile-h" type="number" min="10" max="200" value="25"/>
+      </div>
+      <div>
+        <label>Tile buffer (m)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-tile_buffer','_blank')">i</button><span class="step-tip">Tile overlap so crowns on tile edges aren't cut in half.</span></span></label>
+        <span class="hint">Overlap between adjacent tiles to reduce edge artefacts. Typically 50–60% of tile size.</span>
+        <input id="nr-tile-buf" type="number" min="0" max="100" value="15"/>
+      </div>
+      <div>
+        <label>IoU threshold<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-iou_threshold','_blank')">i</button><span class="step-tip">Merge overlapping crown boxes above this (0–1). Higher = fewer merges.</span></span></label>
+        <span class="hint">Intersection-over-union threshold used in clean_crowns to remove duplicates.</span>
+        <input id="nr-iou" type="number" step="0.01" min="0" max="1" value="0.7"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">4</span> Configure the pipeline</h2>
+    <p class="lead">Defaults work for most 5 cm/px drone surveys. Expand a section to tune individual steps.</p>
+
+    <details>
+      <summary>Crown tracking</summary>
+      <div class="inner">
+        <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 12px;font-style:italic">
+          Controls how crowns are matched across observation dates to build temporal chains.
+        </p>
+
+        <span class="section-label">Threshold tags</span>
+        <div class="grid2" style="margin-top:4px;margin-bottom:12px">
+          <div>
+            <label>Base threshold (%)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-base_threshold_tag','_blank')">i</button><span class="step-tip">Confidence for matching crowns across dates. Lower = denser, higher = sparser. <a href="/parameter-guide#doc-base_threshold_tag" target="_blank">Full guide →</a></span></span></label>
+            <span class="hint">Confidence level for crown matching in tracking (0-100). Lower = denser, higher = sparser. Default: 45.</span>
+            <input id="nr-base-tag" type="number" min="0" max="100" step="1" value="45" placeholder="45"/>
+          </div>
+          <div>
+            <label>Align threshold (%)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-align_threshold_tag','_blank')">i</button><span class="step-tip">Confidence for anchor crowns used to align dates. Higher = more stable. <a href="/parameter-guide#doc-align_threshold_tag" target="_blank">Full guide →</a></span></span></label>
+            <span class="hint">Confidence for alignment anchors (0-100). Higher = more stable alignment. Default: 65.</span>
+            <input id="nr-align-tag" type="number" min="0" max="100" step="1" value="65" placeholder="65"/>
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:400;font-size:14px">
+            <input type="checkbox" id="nr-skip-viz" checked style="width:auto"/>
+            <span>Skip visualizations <span style="color:var(--text-muted);font-size:13px">(faster — recommended for first runs)</span></span>
+          </label>
+        </div>
+      </div>
+    </details>
+
+    <hr class="subtle"/>
+
+    <details>
+      <summary>Phenology analysis</summary>
+      <div class="inner">
+        <span class="section-label">Deciduousness score (DS) weights</span>
+        <p style="font-size:12px;color:var(--text-muted);margin:4px 0 10px;line-height:1.55">
+          DS = w_veg_amp · s_veg_amp + w_depth · s_depth + w_gcc_amp · s_gcc_amp + w_tex · s_tex.
+        </p>
+        <div class="grid2">
+          <div>
+            <label>w_veg_amp — vegetation amplitude<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_veg_amp','_blank')">i</button><span class="step-tip">Weight on peak-to-trough vegetation range in the deciduousness score. <a href="/parameter-guide#doc-w_veg_amp" target="_blank">Full guide →</a></span></span></label>
+            <span class="hint">Weight on peak-to-trough vegetation range.</span>
+            <input id="nr-w-veg-amp" type="number" step="0.05" min="0" max="2" value="0.35"/>
+          </div>
+          <div>
+            <label>w_depth — seasonal depth<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_depth','_blank')">i</button><span class="step-tip">Weight on how far the canopy falls at its most dormant. <a href="/parameter-guide#doc-w_depth" target="_blank">Full guide →</a></span></span></label>
+            <span class="hint">Weight on dormancy depth relative to peak.</span>
+            <input id="nr-w-depth" type="number" step="0.05" min="0" max="2" value="0.30"/>
+          </div>
+          <div>
+            <label>w_gcc_amp — GCC amplitude<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_gcc_amp','_blank')">i</button><span class="step-tip">Weight on green chromatic coordinate seasonal amplitude. <a href="/parameter-guide#doc-w_gcc_amp" target="_blank">Full guide →</a></span></span></label>
+            <span class="hint">Weight on green chromatic coordinate amplitude.</span>
+            <input id="nr-w-gcc-amp" type="number" step="0.05" min="0" max="2" value="0.25"/>
+          </div>
+          <div>
+            <label>w_tex — texture<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_tex','_blank')">i</button><span class="step-tip">Weight on texture amplitude (branches vs leaves). Noisiest signal. <a href="/parameter-guide#doc-w_tex" target="_blank">Full guide →</a></span></span></label>
+            <span class="hint">Weight on Laplacian variance amplitude.</span>
+            <input id="nr-w-tex" type="number" step="0.05" min="0" max="2" value="0.10"/>
+          </div>
+        </div>
+        <div id="nr-weight-warn" class="alert alert-warn" style="display:none;margin-top:10px;font-size:12.5px">
+          All DS weights are zero — the deciduousness score will be meaningless. Set at least one weight &gt; 0.
+        </div>
+      </div>
+    </details>
+
+    <hr class="subtle"/>
+
+    <details>
+      <summary>COG tiling</summary>
+      <div class="inner">
+        <div class="grid3">
+          <div>
+            <label>Max COG zoom<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-zoom','_blank')">i</button><span class="step-tip">Highest zoom in the viewer. z22 = native 5cm/px resolution. <a href="/parameter-guide#doc-zoom" target="_blank">Full guide →</a></span></span></label>
+            <span class="hint">Highest zoom level in the tile pyramid. z22 = native 5 cm/px resolution.</span>
+            <input id="nr-zoom" type="number" min="14" max="24" value="22"/>
+          </div>
+          <div>
+            <label>Tile size (px)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-tilesize','_blank')">i</button><span class="step-tip">Size of each PNG map tile. 256 is the web standard. <a href="/parameter-guide#doc-tilesize" target="_blank">Full guide →</a></span></span></label>
+            <span class="hint">Width and height of each PNG tile. 256 is standard.</span>
+            <input id="nr-tilesize" type="number" min="64" max="512" step="64" value="256"/>
+          </div>
+          <div>
+            <label>Underlay OM<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-underlay_om','_blank')">i</button><span class="step-tip">Which date loads as the base layer in the viewer. <a href="/parameter-guide#doc-underlay_om" target="_blank">Full guide →</a></span></span></label>
+            <span class="hint">Which observation month loads by default in viewer.</span>
+            <select id="nr-underlay">
+              <option value="last">last (most recent)</option>
+              <option value="first">first (earliest)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <hr class="subtle"/>
+
+    <details>
+      <summary>Advanced</summary>
+      <div class="inner">
+        <label>Exclude orthomosaics</label>
+        <span class="hint">Select OMs to skip from the pipeline. Useful for badly misaligned or problematic dates.</span>
+        <div id="nr-exclude-list" style="margin-top:10px; display:grid; gap:8px; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr))"></div>
+        <input id="nr-exclude" type="hidden"/>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">5</span> Run the pipeline</h2>
+    <p class="lead">Uploads all files then runs all steps on the server in sequence.</p>
+    <div id="nr-preflight" class="alert alert-err" style="display:none"></div>
+    <div class="btn-row">
+      <button class="btn" id="nr-upload-dates-btn" onclick="nrExtractDates()" style="margin-right:10px">▶ Run pipeline</button>
+      <a href="/dashboard" class="btn btn-ghost" style="text-decoration:none">Cancel</a>
+    </div>
+
+    <div id="nr-running-banner" class="running-banner">
+      ⏳ Pipeline is running — all settings are locked until it finishes. You can watch progress below or leave this page; the run continues on the server.
+    </div>
+
+    <div id="nr-flow" style="display:none;margin-top:24px">
+      <div class="pbar-wrap"><div class="pbar-top"><span class="pbar-label" id="pbar-nrf-label">Waiting…</span><span class="pbar-pct" id="pbar-nrf-pct">0%</span></div><div class="pbar-track" id="pbar-nrf-track"><div class="pbar-fill" id="pbar-nrf-fill"></div></div><div class="pbar-sub" id="pbar-nrf-sub"></div></div>
+      <div id="nr-step-detail" class="muted" style="font-size:13px; color:var(--text-muted); margin-top:8px"></div>
+      <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13.5px;font-weight:500;color:var(--primary)">Live execution log</span>
+        <button class="btn btn-ghost btn-sm" id="nr-toggle-log-btn" onclick="toggleLog()">Toggle log</button>
+      </div>
+      <div class="log-box" id="nr-log" style="display:none"></div>
+    </div>
+    <div id="nr-alert" style="margin-top:16px"></div>
+  </div>
+
+  <div class="card" id="nr-viewer-card" style="display:none">
+    <h2><span class="n">6</span> Interactive viewer</h2>
+    <p class="lead">All steps complete. Explore tree-crown phenology below.</p>
+    <div class="viewer-wrap">
+      <iframe id="nr-viewer-frame" src="" allowfullscreen></iframe>
+    </div>
+    <div class="viewer-bar">
+      <a id="nr-viewer-link" href="#" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">Open full-screen ↗</a>
+      <a id="nr-browse-files" href="#" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">Browse all files ↗</a>
+      <a id="nr-info-link" href="#" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">Download info file</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>Phenology Pipeline · drone imagery to interactive crown viewer · automated analysis</footer>
+
+<script>
+const API = '';
+
+// ==== AUTH GUARD ============================================================
+const DPM_TOKEN = localStorage.getItem('dpm_token');
+if (!DPM_TOKEN) { window.location.href = '/'; }
+const DPM_USER = JSON.parse(localStorage.getItem('dpm_user') || 'null');
+
+const _origFetch = window.fetch;
+window.fetch = function (url, opts = {}) {
+  if (typeof url === 'string' && url.includes('/api/') && DPM_TOKEN) {
+    opts.headers = { ...(opts.headers || {}), 'Authorization': 'Bearer ' + DPM_TOKEN };
+  }
+  return _origFetch(url, opts).then(res => {
+    if (res.status === 401) {
+      localStorage.removeItem('dpm_token');
+      localStorage.removeItem('dpm_user');
+      window.location.href = '/';
+    }
+    return res;
+  });
+};
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { clearInterval(pollTimer); pollTimer = null; }
+});
+
+function dpmSignOut() {
+  localStorage.removeItem('dpm_token');
+  localStorage.removeItem('dpm_user');
+  window.location.href = '/';
+}
+
+function toggleAvatarDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('nav-dropdown').classList.toggle('open');
+}
+document.addEventListener('click', () => {
+  document.getElementById('nav-dropdown').classList.remove('open');
+});
+
+window.addEventListener('load', () => {
+  if (!DPM_USER) return;
+  const email    = DPM_USER.email    || '';
+  const name     = DPM_USER.name     || email.split('@')[0] || 'User';
+  const pic      = DPM_USER.picture  || '';
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('nav-user-wrap').setAttribute('data-name', name);
+  const av = document.getElementById('nav-avatar');
+  if (pic) {
+    av.innerHTML = `<img src="${pic}" alt="${name}" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+  } else {
+    document.getElementById('av-initials').textContent = initials;
+  }
+  document.getElementById('dd-email').textContent = email;
+});
+// ===========================================================================
+
+let pollTimer = null, logVisible = false;
+let nrTifs = [];
+
+// ── Shared utilities ──
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function fmtSize(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+  return (n/1048576).toFixed(1) + ' MB';
+}
+
+function getVal(id, defaultVal = '') {
+  const el = document.getElementById(id);
+  return el ? el.value : defaultVal;
+}
+function getNumVal(id, defaultVal = 0) {
+  const el = document.getElementById(id);
+  if (!el || el.value === '' || el.value === null) return defaultVal;
+  const parsed = parseFloat(el.value);
+  return isNaN(parsed) ? defaultVal : parsed;
+}
+function getBoolVal(id, defaultVal = false) {
+  const el = document.getElementById(id);
+  return el ? el.checked : defaultVal;
+}
+
+function appendLog(lines, elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = lines.map(l => {
+    const cls = l.includes('FAILED') || l.includes('ERROR') ? 'log-err' : l.includes('complete') || l.includes('===') ? 'log-ok' : '';
+    return `<span class="${cls}">${escHtml(l)}</span>`;
+  }).join('\n');
+  el.scrollTop = el.scrollHeight;
+}
+
+function toggleLog() {
+  logVisible = !logVisible;
+  document.getElementById('nr-log').style.display = logVisible ? 'block' : 'none';
+}
+
+// ── Progress bar ──
+const STEP_TOTAL_LABEL = {
+  '00_discover_oms':'Discovering orthomosaics',
+  '01_crown_detection':'Detecting crowns',
+  '02_crown_tracking':'Tracking crowns across dates',
+  '03_phenology_analysis':'Computing phenology',
+  '03b_phenophase_classification':'Classifying phenophase',
+  '04a_cog_tiling':'Generating tiles',
+  '04b_interactive_viz':'Building viewer',
+};
+
+function resetFlow(prefix) {
+  const L=document.getElementById(`pbar-${prefix}-label`);
+  const P=document.getElementById(`pbar-${prefix}-pct`);
+  const F=document.getElementById(`pbar-${prefix}-fill`);
+  const T=document.getElementById(`pbar-${prefix}-track`);
+  const S=document.getElementById(`pbar-${prefix}-sub`);
+  if(L) L.textContent='Waiting…';
+  if(P) P.textContent='0%';
+  if(F){ F.style.width='0%'; F.className='pbar-fill'; }
+  if(T) T.className='pbar-track';
+  if(S) S.innerHTML='';
+}
+
+function updateFlow(prefix, run) {
+  const L=document.getElementById(`pbar-${prefix}-label`);
+  const P=document.getElementById(`pbar-${prefix}-pct`);
+  const F=document.getElementById(`pbar-${prefix}-fill`);
+  const T=document.getElementById(`pbar-${prefix}-track`);
+  const S=document.getElementById(`pbar-${prefix}-sub`);
+  if(!F) return;
+
+  const status = run.status;
+  const step   = run.current_step || null;
+  let prog = (typeof run.step_progress === 'number') ? run.step_progress : 0;
+  let pct  = Math.round(prog * 100);
+  const omCur = run.om_current || 0;
+  const omTot = run.om_total   || 0;
+  const detail = run.step_detail || '';
+
+  let labelText = step ? (STEP_TOTAL_LABEL[step] || run.step_label || step) : 'Starting…';
+  if (status === 'done')   { pct = 100; labelText = 'Pipeline complete'; }
+  else if (status === 'failed') { labelText = 'Failed — ' + (STEP_TOTAL_LABEL[step] || step || 'unknown step'); }
+
+  F.className = 'pbar-fill' + (status === 'failed' ? ' fail' : '');
+  const indet = (status === 'running' && pct <= 0 && omTot === 0);
+  if (T) T.className = 'pbar-track' + (indet ? ' indet' : '');
+  F.style.width = indet ? '' : Math.max(0, Math.min(100, pct)) + '%';
+
+  if (L) L.textContent = labelText;
+  if (P) P.textContent = indet ? '' : pct + '%';
+
+  if (S) {
+    let sub = '';
+    if (omTot > 0) {
+      sub = `<span class="om">OM ${omCur} / ${omTot}</span>`;
+      if (detail) sub += ` · ${escHtml(detail)}`;
+    } else if (detail) {
+      sub = escHtml(detail);
+    } else if (status === 'running') {
+      sub = 'Working…';
+    }
+    S.innerHTML = sub;
+  }
+}
+
+// ── Threshold conversion ──
+function toThreshTag(val) {
+  const s = String(val).trim();
+  if (s.startsWith('conf_')) return s;
+  try {
+    const num = parseFloat(s);
+    if (isNaN(num) || num < 0 || num > 100) return 'conf_0p45';
+    const conf = num / 100;
+    return 'conf_' + conf.toFixed(2).replace('0.', '0p').replace('.', 'p');
+  } catch (e) { return 'conf_0p45'; }
+}
+
+// ── Dropzone ──
+const nrDz = document.getElementById('nr-dz');
+nrDz.addEventListener('dragover', e => { e.preventDefault(); nrDz.classList.add('drag'); });
+nrDz.addEventListener('dragleave', () => nrDz.classList.remove('drag'));
+nrDz.addEventListener('drop', e => { e.preventDefault(); nrDz.classList.remove('drag'); nrAddTifs(e.dataTransfer.files); });
+
+function nrUpdateExcludeList() {
+  const container = document.getElementById('nr-exclude-list');
+  if (!container) return;
+  const stems = nrTifs.map(f => f.name.replace(/\.(tif|tiff)$/i, ''));
+  if (stems.length === 0) {
+    container.innerHTML = '<span style="color:var(--text-muted);font-size:12px">Upload TIFs to see exclude options</span>';
+    return;
+  }
+  container.innerHTML = '';
+  stems.forEach(stem => {
+    const div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.gap = '8px';
+    div.innerHTML = `
+      <input type="checkbox" class="nr-exclude-checkbox" value="${stem}" style="width:18px;height:18px;cursor:pointer"/>
+      <label style="cursor:pointer;font-size:12px;flex:1;margin:0">${stem}</label>
+    `;
+    container.appendChild(div);
+    div.querySelector('input').addEventListener('change', nrUpdateExcludeField);
+  });
+}
+
+function nrUpdateExcludeField() {
+  const checked = Array.from(document.querySelectorAll('.nr-exclude-checkbox:checked'))
+    .map(el => el.value).join(',');
+  document.getElementById('nr-exclude').value = checked;
+}
+
+function nrAddTifs(fl) {
+  for (const f of fl) {
+    if (!/\.(tif|tiff)$/i.test(f.name)) continue;
+    if (nrTifs.find(x => x.name === f.name)) continue;
+    nrTifs.push({file: f, name: f.name, size: f.size, date: ''});
+  }
+  document.getElementById('nr-name-err').style.display = 'none';
+  nrTifs.sort((a, b) => a.name.localeCompare(b.name));
+  nrRenderTifs();
+  nrUpdateExcludeList();
+}
+
+function nrRemoveTif(n) { nrTifs = nrTifs.filter(f => f.name !== n); nrRenderTifs(); nrUpdateExcludeList(); }
+
+function nrRenderTifs() {
+  const el = document.getElementById('nr-flist');
+  if (!nrTifs.length) { el.innerHTML = ''; document.getElementById('nr-fsummary').textContent = ''; return; }
+  el.innerHTML = nrTifs.map((f, i) =>
+    `<div class="frow">` +
+      `<span class="fn">${escHtml(f.name)}</span>` +
+      `<span class="fs">${fmtSize(f.size)}</span>` +
+      `<input class="fdate" type="date" ` +
+        `value="${f.date ? f.date.split('/').reverse().join('-') : ''}" data-idx="${i}" onchange="nrDateChanged(this)" />` +
+      `<button class="fd" onclick="nrRemoveTif('${escHtml(f.name)}')">×</button>` +
+    `</div>`
+  ).join('');
+  const tot = nrTifs.reduce((s, f) => s + f.size, 0);
+  const omCount = nrTifs.length;
+  const datesEntered = nrTifs.filter(f => f.date && f.date.length === 10).length;
+  const summEl = document.getElementById('nr-fsummary');
+  if (omCount < 5) {
+    summEl.textContent = `${omCount} of 5 required observation months uploaded`;
+    summEl.style.color = 'var(--warn)';
+  } else {
+    summEl.textContent = `${omCount} file${omCount !== 1 ? 's' : ''} · ${fmtSize(tot)} · ${datesEntered}/${omCount} dates entered`;
+    summEl.style.color = datesEntered < omCount ? 'var(--warn)' : 'var(--text-muted)';
+  }
+}
+
+function nrDateChanged(el) {
+  const idx = parseInt(el.dataset.idx);
+  const val = el.value;
+  if (val) {
+    const [y, m, d] = val.split('-');
+    nrTifs[idx].date = d + '/' + m + '/' + y;
+  } else {
+    nrTifs[idx].date = '';
+  }
+  const datesEntered = nrTifs.filter(f => f.date && f.date.length === 10).length;
+  const omCount = nrTifs.length;
+  const tot = nrTifs.reduce((s, f) => s + f.size, 0);
+  const summEl = document.getElementById('nr-fsummary');
+  if (omCount >= 5) {
+    summEl.textContent = `${omCount} file${omCount !== 1 ? 's' : ''} · ${fmtSize(tot)} · ${datesEntered}/${omCount} dates entered`;
+    summEl.style.color = datesEntered < omCount ? 'var(--warn)' : 'var(--text-muted)';
+  }
+}
+
+// ── Date modal ──
+let nrMissingDates = {};
+let nrActiveRunId  = null;
+
+function nrOpenDateModal(missingMap) {
+  const container = document.getElementById('nr-date-inputs-container');
+  container.innerHTML = '';
+  Object.keys(missingMap).forEach(filename => {
+    const row = document.createElement('div');
+    row.className = 'date-input-row';
+    row.innerHTML =
+      `<span class="om-name" title="${filename}">${filename}</span>` +
+      `<input type="date" data-filename="${filename}" class="nr-date-input"/>`;
+    container.appendChild(row);
+  });
+  const bd = document.getElementById('nr-date-modal-backdrop');
+  bd.style.display = 'flex';
+  const first = container.querySelector('input');
+  if (first) setTimeout(() => first.focus(), 80);
+}
+
+function nrCloseDateModal() {
+  document.getElementById('nr-date-modal-backdrop').style.display = 'none';
+  nrActiveRunId = null;
+}
+
+function nrFmtDate(inp) {
+  let v = inp.value.replace(/[^0-9]/g, '');
+  if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
+  if (v.length > 5) v = v.slice(0,5) + '/' + v.slice(5);
+  if (v.length > 10) v = v.slice(0,10);
+  inp.value = v;
+  inp.classList.remove('err');
+}
+
+async function nrConfirmMissingDates() {
+  const inputs = document.querySelectorAll('.nr-date-input');
+  const dates = {};
+  let valid = true;
+  inputs.forEach(inp => {
+    const v = inp.value;
+    if (!v) { inp.classList.add('err'); valid = false; return; }
+    const [yyyy, mm, dd] = v.split('-');
+    const dt = new Date(+yyyy, +mm - 1, +dd);
+    if (dt.getFullYear() !== +yyyy || dt.getMonth() !== +mm - 1 || dt.getDate() !== +dd) {
+      inp.classList.add('err'); valid = false; return;
+    }
+    inp.classList.remove('err');
+    dates[inp.dataset.filename] = dd + '/' + mm + '/' + yyyy;
+  });
+  if (!valid) return;
+
+  document.getElementById('nr-date-modal-backdrop').style.display = 'none';
+  const btn = document.getElementById('nr-upload-dates-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Starting pipeline…';
+  try {
+    const patchR = await fetch(`${API}/api/runs/${nrActiveRunId}/rename-dates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date_overrides: dates }),
+    });
+    if (!patchR.ok) throw new Error((await patchR.json()).detail || 'Rename failed');
+    await nrStartPipeline(nrActiveRunId);
+  } catch (e) {
+    document.getElementById('nr-preflight').innerHTML = `<b>Error:</b> ${e.message}`;
+    document.getElementById('nr-preflight').style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '▶ Run pipeline';
+  }
+}
+
+// ── Main flow: extract dates → upload → start ──
+async function nrExtractDates() {
+  const pf = document.getElementById('nr-preflight');
+  const btn = document.getElementById('nr-upload-dates-btn');
+
+  const runName = getVal('nr-name').trim().replace(/\s+/g, '_');
+  const msgs = [];
+  if (!runName)           msgs.push('Enter a run name first.');
+  if (nrTifs.length < 5) msgs.push(`⚠ Minimum 5 orthomosaics required (you have ${nrTifs.length}).`);
+
+  let allDatesValid = true;
+  document.querySelectorAll('.fdate').forEach(inp => {
+    const v = inp.value;
+    if (!v) { inp.classList.add('err'); allDatesValid = false; return; }
+    const [yyyy, mm, dd] = v.split('-');
+    const dt = new Date(+yyyy, +mm - 1, +dd);
+    if (dt.getFullYear() !== +yyyy || dt.getMonth() !== +mm - 1 || dt.getDate() !== +dd) {
+      inp.classList.add('err'); allDatesValid = false;
+    } else { inp.classList.remove('err'); }
+  });
+  if (!allDatesValid) msgs.push('Select a valid date for every file.');
+  if (msgs.length) { pf.innerHTML = msgs.join('<br/>'); pf.style.display = 'block'; return; }
+  pf.style.display = 'none';
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Uploading…';
+
+  try {
+    const r = await fetch(`${API}/api/runs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ run_name: runName }),
+    });
+    if (!r.ok) throw new Error('Could not create run');
+    const { id: runId } = await r.json();
+    nrActiveRunId = runId;
+
+    for (let i = 0; i < nrTifs.length; i++) {
+      btn.textContent = `⏳ Uploading ${i + 1}/${nrTifs.length}…`;
+      const fd = new FormData();
+      fd.append('file', nrTifs[i].file);
+      const ur = await fetch(`${API}/api/runs/${runId}/upload`, { method: 'POST', body: fd });
+      if (!ur.ok) throw new Error(`Upload failed: ${nrTifs[i].name}`);
+    }
+
+    btn.textContent = '⏳ Applying dates…';
+    const dateMap = {};
+    nrTifs.forEach(f => { dateMap[f.name] = f.date; });
+
+    const dr = await fetch(`${API}/api/runs/${runId}/apply-dates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date_map: dateMap }),
+    });
+    if (!dr.ok) throw new Error((await dr.json()).detail || 'Date mapping failed');
+
+    btn.textContent = '⏳ Starting pipeline…';
+    await nrStartPipeline(runId);
+  } catch (e) {
+    pf.innerHTML = `<b>Error:</b> ${e.message}`;
+    pf.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = '▶ Run pipeline';
+    nrActiveRunId = null;
+  }
+}
+
+// ── Lock / unlock form ──
+function nrLockForm() {
+  document.querySelectorAll('.card input, .card select, .card textarea, .card button').forEach(el => {
+    if (el.closest('.hdr-nav')) return;
+    if (el.id === 'nr-toggle-log-btn') return;
+    el.dataset._wasDisabled = el.disabled ? '1' : '';
+    el.disabled = true;
+  });
+  document.querySelectorAll('.card').forEach(card => {
+    if (!card.contains(document.getElementById('nr-flow'))) {
+      card.classList.add('form-locked');
+    }
+  });
+  const banner = document.getElementById('nr-running-banner');
+  if (banner) banner.classList.add('show');
+}
+
+function nrUnlockForm() {
+  document.querySelectorAll('.card input, .card select, .card textarea, .card button').forEach(el => {
+    if (el.closest('.hdr-nav')) return;
+    if (el.dataset._wasDisabled !== '1') el.disabled = false;
+    delete el.dataset._wasDisabled;
+  });
+  document.querySelectorAll('.card.form-locked').forEach(card => card.classList.remove('form-locked'));
+  const banner = document.getElementById('nr-running-banner');
+  if (banner) banner.classList.remove('show');
+}
+
+// ── Start pipeline ──
+async function nrStartPipeline(runId) {
+  document.getElementById('nr-flow').style.display = 'block';
+  document.getElementById('nr-alert').innerHTML = '';
+  nrLockForm();
+
+  try {
+    const wVeg = getNumVal('nr-w-veg-amp', 0.35);
+    const wDep = getNumVal('nr-w-depth', 0.30);
+    const wGcc = getNumVal('nr-w-gcc-amp', 0.25);
+    const wTex = getNumVal('nr-w-tex', 0.10);
+    const fullParams = {
+      model_type:          getVal('nr-model-select', '250312_flexi'),
+      tile_width:          getNumVal('nr-tile-w', 25),
+      tile_height:         getNumVal('nr-tile-h', 25),
+      tile_buffer:         getNumVal('nr-tile-buf', 15),
+      fixed_iou:           getNumVal('nr-iou', 0.7),
+      base_threshold_tag:  String(getNumVal('nr-base-tag', 45)),
+      align_threshold_tag: String(getNumVal('nr-align-tag', 65)),
+      align_method:        'pcc_tiled',
+      w_veg_amp:           wVeg,
+      w_depth:             wDep,
+      w_gcc_amp:           wGcc,
+      w_tex:               wTex,
+      underlay_om:         getVal('nr-underlay', 'last'),
+      exclude_stems:       getVal('nr-exclude').trim(),
+      skip_viz:            getBoolVal('nr-skip-viz', true),
+    };
+    await fetch(`${API}/api/runs/${runId}/params`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fullParams),
+    });
+
+    const r = await fetch(`${API}/api/runs/${runId}/start`, { method: 'POST' });
+    if (!r.ok) throw new Error((await r.json()).detail || 'Pipeline start failed');
+  } catch (e) {
+    document.getElementById('nr-alert').innerHTML =
+      `<div class="alert alert-err"><b>Failed to start pipeline.</b> ${e.message}</div>`;
+    nrUnlockForm();
+    document.getElementById('nr-upload-dates-btn').disabled = false;
+    document.getElementById('nr-upload-dates-btn').textContent = '▶ Run pipeline';
+    return;
+  }
+
+  nrPollRun(runId);
+}
+
+async function nrPollRun(runId) {
+  const btn = document.getElementById('nr-upload-dates-btn');
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const r   = await fetch(`${API}/api/runs/${runId}`);
+      const run = await r.json();
+      const lr  = await fetch(`${API}/api/runs/${runId}/log?lines=200`);
+      const ld  = await lr.json();
+      appendLog(ld.lines || [], 'nr-log');
+      updateFlow('nrf', run);
+
+      if (run.status === 'done') {
+        clearInterval(pollTimer); pollTimer = null;
+        nrUnlockForm();
+        btn.disabled = false;
+        btn.textContent = '▶ Run pipeline';
+        const vUrl = `${API}/viewer/${runId}/index.html`;
+        document.getElementById('nr-alert').innerHTML =
+          `<div class="alert alert-ok"><b>Pipeline complete.</b> ` +
+          `<a href="${vUrl}" target="_blank" style="color:var(--accent);font-weight:600">Open viewer ↗</a></div>`;
+        document.getElementById('nr-viewer-card').style.display = 'block';
+        document.getElementById('nr-viewer-frame').src = vUrl;
+        document.getElementById('nr-viewer-link').href = vUrl;
+        document.getElementById('nr-browse-files').href = `/files/${runId}`;
+        document.getElementById('nr-info-link').href = `${API}/api/runs/${runId}/info`;
+        document.getElementById('nr-viewer-card').scrollIntoView({behavior:'smooth'});
+        window.open(vUrl, '_blank');
+      } else if (run.status === 'failed') {
+        clearInterval(pollTimer); pollTimer = null;
+        nrUnlockForm();
+        btn.disabled = false;
+        btn.textContent = '▶ Run pipeline';
+        document.getElementById('nr-alert').innerHTML =
+          `<div class="alert alert-err"><b>Pipeline failed.</b><br/>` +
+          `<pre style="margin-top:8px;font-size:11px;white-space:pre-wrap">${run.error_msg || ''}</pre></div>`;
+      }
+    } catch(e) { console.error('Poll error:', e); }
+  }, 3000);
+}
+</script>
+</body>
+</html>
