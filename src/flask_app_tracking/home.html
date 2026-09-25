@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Phenology Pipeline Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300;1,8..60,400&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-color: #f3f5f0;
+  --card-bg: #fafaf7;
+  --text-main: #2c3220;
+  --text-muted: #6b7560;
+  --border-color: #d4d9c8;
+  --primary: #1e2714;
+  --accent: #3d6b3a;
+  --accent-d: #2c5229;
+  --accent-l: #eef4eb;
+  --accent-mid: #5a8f56;
+  --warn: #8a6820;
+  --err: #8b3a2e;
+  --err-bg: #fdf2f0;
+  --err-border: #f0c4bc;
+  --ok: #2c6e3a;
+  --shadow-sm: 0 1px 3px 0 rgb(30 39 20 / 0.07);
+  --shadow-md: 0 4px 12px -2px rgb(30 39 20 / 0.10);
+  --radius: 9px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg-color);
+  color: var(--text-main);
+  font-family: 'DM Sans', sans-serif;
+  line-height: 1.65;
+  min-height: 100vh;
+}
+h1, h2, h3 { font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; color: var(--primary); letter-spacing: -0.01em; }
+.page { display: none; } .page.active { display: block; }
+
+/* header */
+header {
+  border-bottom: 1px solid var(--border-color);
+  background: #f7f9f4;
+  padding: 14px 20px;
+  box-shadow: var(--shadow-sm);
+}
+.hdr { max-width: 1020px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex: none; }
+.brand-icon svg { display: block; }
+header h1 { font-size: 20px; white-space: nowrap; cursor: pointer; font-weight: 600; letter-spacing: -0.02em; color: var(--primary); }
+.tag { font-size: 12px; color: var(--text-muted); font-style: italic; font-family: 'Source Serif 4', serif; letter-spacing: 0.01em; }
+.wrap { max-width: 1020px; margin: 0 auto; padding: 30px 20px 64px; }
+
+/* cards */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  margin: 0 0 18px;
+  box-shadow: var(--shadow-sm);
+}
+.card h2 { font-size: 16.5px; display: flex; align-items: center; gap: 10px; margin: 0 0 6px; }
+.card h2 .n {
+  font-size: 12px; color: var(--accent); background: var(--accent-l);
+  border: 1px solid rgba(61,107,58,0.22); border-radius: 6px;
+  width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', sans-serif; font-weight: 600;
+}
+.lead { color: var(--text-muted); font-size: 13.5px; margin: 0 0 16px; line-height: 1.6; font-family: 'Source Serif 4', serif; font-style: italic; font-weight: 300; }
+label { display: block; font-size: 12.5px; color: var(--primary); margin: 12px 0 4px; font-weight: 500; letter-spacing: 0.01em; }
+.hint { display: block; font-size: 11.5px; color: var(--text-muted); margin: 2px 0 6px; font-weight: 400; line-height: 1.45; }
+/* info button + tooltip next to a label */
+.info-wrap { position:relative; display:inline-flex; align-items:center; margin-left:6px; }
+.info-btn {
+  display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px;
+  border-radius:50%; background:#a8b0a0; color:#fff; font-size:10px; font-family:Georgia,serif;
+  font-style:italic; cursor:help; user-select:none; border:0; padding:0; line-height:1;
+  transition:background .15s;
+}
+.info-btn:hover { background:var(--accent); }
+.step-tip {
+  display:none; position:absolute; left:22px; top:50%; transform:translateY(-50%);
+  background:#1c2a20; color:#cfe8d4; padding:11px 14px; border-radius:6px; font-size:12.5px;
+  line-height:1.55; width:280px; z-index:400; font-weight:400; text-align:left;
+  box-shadow:0 4px 20px rgba(0,0,0,.3); font-style:normal;
+}
+.step-tip b { color:#9dd4a8; }
+.step-tip a { color:#9dd4a8; text-decoration:underline; }
+.info-wrap:hover .step-tip { display:block; }
+.step-tip::before {
+  content:none;
+}
+/* nav links in header */
+.hdr-nav { display:flex; align-items:center; gap:14px; margin-left:auto; }
+.hdr-nav a { color:var(--accent); text-decoration:none; font-size:13px; font-weight:600; white-space:nowrap; }
+.hdr-nav a:hover { text-decoration:underline; }
+/* avatar + dropdown */
+.nav-user { position:relative; display:flex; align-items:center; }
+.nav-avatar {
+  width:34px; height:34px; border-radius:50%;
+  background:var(--accent); color:#fff;
+  font-family:'Source Serif 4',serif; font-weight:600; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; border:2px solid transparent;
+  transition:border-color .15s, box-shadow .15s;
+  overflow:hidden; flex:none;
+}
+.nav-avatar:hover { border-color:var(--accent); box-shadow:0 0 0 3px rgba(61,107,58,.18); }
+.nav-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.nav-user-wrap { position:relative; }
+.nav-user-wrap::before {
+  content:attr(data-name);
+  position:absolute; top:calc(100% + 8px); right:0;
+  background:var(--primary); color:#fff;
+  font-size:12px; font-weight:500; white-space:nowrap;
+  padding:4px 10px; border-radius:5px; pointer-events:none;
+  opacity:0; transform:translateY(-4px);
+  transition:opacity .15s, transform .15s;
+  font-family:'DM Sans','Source Serif 4',sans-serif;
+  z-index:300;
+}
+.nav-user-wrap:hover::before { opacity:1; transform:translateY(0); }
+.nav-dropdown {
+  position:absolute; top:calc(100% + 10px); right:0;
+  background:#fff; border:1px solid var(--border-color);
+  border-radius:8px; box-shadow:0 8px 24px -4px rgba(30,39,20,.14);
+  min-width:220px; z-index:400;
+  display:none; flex-direction:column; overflow:hidden;
+}
+.nav-dropdown.open { display:flex; }
+.nav-dropdown-header {
+  padding:14px 16px 10px;
+  border-bottom:1px solid var(--border-color);
+}
+.nav-dropdown-header .dd-label {
+  font-size:10.5px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--text-muted); margin-bottom:3px;
+}
+.nav-dropdown-header .dd-email {
+  font-size:12.5px; color:var(--primary); font-weight:500;
+  word-break:break-all; font-family:'DM Mono',monospace;
+}
+.nav-dropdown-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 16px; font-size:13.5px; font-weight:500;
+  cursor:pointer; border:none; background:none;
+  width:100%; text-align:left; font-family:inherit;
+  text-decoration:none; transition:background .12s; color:var(--primary);
+}
+.nav-dropdown-item:hover { background:#f7f9f4; }
+.nav-dropdown-item.danger { color:#c0392b; }
+.nav-dropdown-item.danger:hover { background:#fdf2f2; }
+/* dim + lock the whole config form while a pipeline is running */
+.form-locked { opacity:0.55; pointer-events:none; filter:grayscale(0.3); }
+.running-banner {
+  display:none; background:var(--green-l, #e7f0e4); border:1px solid var(--accent);
+  color:var(--green-d, #2b5e33); border-radius:8px; padding:12px 16px; margin:14px 0;
+  font-size:13.5px; font-weight:600;
+}
+.running-banner.show { display:block; }
+input, select {
+  width: 100%; padding: 8px 11px; border: 1px solid var(--border-color); border-radius: 6px;
+  background: #f5f7f2; font-family: 'DM Sans', sans-serif; color: var(--text-main); font-size: 13.5px;
+  transition: all 0.18s ease;
+}
+input:focus, select:focus { outline: none; border-color: var(--accent-mid); background: #fff; box-shadow: 0 0 0 3px rgba(61,107,58,0.12); }
+code { font-family: 'DM Mono', monospace; font-size: 12px; background: #e8ecdf; border-radius: 4px; padding: 1px 5px; color: var(--accent-d); }
+.grid1 { display: grid; grid-template-columns: 1fr; gap: 8px 16px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 16px; }
+@media(max-width: 600px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+.btn {
+  font-family: 'DM Sans', sans-serif; font-weight: 500; border: 0; border-radius: 7px; padding: 10px 20px; cursor: pointer;
+  background: var(--accent); color: #fff; transition: all 0.18s; display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px;
+  box-shadow: 0 1px 3px rgb(30 39 20 / 0.18), 0 0 0 1px rgb(30 39 20 / 0.08);
+  letter-spacing: 0.01em;
+}
+.btn:hover { background: var(--accent-d); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-ghost { background: transparent; color: var(--accent); border: 1px solid var(--border-color); box-shadow: none; }
+.btn-ghost:hover { background: var(--accent-l); border-color: var(--accent-mid); box-shadow: none; transform: none; }
+.btn-sm { padding: 6px 13px; font-size: 12.5px; }
+.btn-danger { background: transparent; color: var(--err); border: 1px solid var(--err-border); box-shadow: none; }
+.btn-danger:hover { background: var(--err-bg); transform: none; }
+.btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 18px; }
+.alert { padding: 12px 16px; border-radius: 7px; font-size: 13.5px; line-height: 1.55; border: 1px solid; margin-top: 12px; }
+.alert-ok { background: #edf7ee; border-color: #b4d9b8; color: #1e5a28; }
+.alert-err { background: var(--err-bg); border-color: var(--err-border); color: #7a2a1e; }
+.alert-warn { background: #fdf8ec; border-color: #e8d48a; color: #6b4d10; }
+details > summary { cursor: pointer; font-size: 13.5px; font-weight: 500; color: var(--primary); padding: 9px 0; user-select: none; list-style: none; font-family: 'DM Sans', sans-serif; letter-spacing: 0.01em; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: "▸ "; font-size: 11px; color: var(--accent-mid); }
+details[open] > summary::before { content: "▾ "; }
+details > .inner { padding: 10px 0 0; }
+hr.subtle { border: 0; border-top: 1px solid var(--border-color); margin: 16px 0; }
+
+.section-label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--accent); margin-bottom: 4px; display: block; }
+
+.step-flow { display: flex; margin: 0 0 6px; padding: 10px 0; align-items: flex-start; justify-content: space-between; }
+.sf-step { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-width: 0; }
+/* SVG ring bubble */
+.sf-bubble { position: relative; width: 48px; height: 48px; flex: none; }
+.sf-bubble svg { position: absolute; top: 0; left: 0; width: 48px; height: 48px; transform: rotate(-90deg); }
+.sf-bubble .sf-inner {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; font-family: 'DM Mono', monospace;
+  color: var(--text-muted); line-height: 1;
+}
+/* ring track */
+.sf-track { fill: none; stroke: #e8e5db; stroke-width: 3; }
+/* background circle */
+.sf-bg { transition: fill 0.3s; }
+/* ring progress arc */
+.sf-arc { fill: none; stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 0.4s ease, stroke 0.3s; }
+/* states */
+.sf-step.idle   .sf-bg  { fill: var(--card-bg); }
+.sf-step.idle   .sf-arc { stroke: transparent; }
+.sf-step.idle   .sf-inner { color: var(--text-muted); font-size: 11px; }
+.sf-step.busy   .sf-bg  { fill: #eff6ff; }
+.sf-step.busy   .sf-arc { stroke: #3b82f6; }
+.sf-step.busy   .sf-inner { color: #3b82f6; font-size: 13px; font-weight: 800; }
+.sf-step.done   .sf-bg  { fill: var(--accent); }
+.sf-step.done   .sf-arc { stroke: var(--accent); }
+.sf-step.done   .sf-track { stroke: var(--accent); }
+.sf-step.done   .sf-inner { color: #fff; font-size: 13px; font-weight: 800; }
+.sf-step.fail   .sf-bg  { fill: var(--err); }
+.sf-step.fail   .sf-arc { stroke: var(--err); }
+.sf-step.fail   .sf-track { stroke: var(--err); }
+.sf-step.fail   .sf-inner { color: #fff; font-size: 13px; }
+/* step label and detail */
+.sf-lbl { font-size: 10px; font-weight: 600; color: var(--text-muted); white-space: nowrap; text-align: center; line-height: 1.2; }
+.sf-detail { font-size: 9px; color: #3b82f6; white-space: nowrap; font-family: 'DM Mono', monospace; min-height: 12px; text-align: center; }
+.sf-step.done .sf-lbl { color: var(--accent); }
+.sf-step.done .sf-detail { color: var(--accent); }
+.sf-step.fail .sf-lbl { color: var(--err); }
+.sf-step.fail .sf-detail { color: var(--err); }
+/* connector */
+.sf-sep { height: 2px; background: var(--border-color); flex: 1; min-width: 8px; max-width: 40px; margin-top: 24px; transition: background 0.3s; }
+.sf-sep.done { background: var(--accent); }
+/* pulsing for in-progress */
+.sf-step.busy .sf-arc { animation: arcPulse 1.4s ease-in-out infinite; }
+@keyframes arcPulse {
+  0%,100% { opacity: 1; }
+  50%     { opacity: 0.5; }
+}
+@keyframes arcSpin {
+  0%   { transform: rotate(-90deg); }
+  100% { transform: rotate(270deg); }
+}
+
+
+/* ── labeled progress bar (shadcn-style) ── */
+.pbar-wrap { margin: 6px 0 12px; }
+.pbar-top { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:7px; }
+.pbar-label { font-size:13.5px; font-weight:600; color:var(--text-main); font-family:'Source Serif 4',serif; }
+.pbar-pct { font-size:12.5px; font-weight:700; color:var(--accent); font-family:'DM Mono',monospace; flex:none; }
+.pbar-track { position:relative; height:9px; border-radius:999px; background:var(--border-color); overflow:hidden; }
+.pbar-fill { position:absolute; left:0; top:0; bottom:0; width:0%; border-radius:999px;
+  background:var(--accent); transition:width .5s cubic-bezier(.4,0,.2,1); }
+.pbar-fill.fail { background:var(--err); }
+.pbar-track.indet .pbar-fill { width:35% !important;
+  animation:pbarIndet 1.25s ease-in-out infinite; }
+@keyframes pbarIndet { 0%{left:-35%} 100%{left:100%} }
+.pbar-sub { margin-top:7px; font-size:11.5px; color:var(--text-muted);
+  font-family:'DM Mono',monospace; min-height:14px; }
+.pbar-sub .om { color:var(--accent); font-weight:600; }
+
+.run-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 16px; }
+.run-card {
+  background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius);
+  padding: 18px; cursor: pointer; transition: all 0.18s ease; position: relative;
+  box-shadow: var(--shadow-sm);
+}
+.run-card:hover { border-color: var(--accent-mid); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.run-card h3 { font-size: 14.5px; margin: 0 0 5px; padding-right: 76px; word-break: break-all; font-family: 'Source Serif 4', serif; font-weight: 600; }
+.run-card .rc-meta { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.rc-status {
+  position: absolute; top: 16px; right: 14px; font-size: 10.5px; font-weight: 600;
+  padding: 3px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.st-done { background: #ddf0df; color: #1e5a28; border: 1px solid #b4d9b8; }
+.st-failed { background: var(--err-bg); color: #7a2a1e; border: 1px solid var(--err-border); }
+.st-running { background: #fdf8ec; color: #6b4d10; border: 1px solid #e8d48a; }
+.st-created { background: #eef0eb; color: var(--text-muted); border: 1px solid var(--border-color); }
+.new-run-card {
+  background: #f0f3eb; border: 2px dashed var(--border-color); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px; min-height: 120px; cursor: pointer; box-shadow: none;
+}
+.new-run-card:hover { border-color: var(--accent-mid); background: var(--accent-l); transform: none; box-shadow: none; }
+.plus { font-size: 26px; line-height: 1; color: var(--accent); }
+
+.dropzone {
+  border: 2px dashed var(--border-color); border-radius: var(--radius); padding: 32px 20px; text-align: center;
+  cursor: pointer; transition: all 0.18s; background: #f0f3eb; position: relative;
+}
+.dropzone.drag { border-color: var(--accent-mid); background: var(--accent-l); }
+.dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.dz-icon { font-size: 28px; display: block; margin: 0 0 8px; }
+.dz-txt { font-size: 14px; color: var(--primary); font-weight: 500; }
+.dz-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-family: 'Source Serif 4', serif; font-style: italic; }
+.flist { display: flex; flex-direction: column; gap: 5px; margin-top: 14px; }
+.frow {
+  display: flex; align-items: center; gap: 10px; background: #f5f7f2; border: 1px solid var(--border-color);
+  border-radius: 6px; padding: 7px 12px; font-size: 13px; box-shadow: var(--shadow-sm);
+}
+.frow .fn { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; font-family: 'DM Mono', monospace; font-size: 12px; }
+.frow .fs { color: var(--text-muted); flex: none; font-size: 11.5px; }
+.frow .fd { background: none; border: 0; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 0 4px; flex: none; }
+.frow .fd:hover { color: var(--err); }
+.frow .fdate {
+  width: 140px; flex: none; padding: 5px 10px; font-size: 12px; font-family: 'DM Sans', sans-serif;
+  border: 1px solid var(--border-color); border-radius: 6px; background: #fff; color: var(--text-main);
+  cursor: pointer; transition: border-color .15s, box-shadow .15s;
+}
+.frow .fdate:focus { outline: none; border-color: var(--accent-mid); box-shadow: 0 0 0 2px rgba(61,107,58,0.12); }
+.frow .fdate.err { border-color: var(--err); background: #fff5f5; }
+.frow .fdate::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+.frow .fdate::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+.fsummary { font-size: 12px; color: var(--text-muted); margin-top: 8px; font-style: italic; font-family: 'Source Serif 4', serif; }
+
+.log-box {
+  background: #141a0d; color: #c8d4b8; border-radius: var(--radius); padding: 14px;
+  font: 12px/1.6 'DM Mono', ui-monospace, monospace;
+  max-height: 250px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-top: 12px;
+  box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.25);
+}
+.log-err { color: #f4a49a; } .log-ok { color: #86d9a0; }
+
+.viewer-wrap { border: 1px solid var(--border-color); border-radius: var(--radius); overflow: hidden; margin-top: 16px; }
+.viewer-wrap iframe { display: block; width: 100%; height: 75vh; border: 0; background: #f5f7f2; }
+.viewer-bar {
+  display: flex; justify-content: flex-end; gap: 10px; padding: 10px 14px;
+  border-top: 1px solid var(--border-color); background: #f0f3eb;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+footer {
+  color: var(--text-muted); font-size: 12px; text-align: center; padding: 10px 0 34px;
+  font-family: 'Source Serif 4', serif; font-style: italic; font-weight: 300;
+  border-top: 1px solid var(--border-color); margin-top: 10px;
+}
+@media(max-width: 640px) { header h1 { font-size: 18px; } .tag { display: none; } .wrap { padding: 18px 14px 40px; } }
+/* date modal */
+.date-input-row { display:grid; grid-template-columns:1fr 140px; gap:10px; align-items:center; background:#f8faf6; border:1px solid var(--border-color); border-radius:6px; padding:10px 12px; }
+.date-input-row .om-name { font-size:12px; font-weight:500; font-family:'DM Mono',monospace; color:var(--text-main); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.date-input-row input[type="date"] { font-size:12px; padding:6px 10px; border-radius:6px; border:1px solid var(--border-color); background:#fff; font-family:'DM Sans',sans-serif; width:100%; cursor:pointer; color:var(--text-main); transition:border-color .15s,box-shadow .15s; }
+.date-input-row input[type="date"]:focus { outline:none; border-color:var(--accent-mid); box-shadow:0 0 0 2px rgba(61,107,58,0.12); }
+.date-input-row input[type="date"].err { border-color:var(--err); background:var(--err-bg,#fff5f5); }
+.date-input-row input::-webkit-calendar-picker-indicator { cursor:pointer; opacity:0.6; }
+.date-input-row input::-webkit-calendar-picker-indicator:hover { opacity:1; }
+</style>
+</head>
+<body>
+
+<div id="pg-dash" class="page active">
+  <header><div class="hdr">
+    
+    <span class="brand" onclick="window.location.href='/'" style="cursor:pointer">
+      <span class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 22c4-4 8-7.5 8-12a8 8 0 10-16 0c0 4.5 4 8 8 12z"/><circle cx="12" cy="10" r="3"/></svg>
+      </span>
+      <span>
+        <h1>Drone Phenology Monitoring</h1>
+      </span>
+    </span>
+    <span class="hdr-nav">
+      <a href="/parameter-guide">Parameter Guide</a>
+      <a href="#" onclick="scrollToPrereq(); return false;" style="color:var(--accent);text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap">Pre-requisites</a>
+      <div class="nav-user-wrap" id="nav-user-wrap" data-name="">
+        <div class="nav-avatar" id="nav-avatar-main" onclick="toggleAvatarDropdown(event)">
+          <span id="av-initials-main"></span>
+        </div>
+        <div class="nav-dropdown" id="nav-dropdown-main">
+          <div class="nav-dropdown-header">
+            <div class="dd-label">Signed in as</div>
+            <div class="dd-email" id="dd-email-main"></div>
+          </div>
+          <button class="nav-dropdown-item danger" onclick="dpmSignOut()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign out
+          </button>
+        </div>
+      </div>
+    </span>
+  </div></header>
+  <div class="wrap">
+    <div class="card">
+      <h2>Runs</h2>
+      <p class="lead">Each run is one batch of orthomosaics through the full 6-step pipeline. Click a run to view it, or create a new one.</p>
+      <div class="run-grid" id="runs-grid">
+        <div class="run-card new-run-card" onclick="window.location.href='/new-run'">
+          <span class="plus">＋</span>
+          <div style="font-size:14px; font-weight:500; color:var(--accent)">New run</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="prereq-section" style="margin-top:18px">
+      <h2 style="margin-bottom:4px;font-size:22px">Before you start</h2>
+      <p class="lead" style="margin-bottom:20px">Make sure you have the following ready before creating a run. The pipeline expects all inputs to be consistent across survey dates.</p>
+
+      <!-- Separator -->
+      <div style="height:1px;background:var(--border-color);margin-bottom:20px"></div>
+
+      <!-- Orthomosaics -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:6px">Orthomosaics</div>
+        <p style="font-size:13.5px;line-height:1.7;color:var(--text-main);margin:0">You need <strong>at least 5 georeferenced orthomosaics</strong> of the same site, each from a different survey date. Fewer dates produce unreliable phenology curves — 5 is the practical minimum, and more is always better. Each file must be a GeoTIFF (<code>.tif</code>) with a valid CRS and spatial extent. Build your orthomosaics from drone imagery using a tool like OpenDroneMap (WebODM) or Pix4D before uploading here.</p>
+      </div>
+
+      <!-- Separator -->
+      <div style="height:1px;background:var(--border-color);margin-bottom:20px"></div>
+
+      <!-- Consistent flight plan -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:6px">Consistent flight plan</div>
+        <p style="font-size:13.5px;line-height:1.7;color:var(--text-main);margin:0">All orthomosaics must cover the <strong>same geographical area</strong>. Fly the same planned flight path for every survey date using a tool like Map Pilot Pro. The pipeline aligns dates using detected crown anchors — if the spatial overlap between dates is too low, alignment will fail. Aim for nadir imagery at <strong>3–5 cm/px ground sampling distance</strong> and 80% front and side overlap.</p>
+      </div>
+
+      <!-- Separator -->
+      <div style="height:1px;background:var(--border-color);margin-bottom:20px"></div>
+
+      <!-- Survey dates -->
+      <div style="margin-bottom:20px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:6px">Survey dates</div>
+        <p style="font-size:13.5px;line-height:1.7;color:var(--text-main);margin:0">Dates must span a <strong>full seasonal cycle</strong> to capture leaf-on, leaf-off, and transitional phases. For deciduous trees in a temperate climate, this means surveys spread across at least one growing season — ideally covering winter (bare crowns), spring flush, summer canopy, and autumn senescence. The pipeline derives phenophase labels from the temporal signal, so surveys clustered within a single month will not produce meaningful results.</p>
+      </div>
+
+      <!-- Separator -->
+      <div style="height:1px;background:var(--border-color);margin-bottom:20px"></div>
+
+      <div style="padding:12px 16px;background:#eef4eb;border:1px solid #cfe0ca;border-radius:6px;font-size:13px;color:#2c5229;line-height:1.6">
+        <strong>New to drone surveying?</strong> The <a href="/drone-guide" style="color:var(--accent);font-weight:600">Drone Flight Guide</a> walks through designing a flight path in Map Pilot Pro, uploading it to a DJI drone, flying the mission, and building orthomosaics in WebODM. The <a href="/walkthrough" style="color:var(--accent);font-weight:600">Pipeline Walkthrough</a> explains what each step does and what parameters to tune.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pg-view" class="page">
+  <header><div class="hdr">
+    
+    <span class="brand" onclick="window.location.href='/'" style="cursor:pointer">
+      <span class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 22c4-4 8-7.5 8-12a8 8 0 10-16 0c0 4.5 4 8 8 12z"/><circle cx="12" cy="10" r="3"/></svg>
+      </span>
+      <span><h1>Drone Phenology Monitoring</h1></span>
+    </span>
+    <button class="btn btn-ghost btn-sm" onclick="goTo('dash')">← All runs</button>
+  </div></header>
+  <div class="wrap">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <h2 id="vr-title" style="font-size:22px;margin:0 0 6px"></h2>
+          <div class="muted" id="vr-meta" style="font-size:13.5px; color:var(--text-muted)"></div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteRun()">Delete run</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Pipeline status</h2>
+            <div class="pbar-wrap"><div class="pbar-top"><span class="pbar-label" id="pbar-vrf-label">Waiting…</span><span class="pbar-pct" id="pbar-vrf-pct">0%</span></div><div class="pbar-track" id="pbar-vrf-track"><div class="pbar-fill" id="pbar-vrf-fill"></div></div><div class="pbar-sub" id="pbar-vrf-sub"></div></div>
+      <div id="vr-status-msg" style="margin-top:12px;font-size:14px"></div>
+      <div class="log-box" id="vr-log" style="display:none;margin-top:16px"></div>
+      <button class="btn btn-ghost btn-sm" id="vr-log-btn" onclick="toggleVrLog()" style="margin-top:12px;display:none">Show log</button>
+    </div>
+
+    <div class="card">
+      <h2>Files</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <a id="vr-browse-btn" href="#" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">Browse all files ↗</a>
+        <a id="vr-dl-output" href="#" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">⬇ Download outputs (zip)</a>
+        <a id="vr-dl-uploads" href="#" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">⬇ Download uploads (zip)</a>
+      </div>
+    </div>
+
+    <div class="card" id="vr-viewer-card" style="display:none">
+      <h2>Interactive viewer</h2>
+      <div class="viewer-wrap">
+        <iframe id="vr-viewer-frame" src="" allowfullscreen></iframe>
+      </div>
+      <div class="viewer-bar">
+        <a id="vr-viewer-link" href="#" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">Open full-screen ↗</a>
+        <a id="vr-info-link" href="#" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">Download info file</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Phenology Pipeline · drone imagery to interactive crown viewer · automated analysis</footer>
+
+<script>
+const API = '';
+
+// ==== AUTH GUARD ============================================================
+const DPM_TOKEN = localStorage.getItem('dpm_token');
+if (!DPM_TOKEN) { window.location.href = '/'; }
+const DPM_USER = JSON.parse(localStorage.getItem('dpm_user') || 'null');
+
+// Wrap fetch so every /api/ call carries the bearer token automatically
+const _origFetch = window.fetch;
+window.fetch = function (url, opts = {}) {
+  if (typeof url === 'string' && url.includes('/api/') && DPM_TOKEN) {
+    opts.headers = { ...(opts.headers || {}), 'Authorization': 'Bearer ' + DPM_TOKEN };
+  }
+  return _origFetch(url, opts).then(res => {
+    if (res.status === 401) {
+      localStorage.removeItem('dpm_token');
+      localStorage.removeItem('dpm_user');
+      window.location.href = '/';
+    }
+    return res;
+  });
+};
+
+// Clear all polling when page becomes hidden to avoid stacking
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clearInterval(pollTimer); pollTimer = null;
+  }
+});
+
+function dpmSignOut() {
+  localStorage.removeItem('dpm_token');
+  localStorage.removeItem('dpm_user');
+  window.location.href = '/';
+}
+
+function scrollToPrereq() {
+  // Switch to dash page first if not already there
+  goTo('dash');
+  setTimeout(() => {
+    const el = document.getElementById('prereq-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
+}
+
+function toggleAvatarDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('nav-dropdown-main').classList.toggle('open');
+}
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.nav-dropdown').forEach(dd => {
+    const wrap = dd.closest('.nav-user-wrap');
+    if (wrap && !wrap.contains(e.target)) dd.classList.remove('open');
+  });
+});
+
+window.addEventListener('load', () => {
+  if (!DPM_USER) return;
+  const email    = DPM_USER.email    || '';
+  const name     = DPM_USER.name     || email.split('@')[0] || 'User';
+  const pic      = DPM_USER.picture  || '';
+  const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+
+  // Set tooltip name on all nav-user-wrap elements
+  document.querySelectorAll('.nav-user-wrap').forEach(el => {
+    el.setAttribute('data-name', name);
+  });
+
+  // Set avatar image or initials in all nav-avatar elements
+  document.querySelectorAll('.nav-avatar').forEach(el => {
+    if (pic) {
+      el.innerHTML = `<img src="${pic}" alt="${name}" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+    } else {
+      const span = el.querySelector('span');
+      if (span) span.textContent = initials;
+    }
+  });
+
+  // Set email in all dropdowns
+  document.querySelectorAll('.dd-email-clone, #dd-email-main').forEach(el => {
+    el.textContent = email;
+  });
+});
+// ===========================================================================
+let viewRunId = null, pollTimer = null, vrLogVisible = false;
+
+function goTo(page, arg) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  clearInterval(pollTimer); pollTimer = null;
+  if (page === 'dash')      { document.getElementById('pg-dash').classList.add('active'); loadDash(); }
+  else if (page === 'new')  { window.location.href = '/new-run'; return; }
+  else if (page === 'view') {
+    document.getElementById('pg-view').classList.add('active');
+    if (viewRunId !== arg) vrLogVisible = false; // reset log visibility when switching runs
+    viewRunId = arg;
+    loadView(arg);
+  }
+}
+
+async function loadDash() {
+  const grid = document.getElementById('runs-grid');
+  const newCard = `<div class="run-card new-run-card" onclick="window.location.href='/new-run'"><span class="plus">＋</span><div style="font-size:14.5px;font-weight:500;color:var(--accent)">New run</div></div>`;
+  try {
+    const r = await fetch(`${API}/api/runs`);
+    const runs = await r.json();
+    grid.innerHTML = newCard + runs.map(run => `
+      <div class="run-card" onclick="goTo('view','${run.id}')">
+        <h3>${run.run_name}</h3>
+        <div class="rc-meta">
+          ${run.num_oms} OM${run.num_oms !== 1 ? 's' : ''} · ${(run.total_tiles || 0).toLocaleString()} tiles<br/>
+          ${run.current_step ? `Step: ${run.current_step} · ` : ''}${new Date(run.created_at).toLocaleDateString()}
+        </div>
+        <span class="rc-status st-${run.status}">${run.status}</span>
+      </div>`).join('');
+  } catch(e) {
+    grid.innerHTML = newCard + `<p style="color:var(--text-muted);font-size:13.5px;padding:12px">Could not load runs.</p>`;
+  }
+}
+
+const STEP_ORDER = ['00_discover_oms','01_crown_detection','02_crown_tracking','03_phenology_analysis','04a_cog_tiling','04b_interactive_viz'];
+
+// Map step key → bubble prefix (nr or vr)
+const STEP_PREFIX_MAP = {
+  '00_discover_oms':      '00',
+  '01_crown_detection':   '01',
+  '02_crown_tracking':    '02',
+  '03_phenology_analysis':'03',
+  '04a_cog_tiling':       '04a',
+  '04b_interactive_viz':  '04b',
+};
+
+// Labels for each step bubble
+const STEP_LABELS = {
+  '00_discover_oms':      'Discover',
+  '01_crown_detection':   'Detect',
+  '02_crown_tracking':    'Track',
+  '03_phenology_analysis':'Phenology',
+  '04a_cog_tiling':       'Tiles',
+  '04b_interactive_viz':  'Viewer',
+};
+
+// ── labeled progress bar driver ──
+const STEP_TOTAL_LABEL = {
+  '00_discover_oms':'Discovering orthomosaics',
+  '01_crown_detection':'Detecting crowns',
+  '02_crown_tracking':'Tracking crowns across dates',
+  '03_phenology_analysis':'Computing phenology',
+  '03b_phenophase_classification':'Classifying phenophase',
+  '04a_cog_tiling':'Generating tiles',
+  '04b_interactive_viz':'Building viewer',
+};
+
+function resetFlow(prefix) {
+  const L=document.getElementById(`pbar-${prefix}-label`);
+  const P=document.getElementById(`pbar-${prefix}-pct`);
+  const F=document.getElementById(`pbar-${prefix}-fill`);
+  const T=document.getElementById(`pbar-${prefix}-track`);
+  const S=document.getElementById(`pbar-${prefix}-sub`);
+  if(L) L.textContent='Waiting…';
+  if(P) P.textContent='0%';
+  if(F){ F.style.width='0%'; F.className='pbar-fill'; }
+  if(T) T.className='pbar-track';
+  if(S) S.innerHTML='';
+}
+
+// updateFlow(prefix, run) — driven entirely by the server's step_progress /
+// om_current / om_total / step_detail. No log parsing: the bar advances
+// gradually as the pipeline emits PROGRESS markers.
+function updateFlow(prefix, run) {
+  const L=document.getElementById(`pbar-${prefix}-label`);
+  const P=document.getElementById(`pbar-${prefix}-pct`);
+  const F=document.getElementById(`pbar-${prefix}-fill`);
+  const T=document.getElementById(`pbar-${prefix}-track`);
+  const S=document.getElementById(`pbar-${prefix}-sub`);
+  if(!F) return;
+
+  const status = run.status;
+  const step   = run.current_step || null;
+  let prog = (typeof run.step_progress === 'number') ? run.step_progress : 0;
+  let pct  = Math.round(prog * 100);
+  const omCur = run.om_current || 0;
+  const omTot = run.om_total   || 0;
+  const detail = run.step_detail || '';
+
+  let labelText = step ? (STEP_TOTAL_LABEL[step] || run.step_label || step) : 'Starting…';
+  if (status === 'done')   { pct = 100; labelText = 'Pipeline complete'; }
+  else if (status === 'failed') { labelText = 'Failed — ' + (STEP_TOTAL_LABEL[step] || step || 'unknown step'); }
+
+  F.className = 'pbar-fill' + (status === 'failed' ? ' fail' : '');
+  const indet = (status === 'running' && pct <= 0 && omTot === 0);
+  if (T) T.className = 'pbar-track' + (indet ? ' indet' : '');
+  F.style.width = indet ? '' : Math.max(0, Math.min(100, pct)) + '%';
+
+  if (L) L.textContent = labelText;
+  if (P) P.textContent = indet ? '' : pct + '%';
+
+  if (S) {
+    let sub = '';
+    if (omTot > 0) {
+      sub = `<span class="om">OM ${omCur} / ${omTot}</span>`;
+      if (detail) sub += ` · ${escHtml(detail)}`;
+    } else if (detail) {
+      sub = escHtml(detail);
+    } else if (status === 'running') {
+      sub = 'Working…';
+    }
+    S.innerHTML = sub;
+  }
+}
+
+const STEP_NAMES = {'00_discover_oms':'00 — Discovering OMs','01_crown_detection':'01 — Detecting crowns','02_crown_tracking':'02 — Tracking crowns across dates','03_phenology_analysis':'03 — Computing phenology metrics','04a_cog_tiling':'04a — Generating COGs and tile pyramid','04b_interactive_viz':'04b — Building interactive viewer'};
+
+
+function appendLog(lines, elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = lines.map(l => {
+    const cls = l.includes('FAILED') || l.includes('ERROR') ? 'log-err' : l.includes('complete') || l.includes('===') ? 'log-ok' : '';
+    return `<span class="${cls}">${escHtml(l)}</span>`;
+  }).join('\n');
+  el.scrollTop = el.scrollHeight;
+}
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function loadView(id) {
+  // Always clear any existing poll before starting — prevents stacking intervals
+  // when the user clicks different runs or loadView calls itself via setInterval
+  clearInterval(pollTimer); pollTimer = null;
+  try {
+    const r = await fetch(`${API}/api/runs/${id}`);
+    if (!r.ok) throw new Error('Run not found');
+    const run = await r.json();
+
+    document.getElementById('vr-title').textContent = run.run_name;
+    document.getElementById('vr-meta').innerHTML =
+      `Created ${new Date(run.created_at).toLocaleString()} · ${run.num_oms} OMs · ${(run.total_tiles||0).toLocaleString()} tiles`;
+
+    updateFlow('vrf', run);
+
+    const statusEl = document.getElementById('vr-status-msg');
+    const logBtn   = document.getElementById('vr-log-btn');
+
+    if (run.status === 'done') {
+      statusEl.innerHTML = `<div class="alert alert-ok"><b>Complete</b> · all 6 steps finished${run.finished_at ? ' · ' + new Date(run.finished_at).toLocaleString() : ''}</div>`;
+    } else if (run.status === 'failed') {
+      statusEl.innerHTML = `<div class="alert alert-err"><b>Failed at ${run.current_step || 'unknown step'}.</b><br/>` +
+        `<details style="margin-top:8px"><summary style="font-size:13px;cursor:pointer">Show error</summary>` +
+        `<pre style="margin-top:8px;font-size:12px;max-height:200px;overflow:auto;white-space:pre-wrap;background:#fef2f2;padding:10px;border-radius:4px">${escHtml(run.error_msg || '')}</pre>` +
+        `</details></div>`;
+      logBtn.style.display = 'inline-flex';
+    } else if (run.status === 'running') {
+      statusEl.innerHTML = `<div class="alert alert-warn"><b>Running…</b> ${STEP_NAMES[run.current_step] || run.current_step}</div>`;
+      logBtn.style.display = 'inline-flex';
+      pollTimer = setInterval(() => loadView(id), 5000);
+    } else {
+      statusEl.innerHTML = `<span style="color:var(--text-muted);font-size:14px">Status: ${run.status}</span>`;
+    }
+
+    // Wire file browser and download links
+    const browsBtn = document.getElementById('vr-browse-btn');
+    if (browsBtn) browsBtn.href = `/files/${id}`;
+    const dlOut = document.getElementById('vr-dl-output');
+    if (dlOut) dlOut.href = `${API}/api/runs/${id}/download-all?which=output`;
+    const dlUp = document.getElementById('vr-dl-uploads');
+    if (dlUp) dlUp.href = `${API}/api/runs/${id}/download-all?which=uploads`;
+
+    const vc = document.getElementById('vr-viewer-card');
+    if (run.has_viewer) {
+      vc.style.display = 'block';
+      const vUrl = `${API}/viewer/${id}/index.html`;
+      document.getElementById('vr-viewer-frame').src = vUrl;
+        document.getElementById('vr-browse-btn').href = `/files/${id}`;
+      document.getElementById('vr-viewer-link').href = vUrl;
+      document.getElementById('vr-info-link').href = `${API}/api/runs/${id}/info`;
+    } else { vc.style.display = 'none'; }
+
+    // Always fetch the log on every poll cycle so it stays current
+    // regardless of whether the log box is currently visible
+    await fetchVrLog(id);
+  } catch(e) {
+    document.getElementById('vr-status-msg').innerHTML = `<div class="alert alert-err"><b>Error.</b> ${e.message}</div>`;
+  }
+}
+
+async function fetchVrLog(id) {
+  try {
+    const r = await fetch(`${API}/api/runs/${id}/log?lines=200`);
+    const d = await r.json();
+    appendLog(d.lines || [], 'vr-log');
+  } catch(e) {}
+}
+
+async function toggleVrLog() {
+  vrLogVisible = !vrLogVisible;
+  const el = document.getElementById('vr-log');
+  el.style.display = vrLogVisible ? 'block' : 'none';
+  document.getElementById('vr-log-btn').textContent = vrLogVisible ? 'Hide log' : 'Show log';
+  if (vrLogVisible && viewRunId) await fetchVrLog(viewRunId);
+}
+
+async function deleteRun() {
+  if (!viewRunId) return;
+  if (!confirm('Delete this run and all files? This cannot be undone.')) return;
+  await fetch(`${API}/api/runs/${viewRunId}`, {method:'DELETE'});
+  goTo('dash');
+}
+
+function fmtSize(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+  return (n/1048576).toFixed(1) + ' MB';
+}
+
+loadDash();
+</script>
+</body>
+</html>
