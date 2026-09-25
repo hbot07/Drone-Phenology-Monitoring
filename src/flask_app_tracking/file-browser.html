@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Files — Drone Phenology Monitoring</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:#f3f5f0; --card:#fafaf7; --ink:#2c3220; --muted:#6b7560;
+      --border:#d4d9c8; --accent:#3d6b3a; --accent-d:#2c5229; --accent-l:#eef4eb;
+      --primary:#1e2714;
+      --shadow-sm:0 1px 3px 0 rgb(30 39 20/.06);
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--ink);
+      font:14px/1.6 'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      -webkit-font-smoothing:antialiased; }
+    h1,h2,h3 { font-family:'Source Serif 4',Georgia,serif; font-weight:600; color:var(--primary); }
+    a { color:var(--accent-d); }
+    code { background:#edeee8; border-radius:3px; padding:1px 5px;
+      font:12.5px/1.4 'DM Mono',monospace; }
+
+    /* SVG icons inline */
+    .ic { width:16px; height:16px; flex:none; stroke:currentColor; fill:none;
+      stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+
+    /* header */
+    nav { background:rgba(243,245,240,.92); backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border); padding:0 24px;
+      position:sticky; top:0; z-index:100; }
+    .nav-inner { max-width:1200px; margin:0 auto;
+      display:flex; align-items:center; height:56px; gap:14px; }
+    .nav-brand { display:flex; align-items:center; gap:10px;
+      text-decoration:none; color:var(--primary); }
+    .nav-brand-icon { width:32px; height:32px; background:var(--accent); border-radius:7px;
+      display:flex; align-items:center; justify-content:center; }
+    .nav-brand span { font-family:'Source Serif 4',serif; font-weight:600; font-size:17px;
+      letter-spacing:-.02em; }
+    .nav-links { display:flex; align-items:center; gap:14px; margin-left:auto; }
+    .nav-links a { font-size:13px; font-weight:500; color:var(--muted);
+      text-decoration:none; transition:color .15s; }
+    .nav-links a:hover { color:var(--primary); }
+    .run-badge { background:var(--accent-l); color:var(--accent-d); border-radius:4px;
+      padding:2px 10px; font-size:12px; font-weight:600; font-family:'DM Mono',monospace; }
+
+    /* layout */
+    .shell { max-width:1200px; margin:0 auto; padding:16px 24px 60px;
+      display:flex; gap:20px; align-items:flex-start; }
+    .sidebar { width:240px; flex:none; position:sticky; top:72px; }
+    .main { flex:1; min-width:0; }
+    @media(max-width:900px) {
+      .shell { flex-direction:column; }
+      .sidebar { width:100%; position:static; }
+    }
+
+    /* sidebar */
+    .sb-card { background:var(--card); border:1px solid var(--border); border-radius:8px;
+      padding:14px; margin-bottom:12px; box-shadow:var(--shadow-sm); }
+    .sb-card h3 { margin:0 0 10px; font-size:14px; color:var(--accent-d); }
+    .sb-tree { list-style:none; }
+    .sb-tree a { display:flex; align-items:center; gap:7px; padding:5px 8px; border-radius:6px;
+      font-size:12.5px; text-decoration:none; color:var(--ink); cursor:pointer;
+      transition:background .12s; font-family:'DM Sans',sans-serif; }
+    .sb-tree a:hover { background:var(--accent-l); }
+    .sb-tree a.active { background:var(--accent); color:#fff; font-weight:600; }
+    .sb-tree a .ic { flex:none; }
+    .sb-tree a.active .ic { stroke:#fff; }
+    .sb-actions { display:flex; flex-direction:column; gap:6px; }
+    .sb-btn { display:flex; align-items:center; gap:10px; padding:8px 12px;
+      background:var(--card); border:1px solid var(--border); border-radius:6px;
+      font-size:13px; text-decoration:none; color:var(--ink); cursor:pointer;
+      transition:background .12s; font-family:'DM Sans',sans-serif; }
+    .sb-btn:hover { background:var(--accent-l); }
+    .sb-btn .ic { flex:none; stroke:var(--accent-d); }
+    .sb-btn small { color:var(--muted); font-size:11px; }
+
+    /* breadcrumb */
+    .breadcrumb { font-size:12px; color:var(--muted); margin-bottom:10px;
+      font-family:'DM Mono',monospace; display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+    .breadcrumb span { cursor:pointer; color:var(--accent-d); }
+    .breadcrumb span:hover { text-decoration:underline; }
+    .breadcrumb .sep { color:var(--border); cursor:default; }
+
+    /* file table */
+    .ftable { width:100%; border-collapse:separate; border-spacing:0;
+      background:var(--card); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .ftable th { text-align:left; font-size:10.5px; text-transform:uppercase;
+      letter-spacing:.05em; color:var(--muted); background:#f4f6f0;
+      padding:8px 14px; border-bottom:1px solid var(--border); font-weight:600;
+      font-family:'DM Sans',sans-serif; }
+    .ftable td { padding:8px 14px; border-bottom:1px solid #eef0ea; vertical-align:middle; font-size:13px; }
+    .ftable tr:last-child td { border-bottom:0; }
+    .ftable tr:hover td { background:#f7f9f4; }
+    .ftable .ft-icon { width:28px; text-align:center; }
+    .ftable .ft-icon .ic { stroke:var(--muted); }
+    .ftable .ft-name { font-family:'DM Mono',monospace; font-size:12.5px; font-weight:500; }
+    .ftable .ft-name a { color:var(--ink); text-decoration:none; }
+    .ftable .ft-name a:hover { color:var(--accent-d); text-decoration:underline; }
+    .ftable .ft-size { color:var(--muted); font-size:12px; text-align:right; width:80px;
+      font-family:'DM Mono',monospace; }
+    .ftable .ft-dl { width:40px; text-align:center; }
+    .ft-dl-btn { display:inline-flex; align-items:center; justify-content:center;
+      width:28px; height:28px; border-radius:6px; border:1px solid var(--border);
+      background:var(--card); color:var(--accent-d); text-decoration:none; cursor:pointer;
+      transition:background .12s; }
+    .ft-dl-btn:hover { background:var(--accent-l); }
+    .ft-dl-btn .ic { width:14px; height:14px; }
+    .ftable tr.folder-row { cursor:pointer; }
+    .ftable tr.folder-row td { font-weight:600; }
+    .ftable tr.folder-row:hover td { background:var(--accent-l); }
+
+    /* step badge */
+    .step-badge { display:inline-block; font-size:10px; font-weight:600;
+      text-transform:uppercase; letter-spacing:.04em; padding:1px 6px;
+      border-radius:3px; margin-left:8px; font-family:'DM Sans',sans-serif; }
+    .step-badge.s1  { background:#e5eef8; color:#2d5080; }
+    .step-badge.s2  { background:#f0e8f5; color:#6d3088; }
+    .step-badge.s3  { background:#fdf6e8; color:#6a5220; }
+    .step-badge.s4a { background:#e8f5f0; color:#206a50; }
+    .step-badge.s4b { background:#f5e8e8; color:#8a3030; }
+
+    .empty { padding:40px 20px; text-align:center; color:var(--muted); font-style:italic; font-size:14px; }
+
+    /* shadcn-style spinner */
+    .spinner-wrap { display:flex; align-items:center; justify-content:center; padding:48px 20px; gap:12px; }
+    .spinner { width:20px; height:20px; border:2.5px solid var(--border);
+      border-top-color:var(--accent); border-radius:50%;
+      animation:spin .7s linear infinite; }
+    .spinner-text { font-size:13px; color:var(--muted); font-weight:500; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    footer { color:var(--muted); font-size:11px; text-align:center; padding:10px 0 20px;
+      font-family:'DM Sans',sans-serif; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <div class="nav-brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 22c4-4 8-7.5 8-12a8 8 0 10-16 0c0 4.5 4 8 8 12z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <span>Drone Phenology Monitoring</span>
+    </a>
+    <div class="nav-links">
+      <span class="run-badge" id="run-name-badge">loading</span>
+      <a href="/dashboard">Dashboard</a>
+    </div>
+  </div>
+</nav>
+
+<div class="shell">
+  <nav class="sidebar">
+    <div class="sb-card">
+      <h3>Folders</h3>
+      <ul class="sb-tree" id="sb-tree"></ul>
+    </div>
+    <div class="sb-card">
+      <h3>Download</h3>
+      <div class="sb-actions">
+        <a class="sb-btn" id="dl-all">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <div>Download all<br><small>Uploads + outputs as .zip</small></div>
+        </a>
+        <a class="sb-btn" id="dl-output">
+          <svg class="ic" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <div>Download outputs<br><small>Pipeline results only</small></div>
+        </a>
+        <a class="sb-btn" id="dl-uploads">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div>Download uploads<br><small>Original orthomosaics</small></div>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <div id="file-list"></div>
+  </div>
+</div>
+
+<footer>Drone Phenology Monitoring</footer>
+
+<script>
+  // ── SVG icon templates ──────────────────────────────────────────────────
+  const IC = {
+    folder:   '<svg class="ic" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>',
+    file:     '<svg class="ic" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>',
+    image:    '<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+    map:      '<svg class="ic" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>',
+    globe:    '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>',
+    data:     '<svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
+    chart:    '<svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+    text:     '<svg class="ic" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
+    tree:     '<svg class="ic" viewBox="0 0 24 24"><path d="M12 22V12M12 12C12 12 7 9 4 4c4 1 7 4 8 8zM12 12c0 0 5-3 8-8-4 1-7 4-8 8z"/></svg>',
+    link:     '<svg class="ic" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>',
+    download: '<svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    up:       '<svg class="ic" viewBox="0 0 24 24"><polyline points="17 14 12 9 7 14"/></svg>',
+    home:     '<svg class="ic" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    satellite:'<svg class="ic" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>',
+  };
+
+  const FOLDER_META = {
+    'uploads':       { icon:IC.satellite, label:'Uploaded orthomosaics', step:null },
+    'output':        { icon:IC.folder,    label:'Pipeline outputs',     step:null },
+    '01_detectree':  { icon:IC.tree,      label:'Crown detection',      step:'s1' },
+    '02_tracking':   { icon:IC.link,      label:'Crown tracking',       step:'s2' },
+    '03_phenology':  { icon:IC.chart,     label:'Phenology analysis',   step:'s3' },
+    '04_viewer':     { icon:IC.globe,     label:'Interactive viewer',   step:'s4b' },
+    'crowns_multithreshold': { icon:IC.map, label:'Crown polygons', step:'s1' },
+    'cogs':          { icon:IC.satellite, label:'Cloud-Optimized GeoTIFFs', step:'s4a' },
+    'tiles':         { icon:IC.map,       label:'XYZ tile pyramids',    step:'s4a' },
+  };
+
+  const EXT_ICONS = {
+    '.gpkg':IC.map, '.geojson':IC.map, '.json':IC.data, '.csv':IC.chart,
+    '.tif':IC.satellite, '.tiff':IC.satellite, '.png':IC.image, '.jpg':IC.image,
+    '.html':IC.globe, '.log':IC.text, '.txt':IC.text, '.zip':IC.folder,
+    '.pth':IC.data, '.joblib':IC.data, '.xml':IC.text, '.pdf':IC.text,
+  };
+
+  function fileIcon(name) {
+    const dot = name.lastIndexOf('.');
+    return dot >= 0 ? (EXT_ICONS[name.slice(dot).toLowerCase()] || IC.file) : IC.file;
+  }
+
+  function fmtSize(bytes) {
+    if (!bytes && bytes !== 0) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+    return (bytes / 1073741824).toFixed(2) + ' GB';
+  }
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────
+  const TOKEN = localStorage.getItem('dpm_token');
+  if (!TOKEN) window.location.href = '/';
+
+  async function apiFetch(url) {
+    const r = await fetch(url, { headers:{ 'Authorization':'Bearer ' + TOKEN } });
+    if (r.status === 401) { localStorage.removeItem('dpm_token'); window.location.href = '/'; }
+    return r;
+  }
+
+  // ── Run ID from URL ──────────────────────────────────────────────────
+  const RUN_ID = window.location.pathname.split('/')[2] || '';
+  const API = '';
+  let currentPath = '';
+
+  function showSpinner(el) {
+    el.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><span class="spinner-text">Loading files</span></div>';
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────
+  async function init() {
+    try {
+      const r = await apiFetch(`${API}/api/runs/${RUN_ID}`);
+      if (r.ok) {
+        const run = await r.json();
+        document.getElementById('run-name-badge').textContent = run.run_name || RUN_ID.slice(0,8);
+        document.title = `Files — ${run.run_name}`;
+      }
+    } catch(e) {}
+
+    // Public download links (no auth needed)
+    document.getElementById('dl-all').href    = `${API}/dl/${RUN_ID}/zip?which=all`;
+    document.getElementById('dl-output').href  = `${API}/dl/${RUN_ID}/zip?which=output`;
+    document.getElementById('dl-uploads').href = `${API}/dl/${RUN_ID}/zip?which=uploads`;
+
+    await loadTree();
+    await browse('');
+  }
+
+  // ── Sidebar tree ──────────────────────────────────────────────────────
+  async function loadTree() {
+    const el = document.getElementById('sb-tree');
+    showSpinner(el);
+    try {
+      const r = await apiFetch(`${API}/api/runs/${RUN_ID}/files?subpath=`);
+      if (!r.ok) { el.innerHTML = '<li style="color:var(--accent-d);font-size:12px">Could not load.</li>'; return; }
+      const data = await r.json();
+      el.innerHTML = '';
+
+      const rootLi = document.createElement('li');
+      rootLi.innerHTML = `<a onclick="browse('')" id="tree-root" class="active">${IC.home} Root</a>`;
+      el.appendChild(rootLi);
+
+      for (const entry of (data.entries || [])) {
+        if (!entry.is_dir) continue;
+        const meta = FOLDER_META[entry.name] || { icon:IC.folder, label:entry.name, step:null };
+        const badge = meta.step ? `<span class="step-badge ${meta.step}">${meta.step.replace('s','Step ')}</span>` : '';
+        const li = document.createElement('li');
+        li.innerHTML = `<a onclick="browse('${escHtml(entry.path)}')" id="tree-${escHtml(entry.name)}">${meta.icon} ${escHtml(meta.label)}${badge}</a>`;
+        el.appendChild(li);
+
+        if (entry.name === 'output') {
+          try {
+            const sr = await apiFetch(`${API}/api/runs/${RUN_ID}/files?subpath=${encodeURIComponent(entry.path)}`);
+            if (sr.ok) {
+              const sd = await sr.json();
+              for (const sub of (sd.entries || [])) {
+                if (!sub.is_dir) continue;
+                const sm = FOLDER_META[sub.name] || { icon:IC.folder, label:sub.name, step:null };
+                const sbadge = sm.step ? `<span class="step-badge ${sm.step}">${sm.step.replace('s','Step ')}</span>` : '';
+                const sli = document.createElement('li');
+                sli.innerHTML = `<a onclick="browse('${escHtml(sub.path)}')" id="tree-${escHtml(sub.name)}" style="padding-left:24px">${sm.icon} ${escHtml(sm.label)}${sbadge}</a>`;
+                el.appendChild(sli);
+              }
+            }
+          } catch(e) {}
+        }
+      }
+    } catch(e) {
+      el.innerHTML = `<li style="color:var(--accent-d);font-size:12px">Error: ${e.message}</li>`;
+    }
+  }
+
+  function updateTreeHighlight(path) {
+    document.querySelectorAll('.sb-tree a').forEach(a => a.classList.remove('active'));
+    const name = path ? path.split('/').pop() : 'root';
+    (document.getElementById('tree-' + name) || document.getElementById('tree-root'))?.classList.add('active');
+  }
+
+  function renderBreadcrumb(path) {
+    const bc = document.getElementById('breadcrumb');
+    let html = `<span onclick="browse('')">${IC.home} root</span>`;
+    if (path) {
+      const parts = path.split('/');
+      let built = '';
+      parts.forEach(p => {
+        built = built ? built + '/' + p : p;
+        const bp = built;
+        html += `<span class="sep">/</span><span onclick="browse('${escHtml(bp)}')">${escHtml(p)}</span>`;
+      });
+    }
+    bc.innerHTML = html;
+  }
+
+  // ── Main browse ───────────────────────────────────────────────────────
+  async function browse(subpath) {
+    currentPath = subpath;
+    updateTreeHighlight(subpath);
+    renderBreadcrumb(subpath);
+
+    const el = document.getElementById('file-list');
+    showSpinner(el);
+
+    try {
+      const r = await apiFetch(`${API}/api/runs/${RUN_ID}/files?subpath=${encodeURIComponent(subpath)}`);
+      if (!r.ok) { el.innerHTML = '<div class="empty">Could not load this folder.</div>'; return; }
+      const data = await r.json();
+
+      if (!data.entries || data.entries.length === 0) {
+        el.innerHTML = '<div class="empty">This folder is empty.</div>'; return;
+      }
+
+      let html = '<table class="ftable"><thead><tr>' +
+        '<th class="ft-icon"></th><th>Name</th><th class="ft-size">Size</th><th class="ft-dl"></th>' +
+        '</tr></thead><tbody>';
+
+      if (subpath) {
+        const parent = subpath.includes('/') ? subpath.slice(0, subpath.lastIndexOf('/')) : '';
+        html += `<tr class="folder-row" onclick="browse('${escHtml(parent)}')">` +
+          `<td class="ft-icon">${IC.up}</td>` +
+          `<td class="ft-name"><a>.. (up one level)</a></td>` +
+          `<td class="ft-size"></td><td class="ft-dl"></td></tr>`;
+      }
+
+      const folders = data.entries.filter(e => e.is_dir);
+      const files = data.entries.filter(e => !e.is_dir);
+
+      folders.forEach(entry => {
+        const meta = FOLDER_META[entry.name] || { icon:IC.folder, label:entry.name, step:null };
+        const badge = meta.step ? `<span class="step-badge ${meta.step}">${meta.step.replace('s','Step ')}</span>` : '';
+        html += `<tr class="folder-row" onclick="browse('${escHtml(entry.path)}')">` +
+          `<td class="ft-icon">${meta.icon}</td>` +
+          `<td class="ft-name"><a>${escHtml(entry.name)}${badge}</a></td>` +
+          `<td class="ft-size"></td><td class="ft-dl"></td></tr>`;
+      });
+
+      files.forEach(entry => {
+        const icon = fileIcon(entry.name);
+        // Public download route — no auth header needed
+        const dlUrl = `${API}/dl/${RUN_ID}/file?path=${encodeURIComponent(entry.path)}`;
+        html += `<tr>` +
+          `<td class="ft-icon">${icon}</td>` +
+          `<td class="ft-name"><a href="${dlUrl}" target="_blank">${escHtml(entry.name)}</a></td>` +
+          `<td class="ft-size">${fmtSize(entry.size)}</td>` +
+          `<td class="ft-dl"><a class="ft-dl-btn" href="${dlUrl}" download="${escHtml(entry.name)}" title="Download">${IC.download}</a></td>` +
+          `</tr>`;
+      });
+
+      html += '</tbody></table>';
+      el.innerHTML = html;
+    } catch(e) {
+      el.innerHTML = `<div class="empty" style="color:var(--accent-d)">Error: ${e.message}</div>`;
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>
