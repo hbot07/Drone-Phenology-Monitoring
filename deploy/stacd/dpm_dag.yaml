@@ -1,0 +1,128 @@
+# =============================================================================
+# DPM (Drone Phenology Monitoring) — STACD DAG definition
+#
+# Corrected 2026-09-27 — params now match the ACTUAL pipeline parameters
+# from new-run.html / server.py, NOT the state/district/block/year pattern
+# that other CoRE Stack services use. DPM is user-upload-driven: the only
+# required field is run_id (identifies the staged run in the database);
+# pipeline tuning parameters are optional (defaults are baked into the
+# scripts and the UI).
+#
+# Validated against:
+#   github.com/SaharshLaud/STACD_framework  (sample_yaml/full_dag)
+#   github.com/SaharshLaud/STACD-Airflow    (stacd_dag.yaml)
+# =============================================================================
+
+--- !DAG
+id: drone_phenology_monitoring
+group: drone
+name: Drone Phenology Monitoring — Phenophase Export
+version: "1.1"
+description: >
+  Single-algorithm DAG. Takes a staged series of drone orthomosaics
+  (already uploaded via the DPM dashboard) and runs the phenology pipeline,
+  producing a per-crown phenophase vector layer as a STAC Item.
+  Unlike LULC/Terrain, DPM does not take state/district/block/year as DAG
+  params — the pipeline operates on a run_id whose orthomosaics and
+  configuration are already persisted via the dashboard.
+params:
+  - run_id                    # required — identifies the staged run in db.runs
+  # --- Detection (01_crown_detection) ---
+  - model_type                # Detectree2 variant: 250312_flexi | urban_canopy | tropical_dense
+  - tile_width                # inference tile width in metres (default: 25)
+  - tile_height               # inference tile height in metres (default: 25)
+  - tile_buffer               # tile overlap in metres (default: 15)
+  - fixed_iou                 # IoU threshold for clean_crowns (default: 0.7)
+  # --- Tracking (02_crown_tracking) ---
+  - base_threshold_tag        # crown-matching confidence 0-100 (default: 45)
+  - align_threshold_tag       # alignment anchor confidence 0-100 (default: 65)
+  - align_method              # alignment method (default: pcc_tiled)
+  # --- Phenology (03_phenology_analysis) ---
+  - w_veg_amp                 # DS weight: vegetation amplitude (default: 0.35)
+  - w_depth                   # DS weight: seasonal depth (default: 0.30)
+  - w_gcc_amp                 # DS weight: GCC amplitude (default: 0.25)
+  - w_tex                     # DS weight: texture (default: 0.10)
+  # --- COG tiling (04a_cog_tiling) ---
+  - underlay_om               # which OM loads by default: last | first
+  # --- Advanced ---
+  - exclude_stems             # comma-separated stems to skip
+  - skip_viz                  # skip tracking visualizations (default: true)
+
+alg_type_nodes:
+  - Phenology_Export
+
+dataset_type_nodes:
+  - DPM_Orthomosaic_Series
+  - DPM_Phenology_Vector
+
+# ═══════════════════════════════════════════════
+# DATASET TYPES
+# ═══════════════════════════════════════════════
+
+--- !Dataset_Type
+id: DPM_Orthomosaic_Series
+name: DPM Orthomosaic Series
+description: >
+  Root input. A time series of drone orthomosaics (COGs) for one site,
+  uploaded and staged through the DPM dashboard before the DAG is triggered.
+  Not produced by any algorithm — registered once as a root Dataset_Instance.
+format: FileSeries
+
+--- !Dataset_Type
+id: DPM_Phenology_Vector
+name: DPM Phenology Vector
+description: >
+  Output. Per-crown phenophase classification vector
+  (tree_master_geojson_phenoclf.geojson) with leaf-on/leaf-off timing per crown.
+  Published as a STAC Item (table extension) by the export callback.
+format: GeoServerLayer
+
+# ═══════════════════════════════════════════════
+# ALGORITHM TYPES
+# ═══════════════════════════════════════════════
+
+--- !Algorithm_Type
+id: Phenology_Export
+name: Phenology_Export
+description: >
+  Runs the full DPM pipeline (crown detection -> tracking -> phenology analysis
+  -> phenophase classification -> COG tiling -> vector export) on the staged
+  orthomosaic series and returns the phenophase vector as a STAC Item.
+params:
+  - name: run_id
+    type: string
+  - name: model_type
+    type: string
+  - name: tile_width
+    type: integer
+  - name: tile_height
+    type: integer
+  - name: tile_buffer
+    type: integer
+  - name: fixed_iou
+    type: float
+  - name: base_threshold_tag
+    type: string
+  - name: align_threshold_tag
+    type: string
+  - name: align_method
+    type: string
+  - name: w_veg_amp
+    type: float
+  - name: w_depth
+    type: float
+  - name: w_gcc_amp
+    type: float
+  - name: w_tex
+    type: float
+  - name: underlay_om
+    type: string
+  - name: exclude_stems
+    type: string
+  - name: skip_viz
+    type: boolean
+input_datasets:
+  - DPM_Orthomosaic_Series
+outputs:
+  - DPM_Phenology_Vector
+depends_on: []

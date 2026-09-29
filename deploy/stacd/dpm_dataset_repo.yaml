@@ -1,0 +1,40 @@
+# =============================================================================
+# DPM — STACD Root Dataset Instance Repository
+#
+# Corrected 2026-09-26 against authoritative STACD examples:
+#   STACD-Airflow/stacd_dataset_repo.yaml
+#   full_dag/dataset_repo_full.yaml
+#
+# ANSWERS THE "per-run dataset" QUESTION:
+#   You do NOT generate one file per DPM run. You register ONLY the root input
+#   dataset(s) — the ones that pre-exist and are not produced by any algorithm.
+#   Everything an algorithm outputs (DPM_Phenology_Vector) is registered
+#   automatically by Airflow/STACD during the run. Per-run specifics (which
+#   block, which year) travel in the DAG trigger `conf`, not in new YAML files.
+#
+#   So: ONE !Dataset_Instance for DPM_Orthomosaic_Series, parameterised. The
+#   region/year below is a registration example; real runs pass state/district/
+#   block/year in the dagRun conf.
+#
+# Schema (from STACD-Airflow/stacd_dataset_repo.yaml):
+#   !Dataset_Instance needs: version, type (== a Dataset_Type id), params (list
+#   of single-key maps), alg_name: null (root inputs have no producing algo),
+#   alg_inputs.params: [], input_datasets: [], date.
+# =============================================================================
+
+--- !Dataset_Instance
+version: 1
+type: DPM_Orthomosaic_Series
+params:
+  - source: "DPM dashboard upload"
+  - staging: "data/uploads/<run_id>/orthomosaics"
+alg_name: null              # root input — not produced by an algorithm
+alg_inputs:
+  params: []
+input_datasets: []
+date: 2026-09-26 00:00:00
+metadata:
+  description: >
+    Root input placeholder for drone orthomosaic series. Actual per-run inputs
+    (block, year, specific OM files) are staged via the DPM dashboard and passed
+    to the DAG through the trigger conf; they are not enumerated here.
