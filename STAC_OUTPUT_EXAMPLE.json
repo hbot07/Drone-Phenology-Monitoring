@@ -1,0 +1,160 @@
+{
+  "_comment": [
+    "DPM — STAC Output Example (docs/STAC_OUTPUT_EXAMPLE.json)",
+    "Generated from stac_utils.py — the actual envelope POST /api/export-phenology returns.",
+    "Validated against:",
+    "  §9 reference example (NREGA vector) — https://docs.core-stack.org/server/cluster-docker-services/",
+    "  Table extension v1.2.0 — https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "  STACD §12 HTTP status contract — github.com/SaharshLaud/STACD_framework",
+    "Updated: 2026-09-27 — params corrected (run_id primary; state/district/block/year removed)"
+  ],
+  "status": "success",
+  "asset_id": "demo-run-123",
+  "version": "1",
+  "hosting_platform": "GeoServer",
+  "stac_items": [
+    {
+      "type": "Feature",
+      "stac_version": "1.1.0",
+      "stac_extensions": [
+        "https://stac-extensions.github.io/table/v1.2.0/schema.json"
+      ],
+      "id": "demo-run-123",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [77.16, 28.53],
+            [77.20, 28.53],
+            [77.20, 28.57],
+            [77.16, 28.57],
+            [77.16, 28.53]
+          ]
+        ]
+      },
+      "bbox": [77.16, 28.53, 77.20, 28.57],
+      "properties": {
+        "title": "Drone Phenology — Devprayag 2024",
+        "description": "Per-crown vegetation phenophase vector produced by the Drone Phenology Monitoring pipeline. Each polygon is a tree crown tracked across a series of drone orthomosaics; attributes record deciduousness and leaf-off / leaf-on timing (as orthomosaic indices) plus per-observation phenophase. Source: drone orthomosaic series; method: Detectree2 crown detection, graph-based cross-date tracking, phenophase classification.",
+        "start_datetime": "2024-02-15T00:00:00Z",
+        "end_datetime": "2024-11-20T00:00:00Z",
+        "datetime": null,
+        "keywords": ["phenology", "drone", "tree crowns", "phenophase", "deciduous"],
+        "table:columns": [
+          {
+            "name": "geometry",
+            "type": "geometry",
+            "description": "Tree-crown polygon (consensus medoid geometry across the tracked series)"
+          },
+          {
+            "name": "chain_id",
+            "type": "int64",
+            "description": "Stable id of the tracked crown across all orthomosaic dates"
+          },
+          {
+            "name": "crown_id",
+            "type": "object",
+            "description": "Human-readable crown label"
+          },
+          {
+            "name": "crown_index",
+            "type": "int64",
+            "description": "Positional index of the crown within the run"
+          },
+          {
+            "name": "is_deciduous",
+            "type": "bool",
+            "description": "Whether the crown was classified deciduous over the series"
+          },
+          {
+            "name": "deciduous_score",
+            "type": "float64",
+            "description": "Continuous deciduousness score (0..1) from phenology analysis"
+          },
+          {
+            "name": "leaf_off_start_om",
+            "type": "int64",
+            "description": "Orthomosaic index at which leaf-off begins (null if none observed)"
+          },
+          {
+            "name": "full_leaf_off_om",
+            "type": "int64",
+            "description": "Orthomosaic index at which the crown is fully leaf-off (null if none)"
+          },
+          {
+            "name": "leaf_on_return_om",
+            "type": "int64",
+            "description": "Orthomosaic index at which leaf-on returns (null if none observed)"
+          },
+          {
+            "name": "chain_length",
+            "type": "int64",
+            "description": "Number of dates the crown was successfully tracked across"
+          },
+          {
+            "name": "quality",
+            "type": "object",
+            "description": "Tracking quality label for the crown chain"
+          },
+          {
+            "name": "phenophase",
+            "type": "object",
+            "description": "Per-observation phenophase class (leaf-on / leaf-off / transition) — smoothed prediction written by 12_apply_phenophase_to_geojson.py"
+          },
+          {
+            "name": "phenophase_source",
+            "type": "object",
+            "description": "Source of the phenophase label: 'gb_classifier_smoothed' (deciduous crowns) or 'evergreen_assigned' (evergreen crowns)"
+          }
+        ],
+        "table:primary_geometry": "geometry",
+        "table:row_count": 2,
+        "dpm:run_id": "demo-run-123",
+        "dpm:run_name": "Devprayag 2024"
+      },
+      "links": [
+        {
+          "rel": "root",
+          "href": "../../../../../catalog.json",
+          "type": "application/json",
+          "title": "CoRE Stack Spatio Temporal Asset Catalog"
+        },
+        {
+          "rel": "collection",
+          "href": "../collection.json",
+          "type": "application/json",
+          "title": "drone_phenology_monitoring"
+        },
+        {
+          "rel": "parent",
+          "href": "../collection.json",
+          "type": "application/json",
+          "title": "drone_phenology_monitoring"
+        }
+      ],
+      "assets": {
+        "data": {
+          "href": "https://geoserver.core-stack.org:8443/geoserver/dpm/ows?service=WFS&request=GetFeature&typeName=dpm:demo-run-123&outputFormat=application/json",
+          "type": "application/geo+json",
+          "title": "Phenology Vector Layer",
+          "roles": ["data"]
+        },
+        "style": {
+          "href": "https://raw.githubusercontent.com/core-stack-org/QGIS-Styles/main/DronePhenology/phenophase.qml",
+          "type": "application/xml",
+          "title": "QGIS Style file",
+          "roles": ["metadata"],
+          "_note": "Placeholder — update once .qml is committed to core-stack-org/QGIS-Styles"
+        },
+        "thumbnail": {
+          "href": "https://spatio-temporal-asset-catalog.s3.ap-south-1.amazonaws.com/STAC_output_merged_collection/demo-run-123.png",
+          "type": "image/png",
+          "title": "Thumbnail",
+          "roles": ["thumbnail"],
+          "_note": "Placeholder — populated at runtime when pipeline produces a PNG preview"
+        }
+      },
+      "collection": "drone_phenology_monitoring"
+    }
+  ]
+}
