@@ -1,0 +1,8 @@
+1.0.0 — 2026-09-29
+- First cluster-ready release for CoRE Stack Tower Services (IIT Delhi)
+- Deps-only Docker image; code/models/data mounted at runtime (CoRE Stack §2)
+- /health endpoint for Docker + Kubernetes probes (§5/§6)
+- Docker Hub push workflow: image tagged :1.0.0 and :latest (§5)
+- Airflow/STACD integration: deploy/stacd/*.yaml (group: drone), airflow_client.py, stac_utils.py (§7/§8)
+- STAC 1.1.0 output with table extension; example in STAC_OUTPUT_EXAMPLE.json (§9)
+- LOG_LEVEL-driven logging; logs under data/logs/drone-phenology-monitoring/ (§2/§6)
