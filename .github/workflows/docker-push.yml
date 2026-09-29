@@ -26,8 +26,8 @@ on:
     branches: [main]
     paths:
       - "Dockerfile"
+      - "requirements.txt"
       - "requirements/**"
-      - "src/flask_app_tracking/requirements.txt"
       - "VERSION"
       - ".github/workflows/docker-push.yml"
     tags:
