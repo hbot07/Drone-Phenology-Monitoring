@@ -1,0 +1,104 @@
+# =============================================================================
+# Drone Phenology Monitoring — combined Python requirements
+#
+# Derived from the Dockerfile (the authoritative build). This is a single,
+# pinned manifest of every Python package used across BOTH runtime
+# environments defined in the Dockerfile:
+#     dpm-tracking   — FastAPI dashboard + phenology/tracking scripts
+#     dpm-detectree  — PyTorch + Detectron2 + Detectree2 crown detection
+#
+# IMPORTANT — read before `pip install -r`:
+#   * The Docker image installs the heavy packages with conda/mamba, not pip:
+#       - GDAL and pytorch-cuda come from conda channels and do NOT pip-install
+#         cleanly. `pip install GDAL` needs a matching system libgdal-dev, and
+#         there is no pip package for `pytorch-cuda` (the CUDA runtime ships
+#         with the correct torch build from the PyTorch index).
+#   * dpm-tracking and dpm-detectree are SEPARATE conda envs on purpose — their
+#     deep dependencies conflict (that is why the Dockerfile keeps them apart).
+#     Installing this whole file into ONE environment may not resolve cleanly.
+#
+#   For a faithful, reproducible build use the Dockerfile. Use this file as a
+#   complete dependency inventory, or for a pip-only environment where you
+#   accept the caveats above (install system libgdal-dev and the right torch
+#   wheel first).
+#
+# Package-name notes (conda name -> pip name):
+#   opencv        -> opencv-python
+#   pytorch       -> torch
+#   gdal          -> GDAL           (version must match system libgdal)
+#   pytorch-cuda  -> (no pip package; use the CUDA torch wheel)
+# =============================================================================
+
+# --- Python ---
+# Dockerfile pins python=3.10 in both envs (not a pip dependency; for reference).
+
+# ---------------------------------------------------------------------------
+# Geospatial core (both envs)
+# ---------------------------------------------------------------------------
+numpy==1.26.*
+pandas
+geopandas
+rasterio==1.3.10
+shapely
+fiona==1.9.6
+pyproj==3.6.1
+rtree
+GDAL                       # conda `gdal` in dpm-tracking; needs system libgdal-dev
+
+# ---------------------------------------------------------------------------
+# Scientific / imaging (both envs unless noted)
+# ---------------------------------------------------------------------------
+scipy                      # dpm-tracking
+scikit-image               # dpm-tracking
+scikit-learn               # dpm-tracking
+matplotlib
+opencv-python              # conda `opencv`
+networkx                   # dpm-tracking
+plotly                     # dpm-tracking
+imageio                    # tracking scripts
+tqdm                       # dpm-detectree
+Pillow==9.5.0              # dpm-detectree: detectree2 requires Pillow<10
+
+# ---------------------------------------------------------------------------
+# Dashboard / API (dpm-tracking, pip-installed in the Dockerfile)
+# ---------------------------------------------------------------------------
+flask
+fastapi
+uvicorn
+mercantile
+pydantic
+python-multipart
+asyncpg
+google-auth
+httpx>=0.27
+PyJWT
+
+# ---------------------------------------------------------------------------
+# Deep learning / crown detection (dpm-detectree)
+#   pytorch-cuda=12.1 has no pip package — install the CUDA build of torch from
+#   the PyTorch index, e.g.:
+#     pip install torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 \
+#       --index-url https://download.pytorch.org/whl/cu121
+# ---------------------------------------------------------------------------
+torch==2.3.1
+torchvision==0.18.1
+torchaudio==2.3.1
+
+# ---------------------------------------------------------------------------
+# Build helpers required BEFORE detectron2 (dpm-detectree)
+#   detectron2's setup.py imports pkg_resources, removed in setuptools 81+.
+#   Install these first, then detectron2 with --no-build-isolation.
+# ---------------------------------------------------------------------------
+setuptools<81
+wheel
+
+# ---------------------------------------------------------------------------
+# Detectron2 (pinned commit known-good with detectree2) + Detectree2
+#   In the Dockerfile detectron2 is installed with --no-build-isolation so its
+#   setup.py finds the env's torch. With plain `pip install -r` that flag can't
+#   be applied per-line; if the build fails, install torch first, then run:
+#     pip install --no-build-isolation \
+#       "git+https://github.com/facebookresearch/detectron2.git@e0ec4e189d438848521aee7926f9900e114229f5"
+# ---------------------------------------------------------------------------
+git+https://github.com/facebookresearch/detectron2.git@e0ec4e189d438848521aee7926f9900e114229f5
+detectree2
