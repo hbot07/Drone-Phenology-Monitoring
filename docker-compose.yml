@@ -1,17 +1,41 @@
 # =============================================================================
-# Drone Phenology Monitoring — dashboard + Postgres + TiTiler
+# Drone Phenology Monitoring — dashboard + TiTiler (+ local dev Postgres)
 #
-# Usage (from repo root):
+# TWO MODES — controlled entirely by .env, no code change needed:
+#
+#   LOCAL DEV (current):
+#     - Whole repo mounted as a single volume: . -> /app  (laptop shortcut,
+#       explicitly permitted by docs.core-stack.org/server/cluster-docker-services §2)
+#     - Local Postgres sidecar (dpm-postgres) for DB
+#     - AIRFLOW_API_BASE empty → pipeline runs locally inside this container
+#
+#   CLUSTER PRODUCTION (when you deploy to IITD tower):
+#     - Replace the single volume with three separate mounts (see commented
+#       block in the dashboard volumes section below)
+#     - Remove dpm-postgres service + its depends_on; point DPM_DB_HOST at
+#       the cluster's central Postgres instance
+#     - Set AIRFLOW_API_BASE in .env → dashboard triggers/polls Airflow
+#     - Use a pinned GHCR/Docker Hub image tag instead of dpm-pipeline:latest
+#
+# Usage (local dev, from the folder containing this file):
+#   cp .env.example .env          # fill in Google client ID + secret key
+#   docker build -t dpm-pipeline:latest .
 #   docker compose up -d
 #   docker compose logs -f dashboard
 #   open http://localhost:8090
 #
-# The pipeline image (dpm-pipeline:latest) must already be built:
-#   docker build -t dpm-pipeline:latest -f Dockerfile .
-#
-# All credentials and secrets live in .env (gitignored).
-# Copy .env.example → .env and fill in your values.
+# CoRE Stack checklist compliance:
+#   §1  code/models/data mounts      — laptop shortcut (single mount) for dev;
+#                                       three-mount block ready to uncomment for cluster
+#   §2  AIRFLOW_API_BASE switch      — empty = local, set = Airflow
+#   §5  LOG_LEVEL; logs in data/     — data/logs/drone-phenology-monitoring/
+#   §6  one container, one port      — dashboard serves backend + frontend
+#   §7  frontend API base from .env  — DPM_API_BASE_URL, default /api
+#   §9  central Postgres ready       — swap DPM_DB_HOST in .env, remove sidecar
+#   §10 outputs.yaml                 — see outputs.yaml at repo root
 # =============================================================================
+
+name: dpm                          # fixes the "project was code/suryansh" network warning
 
 networks:
   dpm-net:
@@ -19,7 +43,8 @@ networks:
 
 services:
   # ---------------------------------------------------------------------------
-  # PostgreSQL — persists users and runs
+  # Postgres — LOCAL DEV ONLY.
+  # CLUSTER: delete this service; point DPM_DB_HOST at central Postgres in .env
   # ---------------------------------------------------------------------------
   dpm-postgres:
     image: postgres:16
@@ -42,30 +67,64 @@ services:
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # Dashboard — FastAPI server (reuses the pipeline image for conda envs)
+  # Dashboard — FastAPI server (backend + frontend, one container, one port)
   # ---------------------------------------------------------------------------
   dashboard:
-    image: dpm-pipeline:latest
+    image: ${DPM_IMAGE:-dpm-pipeline:latest}
     container_name: dpm-dashboard
-    pull_policy: never
+    pull_policy: ${DPM_PULL_POLICY:-never}
     networks:
       - dpm-net
     depends_on:
       dpm-postgres:
         condition: service_healthy
+        # CLUSTER: remove this whole depends_on block when sidecar is removed
     env_file:
       - .env
     environment:
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
-      NO_PROXY: "dpm-titiler,dpm-postgres,localhost,127.0.0.1"
-      no_proxy: "dpm-titiler,dpm-postgres,localhost,127.0.0.1"
-      DPM_DB_HOST: dpm-postgres
-      DPM_DB_PORT: "5432"
+      # Google auth domains are excluded so SSO works through the IITD proxy.
+      # Do not remove the googleapis.com entries — token verification fails without them.
+      NO_PROXY: "dpm-titiler,dpm-postgres,localhost,127.0.0.1,www.googleapis.com,googleapis.com,accounts.google.com,oauth2.googleapis.com"
+      no_proxy: "dpm-titiler,dpm-postgres,localhost,127.0.0.1,www.googleapis.com,googleapis.com,accounts.google.com,oauth2.googleapis.com"
+      # --- Database ---
+      DPM_DB_HOST: ${DPM_DB_HOST:-dpm-postgres}
+      DPM_DB_PORT: ${DPM_DB_PORT:-5432}
+      # --- Compute switch (§2/§8): empty = local, set = Airflow ---
+      AIRFLOW_API_BASE: ${AIRFLOW_API_BASE:-}
+      AIRFLOW_DAG_ID: ${AIRFLOW_DAG_ID:-}
+      AIRFLOW_USERNAME: ${AIRFLOW_USERNAME:-}
+      AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-}
+      AIRFLOW_TOKEN: ${AIRFLOW_TOKEN:-}
+      CORESTACK_API_BASE: ${CORESTACK_API_BASE:-}
+      # --- Frontend API base (§7): relative = works same-container, no hardcoding ---
+      DPM_API_BASE_URL: ${DPM_API_BASE_URL:-/api}
+      # --- Paths (always /app-relative, matching whichever volume mode is active) ---
+      DPM_PROJECT_ROOT: /app
+      DPM_MODEL_PATH: ${DPM_MODEL_PATH:-/app/models/250312_flexi.pth}
+      DPM_LOG_DIR: /app/data/logs/drone-phenology-monitoring
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
-      - ./:/workspace
-      - ./data/logs/dashboard:/workspace/logs
+      # -------------------------------------------------------------------------
+      # LOCAL DEV — single mount (laptop shortcut).
+      # The whole repo root is /app inside the container. models and data live
+      # at their existing locations inside the repo (input/, data/, logs/).
+      # Nothing new is created on the host; what you already have is used as-is.
+      # -------------------------------------------------------------------------
+      - .:/app
+
+      # -------------------------------------------------------------------------
+      # CLUSTER PRODUCTION — uncomment the three lines below and DELETE the
+      # single `- .:/app` line above.
+      # On the cluster host:
+      #   git clone <repo> ./code
+      #   mkdir -p models data
+      #   # copy model weights into ./models/
+      # -------------------------------------------------------------------------
+      # - ./code:/app
+      # - ./models:/app/models
+      # - ./data:/app/data
     ports:
       - "8090:8000"
     deploy:
@@ -80,14 +139,24 @@ services:
       - /bin/bash
       - -c
       - |
-        cd /workspace/src/flask_app_tracking
+        mkdir -p /app/data/logs/drone-phenology-monitoring
+        cd /app/src/flask_app_tracking
         /opt/conda/envs/dpm-tracking/bin/uvicorn server:app \
           --host 0.0.0.0 --port 8000 \
           --log-level ${LOG_LEVEL:-info}
+    healthcheck:
+      # /health is a lightweight endpoint in server.py — no DB, no auth.
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
 
   # ---------------------------------------------------------------------------
-  # TiTiler — dynamic tile server for crown crop extraction from COGs
+  # TiTiler — dynamic tile server for COG crown crop extraction.
+  # In local dev the whole repo is at /app so orthomosaics are wherever they
+  # already live (e.g. /app/data/orthos). Read-only for safety.
   # ---------------------------------------------------------------------------
   titiler:
     image: ghcr.io/developmentseed/titiler:latest
@@ -102,7 +171,7 @@ services:
       HOST: "0.0.0.0"
       PORT: "80"
     volumes:
-      - ./:/workspace:ro
+      - .:/app:ro
     restart: unless-stopped
 
 volumes:
