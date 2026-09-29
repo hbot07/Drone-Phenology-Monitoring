@@ -84,6 +84,7 @@ RUN conda run -n dpm-tracking pip install \
     python-multipart \
     asyncpg \
     google-auth \
+    httpx>=0.27\
     PyJWT
 
 # ---------------------------------------------------------------------------
