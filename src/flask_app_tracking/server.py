@@ -21,13 +21,17 @@ import io
 from pathlib import Path
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, UploadFile, HTTPException, BackgroundTasks, Depends
+from fastapi import FastAPI, UploadFile, HTTPException, BackgroundTasks, Depends, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
+
+import json
 
 import db
 import auth
 import errors
+import stac_utils          # STAC Item builder (sibling of server.py)
+import airflow_client      # Airflow REST client (sibling of server.py)
 
 HERE = Path(__file__).parent.resolve()
 RUNS_DIR = HERE / "runs"
@@ -165,6 +169,31 @@ async def _startup():
 @app.on_event("shutdown")
 async def _shutdown():
     await db.disconnect()
+
+
+# ---------------------------------------------------------------------------
+# Health check — REQUIRED by CoRE Stack §5/§6 and by the Dockerfile HEALTHCHECK
+# (curl -f http://localhost:8000/health). Unauthenticated on purpose: Docker
+# and Kubernetes liveness/readiness probes cannot present a Google SSO token.
+# Verifies process liveness AND Postgres connectivity (a dead pool is unhealthy
+# even though the process is up).
+# ---------------------------------------------------------------------------
+@app.get("/health")
+async def health():
+    db_ok = False
+    try:
+        val = await db.pool().fetchval("SELECT 1")
+        db_ok = (val == 1)
+    except Exception:
+        db_ok = False
+    body = {
+        "status": "healthy" if db_ok else "unhealthy",
+        "service": "drone-phenology-monitoring",
+        "database": "up" if db_ok else "down",
+    }
+    if not db_ok:
+        return JSONResponse(body, status_code=503)
+    return body
 
 
 # ---------------------------------------------------------------------------
@@ -526,6 +555,228 @@ async def start_run(run_id: str, background_tasks: BackgroundTasks,
         raise HTTPException(500, "Pipeline script not found on server")
     background_tasks.add_task(_run_pipeline, run_id, user["email"], run.get("params") or {})
     return {"status": "started", "run_id": run_id}
+
+
+# ===========================================================================
+# Airflow / STACD integration (CoRE Stack §7-§9)
+#
+# Active only when AIRFLOW_API_BASE is set (cluster mode). Three endpoints:
+#   POST /api/dag/run          UI -> backend -> Airflow trigger (authenticated)
+#   GET  /api/dag/status       UI polling proxy; mirrors state into runs/jobs
+#   POST /api/export-phenology DAG callback (UNauthenticated; Airflow calls it
+#                              over the internal network). Runs the pipeline
+#                              synchronously and returns a STAC Item.
+# The browser never calls Airflow directly (no CORS, credentials stay off the
+# page) - it always goes through these same-origin endpoints. (§8)
+# ===========================================================================
+
+class DagRunReq(BaseModel):
+    run_id: str
+    params: dict | None = None
+
+
+@app.post("/api/dag/run")
+async def dag_run(req: DagRunReq, user: dict = Depends(auth.get_current_user)):
+    """UI -> backend -> Airflow. Trigger the DAG for an existing, owned run."""
+    run = await auth.require_run_owner(req.run_id, user)
+    if not airflow_client.AIRFLOW_ENABLED:
+        raise HTTPException(
+            400,
+            "Airflow is disabled (AIRFLOW_API_BASE is empty). "
+            "Use POST /api/runs/{run_id}/start for local compute.",
+        )
+    # Stored run params, with any per-trigger overrides layered on top.
+    params = dict(run.get("params") or {})
+    if req.params:
+        params.update(req.params)
+    conf = {"run_id": req.run_id, **params}
+    try:
+        dag_run_id = await airflow_client.trigger_conf(conf)
+    except airflow_client.AirflowClientError as e:
+        raise HTTPException(502, f"Airflow trigger failed: {e}")
+    # Record the dag_run_id on a job row (type='airflow', request_id=dag_run_id)
+    # so /api/dag/status can poll it later.
+    await db.create_job(req.run_id, job_type="airflow", request_id=dag_run_id)
+    await db.update_run(req.run_id, status="running")
+    return {"run_id": req.run_id, "dag_run_id": dag_run_id, "status": "running"}
+
+
+# Airflow dag-run state -> DPM run.status / job.state
+_RUN_STATUS_FROM_AIRFLOW = {
+    "QUEUED": "running", "RUNNING": "running",
+    "SUCCEEDED": "done", "FAILED": "failed",
+}
+_JOB_STATE_FROM_AIRFLOW = {
+    "QUEUED": "QUEUED", "RUNNING": "RUNNING",
+    "SUCCEEDED": "SUCCEEDED", "FAILED": "FAILED",
+}
+
+
+@app.get("/api/dag/status")
+async def dag_status(run_id: str, user: dict = Depends(auth.get_current_user)):
+    """Single-shot poll of the Airflow dag_run for this run, mirrored into the
+    DB so the dashboard shows Airflow-driven runs exactly like local ones."""
+    run = await auth.require_run_owner(run_id, user)
+    if not airflow_client.AIRFLOW_ENABLED:
+        raise HTTPException(400, "Airflow is disabled (AIRFLOW_API_BASE is empty).")
+    job = await db.get_latest_job(run_id)
+    dag_run_id = job.get("request_id") if job else None
+    if not dag_run_id:
+        raise HTTPException(404, "No Airflow run found for this run_id")
+    try:
+        st = await airflow_client.run_state(dag_run_id)
+    except airflow_client.AirflowClientError as e:
+        raise HTTPException(502, f"Airflow status check failed: {e}")
+
+    # Mirror run.status
+    new_status = _RUN_STATUS_FROM_AIRFLOW.get(st["state"])
+    if new_status and new_status != run.get("status"):
+        fields = {"status": new_status}
+        if new_status in ("done", "failed"):
+            fields["finished_at"] = datetime.now(timezone.utc)
+        if new_status == "done":
+            fields["step_progress"] = 1.0
+        await db.update_run(run_id, **fields)
+    # Mirror job.state
+    job_state = _JOB_STATE_FROM_AIRFLOW.get(st["state"])
+    if job and job_state:
+        jfields = {"state": job_state}
+        if st["state"] in ("SUCCEEDED", "FAILED"):
+            jfields["finished_at"] = datetime.now(timezone.utc)
+        if st["state"] == "SUCCEEDED":
+            jfields["progress"] = 1.0
+        await db.update_job(job["id"], **jfields)
+
+    return {"run_id": run_id, "dag_run_id": dag_run_id, **st}
+
+
+def _find_phenology_geojson(run_id: str) -> Path | None:
+    """Locate the phenology vector the pipeline wrote for this run. Prefer the
+    phenophase-classified layer (script 12); fall back to the raw one (script 03)."""
+    out_dir = _output_dir(run_id)
+    preferred = [
+        out_dir / "03_phenology" / "tree_master_geojson_phenoclf.geojson",
+        out_dir / "03_phenology" / "tree_master_geojson.geojson",
+    ]
+    for p in preferred:
+        if p.exists():
+            return p
+    for name in ("tree_master_geojson_phenoclf.geojson", "tree_master_geojson.geojson"):
+        hits = list(out_dir.rglob(name))
+        if hits:
+            return hits[0]
+    return None
+
+
+def _phenology_data_href(run_id: str, conf: dict) -> str:
+    """Fetchable URL for the published layer (§9 needs a URL, not a file path).
+    Priority: explicit conf.data_href -> GeoServer WFS -> backend public download."""
+    if conf.get("data_href"):
+        return conf["data_href"]
+    wfs = os.environ.get("DPM_GEOSERVER_WFS", "").rstrip("/")
+    ws = os.environ.get("DPM_GEOSERVER_WORKSPACE", "dpm")
+    if wfs:
+        return (f"{wfs}?service=WFS&request=GetFeature"
+                f"&typeName={ws}:{run_id}&outputFormat=application/json")
+    api = os.environ.get("CORESTACK_API_BASE", "").rstrip("/")
+    rel = "path=03_phenology/tree_master_geojson_phenoclf.geojson"
+    return f"{api}/dl/{run_id}/file?{rel}" if api else f"/dl/{run_id}/file?{rel}"
+
+
+@app.post("/api/export-phenology")
+async def export_phenology(request: Request):
+    """DAG callback. UNauthenticated on purpose - Airflow calls this over the
+    internal Docker/LAN network, not through a browser, so there is no Google SSO
+    token to present (same pattern as Custom LULC's /api/export-asset).
+
+    Runs the pipeline synchronously for the given run, then returns the phenology
+    output as a STAC Item in the STACD envelope. HTTP status contract (STACD §12):
+      200 success | 400 bad params | 404 no run / no output | 500 pipeline error.
+    """
+    try:
+        payload = await request.json()
+    except Exception:                                        # noqa: BLE001
+        return JSONResponse(
+            stac_utils.build_error_response("bad_request", "request body is not valid JSON"),
+            status_code=400,
+        )
+
+    # Accept both the {"conf": {...}} envelope Airflow sends and a flat body.
+    conf = payload.get("conf", payload) if isinstance(payload, dict) else {}
+    if not isinstance(conf, dict):
+        conf = {}
+    run_id = conf.get("run_id") or (payload.get("run_id") if isinstance(payload, dict) else None)
+    if not run_id:
+        return JSONResponse(
+            stac_utils.build_error_response("bad_request", "missing required param: run_id"),
+            status_code=400,
+        )
+
+    run = await db.get_run(run_id)
+    if not run:
+        return JSONResponse(
+            stac_utils.build_error_response("not_found", f"run {run_id} not found"),
+            status_code=404,
+        )
+    if not PIPELINE_SCRIPT:
+        return JSONResponse(
+            stac_utils.build_error_response("server_error", "pipeline script not found on server"),
+            status_code=500,
+        )
+
+    owner_email = run.get("owner_email") or "airflow@corestack"
+    # Stored params, with any tuning overrides from the DAG conf layered on top
+    # (everything except the reserved keys, which are not pipeline params).
+    params = dict(run.get("params") or {})
+    for k, v in conf.items():
+        if k not in ("run_id", "data_href", "start_datetime", "end_datetime"):
+            params[k] = v
+
+    # Run the (blocking) pipeline in a worker thread so the event loop stays free.
+    # _run_pipeline creates its own event loop + DB connection and updates
+    # runs/jobs exactly as the local /start path does.
+    import asyncio
+    try:
+        await asyncio.get_event_loop().run_in_executor(
+            None, _run_pipeline, run_id, owner_email, params,
+        )
+    except Exception as e:                                   # noqa: BLE001
+        return JSONResponse(
+            stac_utils.build_error_response("compute_error", f"pipeline raised: {e}"),
+            status_code=500,
+        )
+
+    run = await db.get_run(run_id)
+    if run and run.get("status") == "failed":
+        return JSONResponse(
+            stac_utils.build_error_response(
+                "compute_error", run.get("error_msg") or "pipeline failed"),
+            status_code=500,
+        )
+
+    geojson_path = _find_phenology_geojson(run_id)
+    if geojson_path is None:
+        return JSONResponse(
+            stac_utils.build_error_response("no_output", "pipeline produced no phenology geojson"),
+            status_code=404,
+        )
+    try:
+        geojson = json.loads(geojson_path.read_text())
+    except Exception as e:                                   # noqa: BLE001
+        return JSONResponse(
+            stac_utils.build_error_response("server_error", f"could not read phenology geojson: {e}"),
+            status_code=500,
+        )
+
+    item = stac_utils.build_phenology_stac_item(
+        run_id=run_id,
+        geojson=geojson,
+        data_href=_phenology_data_href(run_id, conf),
+        run_name=run.get("run_name", ""),
+        start_datetime=conf.get("start_datetime"),
+        end_datetime=conf.get("end_datetime"),
+    )
+    return stac_utils.build_response_envelope(item)
 
 
 @app.delete("/api/runs/{run_id}")
