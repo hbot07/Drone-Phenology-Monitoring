@@ -21,20 +21,23 @@ import io
 from pathlib import Path
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, UploadFile, HTTPException, BackgroundTasks, Depends, Request
+from fastapi import FastAPI, UploadFile, HTTPException, BackgroundTasks, Depends
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
-
-import json
 
 import db
 import auth
 import errors
-import stac_utils          # STAC Item builder (sibling of server.py)
-import airflow_client      # Airflow REST client (sibling of server.py)
+from log_config import get_logger
+
+log = get_logger("server")
 
 HERE = Path(__file__).parent.resolve()
-RUNS_DIR = HERE / "runs"
+# CoRE Stack §2: all data (inputs, outputs, logs) lives under /app/data.
+# Runs keep their existing internal layout (uploads/, output/, pipeline.log,
+# progress.json) — only the parent location moves out of the source tree.
+# Overridable via DPM_RUNS_DIR for non-container / local dev use.
+RUNS_DIR = Path(os.environ.get("DPM_RUNS_DIR", "/app/data/runs"))
 TEMPLATES_DIR = HERE   # home.html lives alongside server.py
 
 _ON_WINDOWS = platform.system() == "Windows"
@@ -51,36 +54,16 @@ for candidate in [
     if candidate.exists():
         PIPELINE_SCRIPT = candidate
         break
-print(f"[init] Platform: {platform.system()}  Pipeline script: {PIPELINE_SCRIPT}")
+log.info("Platform: %s  Pipeline script: %s", platform.system(), PIPELINE_SCRIPT)
 
 # ---------------------------------------------------------------------------
-# Load .env for project root / model path
+# Project root / model path — read straight from the environment, exactly
+# like DPM_RUNS_DIR above (docker-compose injects these from the root .env).
+# Defaults match env.example / docker-compose.yml.
 # ---------------------------------------------------------------------------
-PROJECT_ROOT = None
-MODEL_PATH = ""
-
-
-def _win_to_wsl(p: str) -> str:
-    m = re.match(r"^([A-Za-z]):\\?(.*)", p)
-    if m:
-        return f"/mnt/{m.group(1).lower()}/" + m.group(2).replace("\\", "/")
-    return p
-
-
-env_file = HERE / ".env"
-if env_file.exists():
-    for line in env_file.read_text().splitlines():
-        if "=" not in line or line.startswith("#"):
-            continue
-        key, _, val = line.partition("=")
-        key, val = key.strip(), val.strip().strip('"').strip("'")
-        if not _ON_WINDOWS:
-            val = _win_to_wsl(val)
-        if key == "DPM_PROJECT_ROOT":
-            PROJECT_ROOT = Path(val).resolve()
-        elif key == "DPM_MODEL_PATH":
-            MODEL_PATH = val
-print(f"[init] PROJECT_ROOT: {PROJECT_ROOT}  MODEL_PATH: {MODEL_PATH}")
+PROJECT_ROOT = Path(os.environ.get("DPM_PROJECT_ROOT", "/app")).resolve()
+MODEL_PATH = os.environ.get("DPM_MODEL_PATH", "/app/models/250312_flexi.pth")
+log.info("PROJECT_ROOT: %s  MODEL_PATH: %s", PROJECT_ROOT, MODEL_PATH)
 
 STEP_KEYS = [
     "00_discover_oms", "01_crown_detection", "02_crown_tracking",
@@ -160,40 +143,27 @@ app = FastAPI()
 # ---------------------------------------------------------------------------
 @app.on_event("startup")
 async def _startup():
-    RUNS_DIR.mkdir(exist_ok=True)
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
     TEMPLATES_DIR.mkdir(exist_ok=True)
+    log.info("Connecting to database ...")
     await db.connect()
     await db.init_db()
+    log.info("Server ready - listening on 0.0.0.0:8000")
 
 
 @app.on_event("shutdown")
 async def _shutdown():
+    log.info("Shutting down - closing DB pool")
     await db.disconnect()
 
 
 # ---------------------------------------------------------------------------
-# Health check — REQUIRED by CoRE Stack §5/§6 and by the Dockerfile HEALTHCHECK
-# (curl -f http://localhost:8000/health). Unauthenticated on purpose: Docker
-# and Kubernetes liveness/readiness probes cannot present a Google SSO token.
-# Verifies process liveness AND Postgres connectivity (a dead pool is unhealthy
-# even though the process is up).
+# Health check — lightweight, no DB, no auth (used by the Docker healthcheck
+# and by the cluster checklist). Referenced in docker-compose.yml.
 # ---------------------------------------------------------------------------
 @app.get("/health")
-async def health():
-    db_ok = False
-    try:
-        val = await db.pool().fetchval("SELECT 1")
-        db_ok = (val == 1)
-    except Exception:
-        db_ok = False
-    body = {
-        "status": "healthy" if db_ok else "unhealthy",
-        "service": "drone-phenology-monitoring",
-        "database": "up" if db_ok else "down",
-    }
-    if not db_ok:
-        return JSONResponse(body, status_code=503)
-    return body
+def health():
+    return {"status": "ok"}
 
 
 # ---------------------------------------------------------------------------
@@ -238,15 +208,6 @@ def dashboard():
     return FileResponse(str(p))
 
 
-@app.get("/new-run")
-def new_run_page():
-    """New run page (new-run.html). Standalone page for creating a pipeline run."""
-    p = _find_page("new-run.html")
-    if not p:
-        raise HTTPException(404, "new-run.html not found")
-    return FileResponse(str(p))
-
-
 @app.get("/login")
 def login_page():
     p = _find_page("login.html")
@@ -276,6 +237,16 @@ def drone_guide_page():
     p = _find_page("drone-guide.html")
     if not p:
         raise HTTPException(404, "drone-guide.html not found")
+    return FileResponse(str(p))
+
+
+@app.get("/new-run")
+def new_run_page():
+    """Standalone new-run page (new-run.html). Reached from the dashboard's
+    'New run' button. Like the other pages, auth is handled client-side."""
+    p = _find_page("new-run.html")
+    if not p:
+        raise HTTPException(404, "new-run.html not found")
     return FileResponse(str(p))
 
 
@@ -552,231 +523,11 @@ async def start_run(run_id: str, background_tasks: BackgroundTasks,
                     user: dict = Depends(auth.get_current_user)):
     run = await auth.require_run_owner(run_id, user)
     if not PIPELINE_SCRIPT:
+        log.error("Pipeline script not found on server")
         raise HTTPException(500, "Pipeline script not found on server")
+    log.info("Compute trigger  run=%s  user=%s", run_id, user["email"])
     background_tasks.add_task(_run_pipeline, run_id, user["email"], run.get("params") or {})
     return {"status": "started", "run_id": run_id}
-
-
-# ===========================================================================
-# Airflow / STACD integration (CoRE Stack §7-§9)
-#
-# Active only when AIRFLOW_API_BASE is set (cluster mode). Three endpoints:
-#   POST /api/dag/run          UI -> backend -> Airflow trigger (authenticated)
-#   GET  /api/dag/status       UI polling proxy; mirrors state into runs/jobs
-#   POST /api/export-phenology DAG callback (UNauthenticated; Airflow calls it
-#                              over the internal network). Runs the pipeline
-#                              synchronously and returns a STAC Item.
-# The browser never calls Airflow directly (no CORS, credentials stay off the
-# page) - it always goes through these same-origin endpoints. (§8)
-# ===========================================================================
-
-class DagRunReq(BaseModel):
-    run_id: str
-    params: dict | None = None
-
-
-@app.post("/api/dag/run")
-async def dag_run(req: DagRunReq, user: dict = Depends(auth.get_current_user)):
-    """UI -> backend -> Airflow. Trigger the DAG for an existing, owned run."""
-    run = await auth.require_run_owner(req.run_id, user)
-    if not airflow_client.AIRFLOW_ENABLED:
-        raise HTTPException(
-            400,
-            "Airflow is disabled (AIRFLOW_API_BASE is empty). "
-            "Use POST /api/runs/{run_id}/start for local compute.",
-        )
-    # Stored run params, with any per-trigger overrides layered on top.
-    params = dict(run.get("params") or {})
-    if req.params:
-        params.update(req.params)
-    conf = {"run_id": req.run_id, **params}
-    try:
-        dag_run_id = await airflow_client.trigger_conf(conf)
-    except airflow_client.AirflowClientError as e:
-        raise HTTPException(502, f"Airflow trigger failed: {e}")
-    # Record the dag_run_id on a job row (type='airflow', request_id=dag_run_id)
-    # so /api/dag/status can poll it later.
-    await db.create_job(req.run_id, job_type="airflow", request_id=dag_run_id)
-    await db.update_run(req.run_id, status="running")
-    return {"run_id": req.run_id, "dag_run_id": dag_run_id, "status": "running"}
-
-
-# Airflow dag-run state -> DPM run.status / job.state
-_RUN_STATUS_FROM_AIRFLOW = {
-    "QUEUED": "running", "RUNNING": "running",
-    "SUCCEEDED": "done", "FAILED": "failed",
-}
-_JOB_STATE_FROM_AIRFLOW = {
-    "QUEUED": "QUEUED", "RUNNING": "RUNNING",
-    "SUCCEEDED": "SUCCEEDED", "FAILED": "FAILED",
-}
-
-
-@app.get("/api/dag/status")
-async def dag_status(run_id: str, user: dict = Depends(auth.get_current_user)):
-    """Single-shot poll of the Airflow dag_run for this run, mirrored into the
-    DB so the dashboard shows Airflow-driven runs exactly like local ones."""
-    run = await auth.require_run_owner(run_id, user)
-    if not airflow_client.AIRFLOW_ENABLED:
-        raise HTTPException(400, "Airflow is disabled (AIRFLOW_API_BASE is empty).")
-    job = await db.get_latest_job(run_id)
-    dag_run_id = job.get("request_id") if job else None
-    if not dag_run_id:
-        raise HTTPException(404, "No Airflow run found for this run_id")
-    try:
-        st = await airflow_client.run_state(dag_run_id)
-    except airflow_client.AirflowClientError as e:
-        raise HTTPException(502, f"Airflow status check failed: {e}")
-
-    # Mirror run.status
-    new_status = _RUN_STATUS_FROM_AIRFLOW.get(st["state"])
-    if new_status and new_status != run.get("status"):
-        fields = {"status": new_status}
-        if new_status in ("done", "failed"):
-            fields["finished_at"] = datetime.now(timezone.utc)
-        if new_status == "done":
-            fields["step_progress"] = 1.0
-        await db.update_run(run_id, **fields)
-    # Mirror job.state
-    job_state = _JOB_STATE_FROM_AIRFLOW.get(st["state"])
-    if job and job_state:
-        jfields = {"state": job_state}
-        if st["state"] in ("SUCCEEDED", "FAILED"):
-            jfields["finished_at"] = datetime.now(timezone.utc)
-        if st["state"] == "SUCCEEDED":
-            jfields["progress"] = 1.0
-        await db.update_job(job["id"], **jfields)
-
-    return {"run_id": run_id, "dag_run_id": dag_run_id, **st}
-
-
-def _find_phenology_geojson(run_id: str) -> Path | None:
-    """Locate the phenology vector the pipeline wrote for this run. Prefer the
-    phenophase-classified layer (script 12); fall back to the raw one (script 03)."""
-    out_dir = _output_dir(run_id)
-    preferred = [
-        out_dir / "03_phenology" / "tree_master_geojson_phenoclf.geojson",
-        out_dir / "03_phenology" / "tree_master_geojson.geojson",
-    ]
-    for p in preferred:
-        if p.exists():
-            return p
-    for name in ("tree_master_geojson_phenoclf.geojson", "tree_master_geojson.geojson"):
-        hits = list(out_dir.rglob(name))
-        if hits:
-            return hits[0]
-    return None
-
-
-def _phenology_data_href(run_id: str, conf: dict) -> str:
-    """Fetchable URL for the published layer (§9 needs a URL, not a file path).
-    Priority: explicit conf.data_href -> GeoServer WFS -> backend public download."""
-    if conf.get("data_href"):
-        return conf["data_href"]
-    wfs = os.environ.get("DPM_GEOSERVER_WFS", "").rstrip("/")
-    ws = os.environ.get("DPM_GEOSERVER_WORKSPACE", "dpm")
-    if wfs:
-        return (f"{wfs}?service=WFS&request=GetFeature"
-                f"&typeName={ws}:{run_id}&outputFormat=application/json")
-    api = os.environ.get("CORESTACK_API_BASE", "").rstrip("/")
-    rel = "path=03_phenology/tree_master_geojson_phenoclf.geojson"
-    return f"{api}/dl/{run_id}/file?{rel}" if api else f"/dl/{run_id}/file?{rel}"
-
-
-@app.post("/api/export-phenology")
-async def export_phenology(request: Request):
-    """DAG callback. UNauthenticated on purpose - Airflow calls this over the
-    internal Docker/LAN network, not through a browser, so there is no Google SSO
-    token to present (same pattern as Custom LULC's /api/export-asset).
-
-    Runs the pipeline synchronously for the given run, then returns the phenology
-    output as a STAC Item in the STACD envelope. HTTP status contract (STACD §12):
-      200 success | 400 bad params | 404 no run / no output | 500 pipeline error.
-    """
-    try:
-        payload = await request.json()
-    except Exception:                                        # noqa: BLE001
-        return JSONResponse(
-            stac_utils.build_error_response("bad_request", "request body is not valid JSON"),
-            status_code=400,
-        )
-
-    # Accept both the {"conf": {...}} envelope Airflow sends and a flat body.
-    conf = payload.get("conf", payload) if isinstance(payload, dict) else {}
-    if not isinstance(conf, dict):
-        conf = {}
-    run_id = conf.get("run_id") or (payload.get("run_id") if isinstance(payload, dict) else None)
-    if not run_id:
-        return JSONResponse(
-            stac_utils.build_error_response("bad_request", "missing required param: run_id"),
-            status_code=400,
-        )
-
-    run = await db.get_run(run_id)
-    if not run:
-        return JSONResponse(
-            stac_utils.build_error_response("not_found", f"run {run_id} not found"),
-            status_code=404,
-        )
-    if not PIPELINE_SCRIPT:
-        return JSONResponse(
-            stac_utils.build_error_response("server_error", "pipeline script not found on server"),
-            status_code=500,
-        )
-
-    owner_email = run.get("owner_email") or "airflow@corestack"
-    # Stored params, with any tuning overrides from the DAG conf layered on top
-    # (everything except the reserved keys, which are not pipeline params).
-    params = dict(run.get("params") or {})
-    for k, v in conf.items():
-        if k not in ("run_id", "data_href", "start_datetime", "end_datetime"):
-            params[k] = v
-
-    # Run the (blocking) pipeline in a worker thread so the event loop stays free.
-    # _run_pipeline creates its own event loop + DB connection and updates
-    # runs/jobs exactly as the local /start path does.
-    import asyncio
-    try:
-        await asyncio.get_event_loop().run_in_executor(
-            None, _run_pipeline, run_id, owner_email, params,
-        )
-    except Exception as e:                                   # noqa: BLE001
-        return JSONResponse(
-            stac_utils.build_error_response("compute_error", f"pipeline raised: {e}"),
-            status_code=500,
-        )
-
-    run = await db.get_run(run_id)
-    if run and run.get("status") == "failed":
-        return JSONResponse(
-            stac_utils.build_error_response(
-                "compute_error", run.get("error_msg") or "pipeline failed"),
-            status_code=500,
-        )
-
-    geojson_path = _find_phenology_geojson(run_id)
-    if geojson_path is None:
-        return JSONResponse(
-            stac_utils.build_error_response("no_output", "pipeline produced no phenology geojson"),
-            status_code=404,
-        )
-    try:
-        geojson = json.loads(geojson_path.read_text())
-    except Exception as e:                                   # noqa: BLE001
-        return JSONResponse(
-            stac_utils.build_error_response("server_error", f"could not read phenology geojson: {e}"),
-            status_code=500,
-        )
-
-    item = stac_utils.build_phenology_stac_item(
-        run_id=run_id,
-        geojson=geojson,
-        data_href=_phenology_data_href(run_id, conf),
-        run_name=run.get("run_name", ""),
-        start_datetime=conf.get("start_datetime"),
-        end_datetime=conf.get("end_datetime"),
-    )
-    return stac_utils.build_response_envelope(item)
 
 
 @app.delete("/api/runs/{run_id}")
@@ -790,10 +541,10 @@ async def delete_run(run_id: str, user: dict = Depends(auth.get_current_user)):
 @app.get("/api/runs/{run_id}/log")
 async def get_log(run_id: str, lines: int = 60, user: dict = Depends(auth.get_current_user)):
     await auth.require_run_owner(run_id, user)
-    log = _log_path(run_id)
-    if not log.exists():
+    run_log = _log_path(run_id)
+    if not run_log.exists():
         return {"lines": []}
-    all_lines = log.read_text(errors="replace").splitlines()
+    all_lines = run_log.read_text(errors="replace").splitlines()
     return {"lines": all_lines[-lines:]}
 
 
@@ -803,8 +554,8 @@ async def get_error(run_id: str, user: dict = Depends(auth.get_current_user)):
     run = await auth.require_run_owner(run_id, user)
     if run["status"] != "failed":
         return {"failed": False}
-    log = _log_path(run_id)
-    raw = log.read_text(errors="replace") if log.exists() else ""
+    run_log = _log_path(run_id)
+    raw = run_log.read_text(errors="replace") if run_log.exists() else ""
     return {
         "failed": True,
         "summary": run.get("error_msg") or errors.classify_pipeline_error(raw),
@@ -910,8 +661,8 @@ async def list_files(run_id: str, subpath: str = "", user: dict = Depends(auth.g
     run_root = (RUNS_DIR / run_id).resolve()
     target = (run_root / subpath).resolve()
 
-    # Block escaping the run directory
-    if not str(target).startswith(str(run_root)):
+    # Block escaping the run directory (path-aware; not a raw string prefix)
+    if not target.is_relative_to(run_root):
         raise HTTPException(400, "Invalid path")
     if not target.exists():
         raise HTTPException(404, "Path not found")
@@ -939,7 +690,7 @@ async def download_file(run_id: str, path: str, user: dict = Depends(auth.get_cu
     await auth.require_run_owner(run_id, user)
     run_root = (RUNS_DIR / run_id).resolve()
     target = (run_root / path).resolve()
-    if not str(target).startswith(str(run_root)):
+    if not target.is_relative_to(run_root):
         raise HTTPException(400, "Invalid path")
     if not target.exists() or not target.is_file():
         raise HTTPException(404, "File not found")
@@ -1057,7 +808,7 @@ async def download_file_public(run_id: str, path: str):
         raise HTTPException(400, "Invalid run id")
     run_root = (RUNS_DIR / run_id).resolve()
     target = (run_root / path).resolve()
-    if not str(target).startswith(str(run_root)):
+    if not target.is_relative_to(run_root):
         raise HTTPException(400, "Invalid path")
     if not target.exists() or not target.is_file():
         raise HTTPException(404, "File not found")
@@ -1095,7 +846,10 @@ async def download_zip_public(run_id: str, which: str = "output"):
 @app.get("/api/runs/{run_id}/viewer/{filepath:path}")
 async def serve_viewer(run_id: str, filepath: str, user: dict = Depends(auth.get_current_user)):
     await auth.require_run_owner(run_id, user)
-    target = _output_dir(run_id) / "04_viewer" / filepath
+    run_root = _output_dir(run_id).resolve()
+    target = (_output_dir(run_id) / "04_viewer" / filepath).resolve()
+    if not target.is_relative_to(run_root):
+        raise HTTPException(400, "Invalid path")
     if not target.exists():
         raise HTTPException(404, "Viewer not yet generated.")
     return FileResponse(str(target))
@@ -1112,7 +866,7 @@ async def serve_viewer_public(run_id: str, filepath: str):
         raise HTTPException(400, "Invalid run id")
     target = (_output_dir(run_id) / "04_viewer" / filepath).resolve()
     run_root = _output_dir(run_id).resolve()
-    if not str(target).startswith(str(run_root)):
+    if not target.is_relative_to(run_root):
         raise HTTPException(400, "Invalid path")
     if not target.exists():
         raise HTTPException(404, "Viewer file not found.")
@@ -1180,7 +934,7 @@ async def _run_pipeline_async(run_id: str, owner_email: str, params: dict, loop)
         row = await con.fetchrow("SELECT current_step FROM runs WHERE id = $1", run_id)
         return row["current_step"] if row else None
 
-    log = _log_path(run_id)
+    run_log = _log_path(run_id)
     om_dir = str(_uploads_dir(run_id))
     out_dir = str(_output_dir(run_id))
 
@@ -1189,7 +943,7 @@ async def _run_pipeline_async(run_id: str, owner_email: str, params: dict, loop)
     run_name = row["run_name"] if row else run_id
 
     await _update(status="running", current_step="00_discover_oms",
-                  started_at=datetime.now(timezone.utc), log_path=str(log))
+                  started_at=datetime.now(timezone.utc), log_path=str(run_log))
 
     # Create a job record for this compute attempt
     import uuid as _uuid
@@ -1211,8 +965,11 @@ async def _run_pipeline_async(run_id: str, owner_email: str, params: dict, loop)
     step_idx = 0
     try:
         cmd = _build_cmd(run_name, om_dir, out_dir, params)
+        log.info("Job start  run=%s  job=%s  user=%s", run_id, job_id, owner_email)
+        log.debug("Pipeline cmd: %s", " ".join(str(a) for a in cmd))
+        log.debug("Pipeline cwd: %s", PIPELINE_SCRIPT.parent)
 
-        with open(log, "w", buffering=1, encoding="utf-8") as lf:
+        with open(run_log, "w", buffering=1, encoding="utf-8") as lf:
             lf.write(f"[server] cmd  : {' '.join(str(a) for a in cmd)}\n")
             lf.write(f"[server] cwd  : {PIPELINE_SCRIPT.parent}\n\n")
 
@@ -1235,6 +992,7 @@ async def _run_pipeline_async(run_id: str, owner_email: str, params: dict, loop)
                         await _update_job(current_stage=key, progress=progress)
                         _write_progress(run_id, key, progress, 0, 0,
                                         STEP_LABELS.get(key, key))
+                        log.debug("Step  run=%s  step=%s  progress=%.0f%%", run_id, key, progress * 100)
                         lf.write(f"[server] >> current_step = {key} ({progress:.0%})\n")
                         lf.flush()
                 elif stripped.startswith("PROGRESS:"):
@@ -1262,6 +1020,7 @@ async def _run_pipeline_async(run_id: str, owner_email: str, params: dict, loop)
             proc.wait()
 
         if proc.returncode == 0:
+            log.info("Job complete  run=%s  job=%s  state=SUCCEEDED", run_id, job_id)
             await _update(status="done", step_progress=1.0,
                           finished_at=datetime.now(timezone.utc))
             await _update_job(state="SUCCEEDED", progress=1.0,
@@ -1273,6 +1032,10 @@ async def _run_pipeline_async(run_id: str, owner_email: str, params: dict, loop)
             info = errors.log_error(
                 run_id=run_id, user_email=owner_email,
                 step=current_step, raw_output=raw, message=None,
+            )
+            log.error(
+                "Job failed  run=%s  job=%s  step=%s  summary=%s",
+                run_id, job_id, current_step, info["summary"],
             )
             await _update(
                 status="failed",
@@ -1291,8 +1054,12 @@ async def _run_pipeline_async(run_id: str, owner_email: str, params: dict, loop)
             run_id=run_id, user_email=owner_email,
             step=None, exc=e, raw_output=raw or None,
         )
+        log.error(
+            "Job exception  run=%s  job=%s  error=%s",
+            run_id, job_id, info["summary"], exc_info=True,
+        )
         try:
-            with open(log, "a", encoding="utf-8") as lf:
+            with open(run_log, "a", encoding="utf-8") as lf:
                 lf.write(f"\n[ERROR] {info['summary']}\n")
         except Exception:                            # noqa: BLE001
             pass
@@ -1337,6 +1104,12 @@ def _build_bash_cmd(run_name: str, om_dir: str, out_dir: str, params: dict) -> l
         if v is not None:
             args.extend([flag, str(int(v))])
 
+    def _sh_float(key, flag):
+        # Use "is not None" (not truthiness) so a legitimate 0.0 is still passed.
+        v = params.get(key)
+        if v is not None:
+            args.extend([flag, str(float(v))])
+
     _sh_int("tile_width", "--tile-width")
     _sh_int("tile_height", "--tile-height")
     _sh_int("tile_buffer", "--tile-buffer")
@@ -1345,6 +1118,11 @@ def _build_bash_cmd(run_name: str, om_dir: str, out_dir: str, params: dict) -> l
     _sh("underlay_om", "--underlay-om")
     _sh("base_threshold_tag", "--base-threshold-tag")
     _sh("align_threshold_tag", "--align-threshold-tag")
+    _sh_float("w_veg_amp", "--w-veg-amp")
+    _sh_float("w_depth",   "--w-depth")
+    _sh_float("w_gcc_amp", "--w-gcc-amp")
+    _sh_float("w_tex",     "--w-tex")
+    _sh_float("ds_threshold", "--ds-thresh")
     _sh("min_partial_len", "--min-partial-len")
     _sh("min_partial_ratio", "--min-partial-ratio")
     _sh("exclude_stems", "--exclude-stems")
