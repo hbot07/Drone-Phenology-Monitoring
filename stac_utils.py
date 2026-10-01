@@ -121,6 +121,7 @@ def build_phenology_stac_item(
     end_datetime: Optional[str] = None,
     thumbnail_href: Optional[str] = None,
     collection: Optional[str] = None,
+    params: Optional[dict] = None,
 ) -> dict:
     """
     Build a STAC 1.1.0 Item for the DPM phenology vector.
@@ -137,6 +138,10 @@ def build_phenology_stac_item(
       start/end_datetime — ISO 8601 temporal coverage of the OM series.
       thumbnail_href     — PNG preview url if the pipeline produced one.
       collection         — parent collection id; defaults to "drone_phenology_monitoring".
+      params             — the pipeline params used for this run. When given, they
+                           are recorded as dpm:* processing-lineage properties
+                           (DS weights, ds_threshold, detection/tracking settings)
+                           so the STAC Item captures exactly how it was produced.
     """
     bbox = _bbox_from_geojson(geojson)
     geometry = _bbox_to_polygon(bbox)
@@ -173,6 +178,20 @@ def build_phenology_stac_item(
         "dpm:run_id": run_id,
         "dpm:run_name": run_name,
     }
+
+    # Processing lineage: record the pipeline params that produced this layer as
+    # dpm:* properties (safe extra keys). Only keys actually supplied are written.
+    if params:
+        _LINEAGE_KEYS = (
+            "model_type", "tile_width", "tile_height", "tile_buffer", "fixed_iou",
+            "base_threshold_tag", "align_threshold_tag", "align_method",
+            "w_veg_amp", "w_depth", "w_gcc_amp", "w_tex", "ds_threshold",
+            "underlay_om", "exclude_stems",
+        )
+        for _k in _LINEAGE_KEYS:
+            _v = params.get(_k)
+            if _v is not None:
+                properties[f"dpm:{_k}"] = _v
 
     assets = {
         "data": {
