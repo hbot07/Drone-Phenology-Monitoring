@@ -15,15 +15,18 @@ import uuid
 from datetime import datetime, timezone, date
 
 import asyncpg
+from log_config import get_logger
+
+_log = get_logger("db")
 
 # ---------------------------------------------------------------------------
 # Connection settings
 # ---------------------------------------------------------------------------
 DB_HOST = os.environ.get("DPM_DB_HOST", "dpm-postgres")
 DB_PORT = int(os.environ.get("DPM_DB_PORT", "5432"))
-DB_NAME = os.environ["DPM_DB_NAME"]
-DB_USER = os.environ["DPM_DB_USER"]
-DB_PASS = os.environ["DPM_DB_PASSWORD"]
+DB_NAME = os.environ.get("DPM_DB_NAME", "dpm")
+DB_USER = os.environ.get("DPM_DB_USER", "dpm")
+DB_PASS = os.environ.get("DPM_DB_PASSWORD", "dpm_password")
 
 _pool: asyncpg.Pool | None = None
 
@@ -39,11 +42,11 @@ async def connect(retries: int = 10, delay: float = 2.0):
                 user=DB_USER, password=DB_PASS,
                 min_size=1, max_size=10,
             )
-            print(f"[db] connected to {DB_HOST}:{DB_PORT}/{DB_NAME}")
+            _log.info("Connected to %s:%s/%s", DB_HOST, DB_PORT, DB_NAME)
             return
         except Exception as e:
             last_err = e
-            print(f"[db] connect attempt {attempt}/{retries} failed: {e}")
+            _log.error("Connect attempt %d/%d failed: %s", attempt, retries, e)
             await asyncio.sleep(delay)
     raise RuntimeError(f"Could not connect to Postgres after {retries} tries: {last_err}")
 
@@ -152,7 +155,7 @@ async def init_db():
             except Exception:
                 pass  # column already exists with different constraint — fine
 
-    print("[db] schema ready (users, runs, orthos, jobs)")
+    _log.info("Schema ready (users, runs, orthos, jobs)")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
