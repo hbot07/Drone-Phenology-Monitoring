@@ -45,6 +45,13 @@ STEPS="0,1,2,3,4a,4b"
 BASE_ENV="dpm-detectree"
 TRACKING_ENV="dpm-tracking"
 PROJECT_ROOT_ARG=""
+# Phenology DS weights + threshold. Empty = let 03_phenology_analysis.py use
+# its own configured defaults. All configurable from the dashboard / DAG conf.
+W_VEG_AMP=""
+W_DEPTH=""
+W_GCC_AMP=""
+W_TEX=""
+DS_THRESH=""
 
 # ---------------------------------------------------------------------------
 # Parse arguments
@@ -75,6 +82,11 @@ while [[ $# -gt 0 ]]; do
         --base-env)            BASE_ENV="$2";           shift 2 ;;
         --tracking-env)        TRACKING_ENV="$2";       shift 2 ;;
         --project-root)        PROJECT_ROOT_ARG="$2";   shift 2 ;;
+        --w-veg-amp)           W_VEG_AMP="$2";          shift 2 ;;
+        --w-depth)             W_DEPTH="$2";            shift 2 ;;
+        --w-gcc-amp)           W_GCC_AMP="$2";          shift 2 ;;
+        --w-tex)               W_TEX="$2";              shift 2 ;;
+        --ds-thresh)           DS_THRESH="$2";          shift 2 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
@@ -256,6 +268,11 @@ if should_run 3; then
         "${SCRIPT_DIR}/03_phenology_analysis.py"
         "--config" "$CONFIG_PATH"
     )
+    [[ -n "$W_VEG_AMP" ]] && PHENO_ARGS+=("--w-veg-amp" "$W_VEG_AMP")
+    [[ -n "$W_DEPTH" ]]   && PHENO_ARGS+=("--w-depth"   "$W_DEPTH")
+    [[ -n "$W_GCC_AMP" ]] && PHENO_ARGS+=("--w-gcc-amp" "$W_GCC_AMP")
+    [[ -n "$W_TEX" ]]     && PHENO_ARGS+=("--w-tex"     "$W_TEX")
+    [[ -n "$DS_THRESH" ]] && PHENO_ARGS+=("--ds-thresh" "$DS_THRESH")
 
     run_in_env "$TRACKING_ENV" "${PHENO_ARGS[@]}"
 
