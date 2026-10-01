@@ -34,13 +34,16 @@ class VegMaskConfig:
 @dataclass(frozen=True)
 class LeafShedConfig:
     veg_min_threshold: float = 0.45
-    ds_threshold: float = 0.85
+    ds_threshold: float = -0.145
     phenophase_on: float = 0.65
     phenophase_off: float = 0.35
-    w_veg_amp: float = 0.35
-    w_depth: float = 0.30
-    w_gcc_amp: float = 0.25
-    w_tex: float = 0.10
+    # DS weights: learned linear-model coefficients (signed). All configurable
+    # from the dashboard / DAG conf; ds_threshold is the decision boundary on
+    # the resulting signed score.
+    w_veg_amp: float = -0.4772
+    w_depth: float = 0.7921
+    w_gcc_amp: float = -0.6147
+    w_tex: float = 0.3949
     a90_quantile: float = 0.90
 
 
