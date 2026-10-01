@@ -15,7 +15,6 @@
 
 --- !DAG
 id: drone_phenology_monitoring
-group: drone
 name: Drone Phenology Monitoring — Phenophase Export
 version: "1.1"
 description: >
@@ -38,10 +37,11 @@ params:
   - align_threshold_tag       # alignment anchor confidence 0-100 (default: 65)
   - align_method              # alignment method (default: pcc_tiled)
   # --- Phenology (03_phenology_analysis) ---
-  - w_veg_amp                 # DS weight: vegetation amplitude (default: 0.35)
-  - w_depth                   # DS weight: seasonal depth (default: 0.30)
-  - w_gcc_amp                 # DS weight: GCC amplitude (default: 0.25)
-  - w_tex                     # DS weight: texture (default: 0.10)
+  - w_veg_amp                 # DS weight: vegetation amplitude (default: -0.4772)
+  - w_depth                   # DS weight: seasonal depth (default: 0.7921)
+  - w_gcc_amp                 # DS weight: GCC amplitude (default: -0.6147)
+  - w_tex                     # DS weight: texture (default: 0.3949)
+  - ds_threshold              # deciduousness decision threshold (default: -0.145)
   # --- COG tiling (04a_cog_tiling) ---
   - underlay_om               # which OM loads by default: last | first
   # --- Advanced ---
@@ -114,6 +114,8 @@ params:
   - name: w_gcc_amp
     type: float
   - name: w_tex
+    type: float
+  - name: ds_threshold
     type: float
   - name: underlay_om
     type: string
