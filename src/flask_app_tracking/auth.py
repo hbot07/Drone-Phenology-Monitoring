@@ -1,5 +1,5 @@
 """
-Authentication — email/password + Google sign-in, unified behind a session JWT.
+Authentication - email/password + Google sign-in, unified behind a session JWT.
 
 Two ways to log in:
   A) Email + password  -> POST /api/auth/signup, POST /api/auth/login
@@ -25,6 +25,9 @@ from google.auth.transport import requests as google_requests
 import jwt  # PyJWT
 
 import db
+from log_config import get_logger
+
+_log = get_logger("auth")
 
 AUTH_ENABLED = os.environ.get("DPM_AUTH_ENABLED", "true").lower() == "true"
 GOOGLE_CLIENT_ID = os.environ.get("DPM_GOOGLE_CLIENT_ID", "")
@@ -68,8 +71,10 @@ def decode_session_token(token: str) -> dict:
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
+        _log.info("Session expired for a request")
         raise HTTPException(401, "Session expired -- please sign in again")
     except jwt.InvalidTokenError as e:
+        _log.info("Invalid session token: %s", e)
         raise HTTPException(401, f"Invalid session token: {e}") from e
 
 
@@ -78,17 +83,23 @@ def decode_session_token(token: str) -> dict:
 # ---------------------------------------------------------------------------
 def verify_google_token(token: str) -> dict:
     if not GOOGLE_CLIENT_ID:
+        _log.error("DPM_GOOGLE_CLIENT_ID is not set - SSO misconfigured")
         raise HTTPException(500, "Server misconfigured: DPM_GOOGLE_CLIENT_ID is not set.")
     try:
         claims = id_token.verify_oauth2_token(token, _google_request, GOOGLE_CLIENT_ID)
     except ValueError as e:
+        _log.info("Google token verification failed: %s", e)
         raise HTTPException(401, f"Invalid Google token: {e}") from e
     if claims.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+        _log.info("Google token rejected - bad issuer")
         raise HTTPException(401, "Invalid token issuer")
     if not claims.get("email"):
+        _log.info("Google token rejected - no email claim")
         raise HTTPException(401, "Token has no email claim")
     if not claims.get("email_verified", False):
+        _log.info("Google token rejected - email not verified")
         raise HTTPException(401, "Google email is not verified")
+    _log.info("Google auth success  email=%s", claims["email"])
     return claims
 
 
