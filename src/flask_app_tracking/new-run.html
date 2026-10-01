@@ -428,26 +428,26 @@ footer {
           <div>
             <label>w_veg_amp — vegetation amplitude<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_veg_amp','_blank')">i</button><span class="step-tip">Weight on peak-to-trough vegetation range in the deciduousness score. <a href="/parameter-guide#doc-w_veg_amp" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Weight on peak-to-trough vegetation range.</span>
-            <input id="nr-w-veg-amp" type="number" step="0.05" min="0" max="2" value="0.35"/>
+            <input id="nr-w-veg-amp" type="number" step="0.0001" min="-2" max="2" value="-0.4772"/>
           </div>
           <div>
             <label>w_depth — seasonal depth<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_depth','_blank')">i</button><span class="step-tip">Weight on how far the canopy falls at its most dormant. <a href="/parameter-guide#doc-w_depth" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Weight on dormancy depth relative to peak.</span>
-            <input id="nr-w-depth" type="number" step="0.05" min="0" max="2" value="0.30"/>
+            <input id="nr-w-depth" type="number" step="0.0001" min="-2" max="2" value="0.7921"/>
           </div>
           <div>
             <label>w_gcc_amp — GCC amplitude<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_gcc_amp','_blank')">i</button><span class="step-tip">Weight on green chromatic coordinate seasonal amplitude. <a href="/parameter-guide#doc-w_gcc_amp" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Weight on green chromatic coordinate amplitude.</span>
-            <input id="nr-w-gcc-amp" type="number" step="0.05" min="0" max="2" value="0.25"/>
+            <input id="nr-w-gcc-amp" type="number" step="0.0001" min="-2" max="2" value="-0.6147"/>
           </div>
           <div>
             <label>w_tex — texture<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_tex','_blank')">i</button><span class="step-tip">Weight on texture amplitude (branches vs leaves). Noisiest signal. <a href="/parameter-guide#doc-w_tex" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Weight on Laplacian variance amplitude.</span>
-            <input id="nr-w-tex" type="number" step="0.05" min="0" max="2" value="0.10"/>
+            <input id="nr-w-tex" type="number" step="0.0001" min="-2" max="2" value="0.3949"/>
           </div>
         </div>
         <div id="nr-weight-warn" class="alert alert-warn" style="display:none;margin-top:10px;font-size:12.5px">
-          All DS weights are zero — the deciduousness score will be meaningless. Set at least one weight &gt; 0.
+          All DS weights are zero — the deciduousness score will be meaningless. Set at least one non-zero weight.
         </div>
       </div>
     </details>
@@ -980,10 +980,10 @@ async function nrStartPipeline(runId) {
   nrLockForm();
 
   try {
-    const wVeg = getNumVal('nr-w-veg-amp', 0.35);
-    const wDep = getNumVal('nr-w-depth', 0.30);
-    const wGcc = getNumVal('nr-w-gcc-amp', 0.25);
-    const wTex = getNumVal('nr-w-tex', 0.10);
+    const wVeg = getNumVal('nr-w-veg-amp', -0.4772);
+    const wDep = getNumVal('nr-w-depth', 0.7921);
+    const wGcc = getNumVal('nr-w-gcc-amp', -0.6147);
+    const wTex = getNumVal('nr-w-tex', 0.3949);
     const fullParams = {
       model_type:          getVal('nr-model-select', '250312_flexi'),
       tile_width:          getNumVal('nr-tile-w', 25),
