@@ -289,12 +289,22 @@ def main() -> int:
     parser.add_argument("--align-method", default="pcc_tiled")
     parser.add_argument("--veg-min", type=float, default=0.45,
                         help="Minimum vegetation fraction threshold (default: 0.45)")
-    parser.add_argument("--ds-thresh", type=float, default=0.70,
-                        help="Deciduous score threshold (default: 0.70)")
+    parser.add_argument("--ds-thresh", type=float, default=-0.145,
+                        help="Deciduous score threshold (default: -0.145)")
     parser.add_argument("--on-thresh", type=float, default=0.65,
                         help="Phenophase 'leaf-on' threshold (default: 0.65)")
     parser.add_argument("--off-thresh", type=float, default=0.35,
                         help="Phenophase 'leaf-off' threshold (default: 0.35)")
+    # Deciduousness-score (DS) weights — learned linear-model coefficients.
+    # Configurable from the dashboard / DAG conf; forwarded here by run_pipeline.sh.
+    parser.add_argument("--w-veg-amp", type=float, default=-0.4772,
+                        help="DS weight: vegetation amplitude (default: -0.4772)")
+    parser.add_argument("--w-depth", type=float, default=0.7921,
+                        help="DS weight: seasonal depth (default: 0.7921)")
+    parser.add_argument("--w-gcc-amp", type=float, default=-0.6147,
+                        help="DS weight: GCC amplitude (default: -0.6147)")
+    parser.add_argument("--w-tex", type=float, default=0.3949,
+                        help="DS weight: texture (default: 0.3949)")
     parser.add_argument("--skip-if-done", action="store_true",
                         help="Skip if tree_master_geojson.geojson already exists")
     args = parser.parse_args()
@@ -477,6 +487,10 @@ def main() -> int:
         ds_threshold=args.ds_thresh,
         phenophase_on=args.on_thresh,
         phenophase_off=args.off_thresh,
+        w_veg_amp=args.w_veg_amp,
+        w_depth=args.w_depth,
+        w_gcc_amp=args.w_gcc_amp,
+        w_tex=args.w_tex,
     )
     tree_scores_df, phenophase_df, normalizers = compute_leafshed_scores(
         features_df, om_ids=tracker.om_ids, cfg=cfg
