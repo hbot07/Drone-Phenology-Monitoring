@@ -139,7 +139,7 @@ services:
       - /bin/bash
       - -c
       - |
-        mkdir -p /app/data/logs/drone-phenology-monitoring
+        mkdir -p /app/data/runs /app/data/logs/drone-phenology-monitoring
         cd /app/src/flask_app_tracking
         /opt/conda/envs/dpm-tracking/bin/uvicorn server:app \
           --host 0.0.0.0 --port 8000 \
