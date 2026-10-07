@@ -195,9 +195,6 @@
     w_gcc_amp:   { low:["GCC signal de-emphasised",""], high:["Colour-based green-up dominates","Robust to illumination changes"] },
     w_tex:       { low:["Texture de-emphasised (usually safest)",""], high:["Texture amplitude contributes — noisy signal","Raise cautiously"] },
     zoom:        { low:["Lower max zoom — smaller tiles folder","Viewer loses detail at high zoom"], high:["Higher max zoom — sharper detail","Much larger tiles folder on disk"] },
-    tilesize:    { low:["Smaller tiles — more HTTP requests","Slightly sharper at some zoom levels"], high:["Larger tiles — fewer requests","Non-standard, may not match Leaflet defaults"] },
-    underlay_om: { low:[], high:[] },
-    exclude:     { low:[], high:[] },
   };
 
   const docs = window.PARAM_DOCS || {};
