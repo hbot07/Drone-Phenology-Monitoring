@@ -98,7 +98,8 @@ async def init_db():
                 created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
                 started_at    TIMESTAMPTZ,
                 finished_at   TIMESTAMPTZ,
-                updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+                updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+                is_public     BOOLEAN NOT NULL DEFAULT TRUE
             );
         """)
         await con.execute("CREATE INDEX IF NOT EXISTS idx_runs_owner ON runs(owner_email);")
@@ -149,6 +150,7 @@ async def init_db():
             "ALTER TABLE runs ADD COLUMN IF NOT EXISTS log_path TEXT;",
             "ALTER TABLE runs ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;",
             "ALTER TABLE runs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();",
+            "ALTER TABLE runs ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT TRUE;",
         ]:
             try:
                 await con.execute(col_sql)
@@ -196,12 +198,12 @@ async def touch_user(email: str):
 # ═══════════════════════════════════════════════════════════════════════════
 # Runs
 # ═══════════════════════════════════════════════════════════════════════════
-async def create_run(run_id: str, owner_email: str, run_name: str):
+async def create_run(run_id: str, owner_email: str, run_name: str, is_public: bool = True):
     async with pool().acquire() as con:
         await con.execute("""
-            INSERT INTO runs (id, owner_email, run_name, status, created_at, updated_at)
-            VALUES ($1, $2, $3, 'created', now(), now());
-        """, run_id, owner_email, run_name)
+            INSERT INTO runs (id, owner_email, run_name, status, is_public, created_at, updated_at)
+            VALUES ($1, $2, $3, 'created', $4, now(), now());
+        """, run_id, owner_email, run_name, is_public)
 
 
 async def get_run(run_id: str) -> dict | None:
@@ -215,6 +217,16 @@ async def list_runs_for_user(owner_email: str) -> list[dict]:
         rows = await con.fetch(
             "SELECT * FROM runs WHERE owner_email = $1 ORDER BY created_at DESC",
             owner_email,
+        )
+    return [_row_to_run(r) for r in rows]
+
+
+async def list_public_runs() -> list[dict]:
+    """All finished, public runs across every user — for the landing page."""
+    async with pool().acquire() as con:
+        rows = await con.fetch(
+            "SELECT * FROM runs WHERE is_public = TRUE AND status = 'done' "
+            "ORDER BY finished_at DESC NULLS LAST, created_at DESC"
         )
     return [_row_to_run(r) for r in rows]
 

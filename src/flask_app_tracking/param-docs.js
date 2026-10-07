@@ -139,33 +139,5 @@ window.PARAM_DOCS = {
     default: "22",
     range: "14–24",
   },
-  "tilesize": {
-    label: "Tile size (px)",
-    step: "Step 4a — COG tiling",
-    short: "Width and height of each PNG map tile.",
-    why: "Standard web map tiles are 256×256. Larger tiles mean fewer HTTP requests but heavier individual loads.",
-    how: "256 is the safe standard and matches Leaflet defaults. Change only if you know your viewer needs it.",
-    default: "256",
-    range: "64–512 (step 64)",
-  },
-  "underlay_om": {
-    label: "Underlay OM",
-    step: "Step 4a — COG tiling",
-    short: "Which observation month loads by default in the viewer.",
-    why: "The interactive viewer shows one orthomosaic as the base layer. This picks whether that's the earliest or the most recent date.",
-    how: "'last' (most recent) is usually the clearest base. Use 'first' if the earliest date is the reference survey.",
-    default: "last",
-    range: "last | first",
-  },
 
-  // ─────────────────────────── Advanced ────────────────────────────────────
-  "exclude": {
-    label: "Exclude orthomosaics",
-    step: "Advanced",
-    short: "Observation months to skip from the whole pipeline.",
-    why: "Badly misaligned, cloud-covered, or corrupted dates hurt tracking and phenology. Excluding them is cleaner than letting them pollute chains.",
-    how: "Only exclude dates you've confirmed are problematic. Every exclusion shortens the temporal series.",
-    default: "none",
-    range: "any uploaded OM",
-  },
 };
