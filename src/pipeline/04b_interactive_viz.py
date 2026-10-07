@@ -7,11 +7,11 @@ then generates a standalone HTML viewer (Leaflet-based) with:
 
   - XYZ tile layers for all OMs — browser fetches only tiles in viewport
   - Embedded tile map per crown in right panel — zoom to crown on click
-  - Crown polygons coloured by phenology class (deciduous / evergreen / uncertain)
+  - Crown polygons coloured by phenology class (deciduous / evergreen)
   - Pinned info panel: phenology score, GCC/veg amplitude, leaf-on/off with dates
   - Timeline slider — switch OMs; updates both main map and crown tile view
   - Unified search: by crown ID or species annotation
-  - Filter pills: All / Deciduous / Evergreen / Uncertain
+  - Filter dropdown (radio group): All / Deciduous / Evergreen
   - Dark / light theme toggle (SVG moon / sun icon)
   - Crown comparison panel — two slots, each with independent tile map + slider
   - Species annotation stored in browser localStorage
@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -122,6 +123,73 @@ def load_phenology_data(phenology_dir: Path) -> Dict[str, Any]:
     return pheno
 
 
+def load_phenophase_geojson(phenology_dir: Path) -> Dict[str, Any]:
+    """Load Step 12's phenophase-patched GeoJSON and return per-crown dicts
+    keyed by crown_label, including every observation's per-OM phenophase
+    (leaf_on / leaf_off / transitioning) so the viewer can colour each crown
+    crop's boundary by its own phenophase at that OM.
+
+    Prefers tree_master_geojson_phenoclf.geojson (Step 12 output); falls back
+    to the plain tree_master_geojson.geojson (Step 03 output, pre-classifier)
+    and finally to the Step 03 scores CSV if neither GeoJSON is present.
+    """
+    candidates = [
+        phenology_dir / "tree_master_geojson_phenoclf.geojson",
+        phenology_dir / "tree_master_geojson.geojson",
+    ]
+    gj_path = next((p for p in candidates if p.exists()), None)
+    if gj_path is None:
+        print("  Warning: no tree_master_geojson found — run step 03/12 first; "
+              "falling back to leafshed_tree_scores.csv")
+        return load_phenology_data(phenology_dir)
+
+    try:
+        gj = json.loads(gj_path.read_text())
+    except Exception as e:
+        print(f"  Warning: could not read {gj_path.name}: {e} — falling back to scores CSV")
+        return load_phenology_data(phenology_dir)
+
+    pheno: Dict[str, Any] = {}
+    for feat in gj.get("features", []):
+        props = feat.get("properties", {}) or {}
+        ids = props.get("ids", {}) or {}
+        label = ids.get("crown_label") or ids.get("crown_id")
+        if not label:
+            continue
+
+        cls = props.get("classification", {}) or {}
+        is_deciduous = bool(cls.get("is_deciduous", False))
+
+        raw_score = cls.get("deciduous_score")
+        try:
+            deciduous_score = round(float(raw_score) * 100, 1) if raw_score is not None else None
+        except (TypeError, ValueError):
+            deciduous_score = None
+
+        ts = props.get("temporal_summary", {}) or {}
+
+        om_phenophase: Dict[int, str] = {}
+        for obs in props.get("observations", []) or []:
+            om_id = obs.get("om_id")
+            ph = (obs.get("phenology") or {}).get("phenophase")
+            if om_id is not None and ph:
+                om_phenophase[int(om_id)] = ph
+
+        pheno[label] = {
+            "phenology_class":   "deciduous" if is_deciduous else "evergreen",
+            "deciduous_score":   deciduous_score,
+            "leaf_on_om":        cls.get("leaf_on_return_om"),
+            "leaf_off_om":       cls.get("full_leaf_off_om"),
+            "leaf_off_start_om": cls.get("leaf_off_start_om"),
+            "gcc_amplitude":     ts.get("gcc_mean_amplitude"),
+            "veg_amplitude":     ts.get("veg_fraction_hsv_amplitude"),
+            "om_phenophase":     om_phenophase,
+        }
+
+    print(f"  Loaded phenophase data for {len(pheno)} crowns from {gj_path.name}")
+    return pheno
+
+
 def generate_phenology_overview(scores_csv, phases_csv, om_stems, out_png):
     try:
         import matplotlib
@@ -174,7 +242,10 @@ def build_html(
     per_om_bounds_inline: str = "{}",  # JSON: {crown_label:{om_id:[minx,miny,maxx,maxy]}} WGS84
 ) -> str:
 
+    built_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
     return f'''<!doctype html>
+<!-- viewer built {built_at} -->
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8"/>
@@ -226,18 +297,51 @@ def build_html(
       background:var(--bg3); color:var(--t1); cursor:pointer; font-size:12px;
     }}
     #search-btn:hover {{ color:var(--t0); }}
-    #filter-wrap {{ display:flex; gap:4px; align-items:center; }}
+    #filter-wrap {{ display:flex; gap:6px; align-items:center; position:relative; }}
     .flabel {{ font-size:11px; color:var(--t2); margin-right:2px; }}
-    .pill {{
-      padding:3px 10px; border-radius:4px; font-size:11px; cursor:pointer;
-      border:1px solid var(--bd); color:var(--t2); background:var(--bg1);
+
+    /* Filter dropdown menu (radio group) — shadcn-style */
+    .dm-trigger {{
+      display:flex; align-items:center; gap:6px;
+      padding:4px 10px; border-radius:5px; font-size:11px; cursor:pointer;
+      border:1px solid var(--bd); color:var(--t1); background:var(--bg1);
       user-select:none; transition:all .15s;
     }}
-    .pill:hover {{ color:var(--t1); border-color:var(--t2); }}
-    .pill.active[data-filter="all"]       {{ color:#8ab0c8; border-color:#4a6080; background:var(--bg3); }}
-    .pill.active[data-filter="deciduous"] {{ color:var(--amber); border-color:var(--amber); background:var(--bg3); }}
-    .pill.active[data-filter="evergreen"] {{ color:var(--sage);  border-color:var(--sage);  background:var(--bg3); }}
-    .pill.active[data-filter="uncertain"] {{ color:var(--t1);    border-color:var(--t1);    background:var(--bg3); }}
+    .dm-trigger:hover {{ color:var(--t0); border-color:var(--t2); }}
+    .dm-trigger.open  {{ color:var(--t0); border-color:var(--green); background:var(--bg3); }}
+    .dm-chevron {{ transition:transform .15s; flex-shrink:0; }}
+    .dm-trigger.open .dm-chevron {{ transform:rotate(180deg); }}
+    .dm-content {{
+      position:absolute; top:calc(100% + 6px); left:0; z-index:2600;
+      min-width:150px; background:var(--bg2); border:1px solid var(--bd);
+      border-radius:7px; padding:4px; box-shadow:var(--shadow);
+      display:none; flex-direction:column;
+    }}
+    .dm-content.open {{ display:flex; }}
+    .dm-menu-label {{
+      font-size:10px; text-transform:uppercase; letter-spacing:.6px;
+      color:var(--t2); padding:6px 8px 4px;
+    }}
+    .dm-sep {{ height:1px; background:var(--bd); margin:3px 2px; }}
+    .dm-radio-item {{
+      display:flex; align-items:center; gap:8px; padding:6px 8px;
+      border-radius:4px; font-size:12px; color:var(--t0); cursor:pointer;
+      user-select:none; transition:background .12s;
+    }}
+    .dm-radio-item:hover {{ background:var(--bg3); }}
+    .dm-indicator {{
+      width:14px; height:14px; border-radius:50%; border:1px solid var(--bd);
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+      background:var(--bg1);
+    }}
+    .dm-indicator svg {{ opacity:0; transition:opacity .12s; }}
+    .dm-radio-item.active .dm-indicator svg {{ opacity:1; }}
+    .dm-radio-item.active[data-filter="all"]       .dm-indicator svg {{ fill:#8ab0c8; }}
+    .dm-radio-item.active[data-filter="deciduous"] .dm-indicator svg {{ fill:var(--amber); }}
+    .dm-radio-item.active[data-filter="evergreen"] .dm-indicator svg {{ fill:var(--sage); }}
+    .dm-radio-item.active[data-filter="all"]       {{ color:#8ab0c8; }}
+    .dm-radio-item.active[data-filter="deciduous"] {{ color:var(--amber); }}
+    .dm-radio-item.active[data-filter="evergreen"] {{ color:var(--sage); }}
     #crown-count-badge {{
       position:absolute; left:50%; transform:translateX(-50%);
       background:var(--bg2); border:1px solid var(--bd);
@@ -275,7 +379,6 @@ def build_html(
     .ip-val {{ color:var(--t0); font-weight:500; font-size:12px; text-align:right; }}
     .cls-deciduous {{ color:var(--amber) !important; }}
     .cls-evergreen {{ color:var(--sage)  !important; }}
-    .cls-uncertain {{ color:var(--t1)   !important; }}
     .ip-hr {{ border:none; border-top:1px solid var(--bd); margin:10px 0; }}
     .ip-slbl {{ font-size:10px; color:var(--t2); text-transform:uppercase; letter-spacing:.7px; margin-bottom:5px; }}
     #sp-input {{
@@ -357,8 +460,9 @@ def build_html(
       background: var(--bg2);
       transition: border-color .15s;
     }}
-    .ts-card.leaf-on  {{ border-color: #4caf50; }}
-    .ts-card.leaf-off {{ border-color: #f44336; }}
+    .ts-card.leaf-on   {{ border-color: #4caf50; }}
+    .ts-card.leaf-off  {{ border-color: #f44336; }}
+    .ts-card.leaf-transition {{ border-color: #f1a340; }}
     .ts-lbl {{
       font-size: 10px; color: var(--t2); padding: 4px 8px;
       border-bottom: 1px solid var(--bd); background: var(--bg3);
@@ -367,6 +471,7 @@ def build_html(
     .ts-lbl em {{ color: var(--green); font-style: normal; font-weight: 600; }}
     .ts-lbl.leaf-on  em {{ color: #4caf50; }}
     .ts-lbl.leaf-off em {{ color: #f44336; }}
+    .ts-lbl.leaf-transition em {{ color: #f1a340; }}
     .ts-map {{
       width: 100%;
       aspect-ratio: 1 / 1;
@@ -407,12 +512,19 @@ def build_html(
     .cmp-key {{ color:var(--t2); }}
     .cmp-val {{ color:var(--t0); font-weight:500; text-align:right; }}
 
-    /* Per-slot embedded tile map */
-    .cmp-tile-map-wrap {{
-      height:200px; position:relative;
-      border-bottom:1px solid var(--bd);
+    /* Per-slot crown crop (server-cropped PNG via /api/runs/.../crop, same
+       endpoint the right-hand panel uses — no embedded Leaflet map here) */
+    .cmp-crop-wrap {{
+      height:200px; position:relative; overflow:hidden;
+      background:var(--bg0); border-bottom:1px solid var(--bd);
     }}
-    .cmp-tile-map {{ width:100%; height:100%; }}
+    .cmp-crop-img {{
+      position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    }}
+    .cmp-crop-loading {{
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      font-size:11px; color:var(--t2);
+    }}
     .cmp-tl {{ padding:0 10px 10px; }}
     .cmp-tl-top {{ font-size:10px; color:var(--t2); display:flex; justify-content:space-between; margin-bottom:3px; }}
     .cmp-tl-date {{ color:var(--green); font-weight:600; }}
@@ -447,12 +559,35 @@ def build_html(
   <div class="divider"></div>
   <div id="filter-wrap">
     <span class="flabel">Show:</span>
-    <span class="pill active" data-filter="all">All</span>
-    <span class="pill" data-filter="deciduous">Deciduous</span>
-    <span class="pill" data-filter="evergreen">Evergreen</span>
-    <span class="pill" data-filter="uncertain">Uncertain</span>
+    <button type="button" class="dm-trigger" id="filter-trigger" aria-haspopup="true" aria-expanded="false">
+      <span id="filter-trigger-label">All</span>
+      <svg class="dm-chevron" width="11" height="11" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+    <div class="dm-content" id="filter-menu" role="menu" aria-label="Filter by phenology class">
+      <div class="dm-menu-label">Phenology class</div>
+      <div class="dm-sep"></div>
+      <div class="dm-radio-item active" data-filter="all" role="menuitemradio" aria-checked="true" tabindex="0">
+        <span class="dm-indicator"><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg></span>
+        <span>All</span>
+      </div>
+      <div class="dm-radio-item" data-filter="deciduous" role="menuitemradio" aria-checked="false" tabindex="0">
+        <span class="dm-indicator"><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg></span>
+        <span>Deciduous</span>
+      </div>
+      <div class="dm-radio-item" data-filter="evergreen" role="menuitemradio" aria-checked="false" tabindex="0">
+        <span class="dm-indicator"><svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4"/></svg></span>
+        <span>Evergreen</span>
+      </div>
+    </div>
   </div>
   <div id="crown-count-badge">— crowns</div>
+  <div id="build-badge" title="This viewer was generated at {built_at}. If a fix isn't showing up, this timestamp is the fastest way to check you're looking at a freshly-rebuilt copy."
+       style="font-size:9px;color:var(--t2);cursor:help;white-space:nowrap;">
+    built {built_at}
+  </div>
   <div style="margin-left:auto;display:flex;gap:7px;align-items:center;">
     <button class="topbar-btn" id="theme-btn" title="Toggle theme">
       <svg id="ico-moon" width="15" height="15" viewBox="0 0 24 24"
@@ -546,7 +681,13 @@ def build_html(
             <div class="cmp-slot-id" id="slot-a-id">— not set —</div>
           </div>
           <div class="cmp-info" id="slot-a-info" style="display:none;"></div>
-          <div class="cmp-tile-map-wrap"><div class="cmp-tile-map" id="cmap-a"></div></div>
+          <div class="cmp-crop-wrap" id="cmap-wrap-a">
+            <div class="cmp-crop-loading" id="cmap-load-a">loading</div>
+            <img class="cmp-crop-img" id="cmap-img-a" src="" alt=""
+                 style="display:none" data-slot="a"
+                 onload="this.style.display='block';var l=document.getElementById('cmap-load-'+this.dataset.slot);if(l)l.style.display='none';"
+                 onerror="var l=document.getElementById('cmap-load-'+this.dataset.slot);if(l)l.textContent='no data';"/>
+          </div>
           <div class="cmp-tl" id="slot-a-tl" style="display:none;">
             <div class="cmp-tl-top"><span>Observation</span>
               <span class="cmp-tl-date" id="slot-a-tl-date"></span></div>
@@ -565,7 +706,13 @@ def build_html(
             <div class="cmp-slot-id" id="slot-b-id">— not set —</div>
           </div>
           <div class="cmp-info" id="slot-b-info" style="display:none;"></div>
-          <div class="cmp-tile-map-wrap"><div class="cmp-tile-map" id="cmap-b"></div></div>
+          <div class="cmp-crop-wrap" id="cmap-wrap-b">
+            <div class="cmp-crop-loading" id="cmap-load-b">loading</div>
+            <img class="cmp-crop-img" id="cmap-img-b" src="" alt=""
+                 style="display:none" data-slot="b"
+                 onload="this.style.display='block';var l=document.getElementById('cmap-load-'+this.dataset.slot);if(l)l.style.display='none';"
+                 onerror="var l=document.getElementById('cmap-load-'+this.dataset.slot);if(l)l.textContent='no data';"/>
+          </div>
           <div class="cmp-tl" id="slot-b-tl" style="display:none;">
             <div class="cmp-tl-top"><span>Observation</span>
               <span class="cmp-tl-date" id="slot-b-tl-date"></span></div>
@@ -719,11 +866,21 @@ map.on('draw:created', e => {{
 // PHENOLOGY HELPERS
 // ═══════════════════════════════════════════════════════
 const getPhenoClass = lbl => {{
-  const d=PHENOLOGY[lbl]; if(!d) return 'uncertain';
-  return d.phenology_class==='unknown'?'uncertain':(d.phenology_class||'uncertain');
+  const d=PHENOLOGY[lbl];
+  return (d && d.phenology_class) ? d.phenology_class : 'evergreen';
 }};
-const getPhenoColor = cls =>
-  cls==='deciduous'?'#b89550':cls==='evergreen'?'#5f9e6a':'#525a6e';
+const getPhenoColor = cls => cls==='deciduous' ? '#b89550' : '#5f9e6a';
+// Per-OM phenophase (leaf_on / leaf_off / transitioning) → boundary colour class.
+// Evergreen crowns are assigned "leaf_on" for every single OM by definition
+// (Step 12 never runs the classifier on them), so a green border on every
+// crop card would be meaningless noise — skip colouring for evergreen crowns.
+const PHENOPHASE_CLS = {{leaf_on:'leaf-on', leaf_off:'leaf-off', transitioning:'leaf-transition'}};
+const getOmPhenophaseClass = (lbl, omId) => {{
+  const d=PHENOLOGY[lbl];
+  if(!d || d.phenology_class==='evergreen') return '';
+  const ph = d.om_phenophase ? d.om_phenophase[omId] : null;
+  return PHENOPHASE_CLS[ph] || '';
+}};
 
 // ═══════════════════════════════════════════════════════
 // CROWN LAYER (GeoJSON — lat/lon coordinates)
@@ -737,13 +894,24 @@ const styleHov = f => {{
 const styleSel = f => {{
   return {{color:'white',weight:5,fillOpacity:0,fillColor:'transparent'}}; }};
 
+// Whether a crown currently matches the active filter — filtered-out crowns
+// must be fully inert: no hover highlight, no click, no boundary at all.
+const passesFilter = lbl => activeFilter==='all' || getPhenoClass(lbl)===activeFilter;
+
 const geoLayer = L.geoJSON(GEOJSON, {{
   style: styleDef,
   onEachFeature(feature, layer) {{
     layer.on({{
-      mouseover() {{ if(layer!==selLayer){{layer.setStyle(styleHov(feature));layer.bringToFront();}} }},
-      mouseout()  {{ if(layer!==selLayer) layer.setStyle(styleDef(feature)); }},
+      mouseover() {{
+        if(!passesFilter(feature.properties.crown_label)) return;
+        if(layer!==selLayer){{layer.setStyle(styleHov(feature));layer.bringToFront();}}
+      }},
+      mouseout()  {{
+        if(!passesFilter(feature.properties.crown_label)) return;
+        if(layer!==selLayer) layer.setStyle(styleDef(feature));
+      }},
       click(e) {{
+        if(!passesFilter(feature.properties.crown_label)) return;
         L.DomEvent.stopPropagation(e);
         if(selLayer&&selLayer!==layer) selLayer.setStyle(styleDef(selLayer.feature));
         if(selLayer===layer) {{
@@ -864,14 +1032,9 @@ function renderOMCards(lbl) {{
 
   OM_TILES.forEach(om => {{
     const omLabel = 'OM' + String(om.om_id).padStart(2, '0');
-    const isOn    = ph.leaf_on_om  === om.om_id;
-    const isOff   = ph.leaf_off_om === om.om_id;
-    const cardCls = ['ts-card',
-                     isOn  ? 'leaf-on'  : '',
-                     isOff ? 'leaf-off' : ''].filter(Boolean).join(' ');
-    const lblCls  = ['ts-lbl',
-                     isOn  ? 'leaf-on'  : '',
-                     isOff ? 'leaf-off' : ''].filter(Boolean).join(' ');
+    const phCls   = getOmPhenophaseClass(lbl, om.om_id);
+    const cardCls = ['ts-card', phCls].filter(Boolean).join(' ');
+    const lblCls  = ['ts-lbl', phCls].filter(Boolean).join(' ');
     html += `
       <div class="${{cardCls}}" id="ts-card-${{om.om_id}}">
         <div class="${{lblCls}}">
@@ -1041,26 +1204,13 @@ document.getElementById('cmp-close').addEventListener('click',()=>
   document.getElementById('cmp-panel').classList.remove('open'));
 
 let slotData={{a:null,b:null}};
-let slotMaps={{a:null,b:null}};
-let slotLayers={{a:null,b:null}};
 let slotTimers={{a:null,b:null}};
-
-function initSlotMap(s) {{
-  if(slotMaps[s]) return;
-  slotMaps[s] = L.map('cmap-'+s, {{
-    crs: L.CRS.EPSG3857, zoomControl:false, attributionControl:false,
-    dragging:true, scrollWheelZoom:true,
-  }});
-}}
 
 function assignSlot(s) {{
   if(!curCrownId||!curFeature){{alert('Select a crown first.');return;}}
-  initSlotMap(s);
   slotData[s]={{label:curCrownId, feature:curFeature, bounds:curCrownBounds, omIdx:parseInt(omSlider.value)}};
   renderSlot(s);
   document.getElementById('cmp-panel').classList.add('open');
-  // Invalidate map size after panel opens
-  setTimeout(()=>{{if(slotMaps[s]) slotMaps[s].invalidateSize();}}, 250);
 }}
 
 function renderSlot(s) {{
@@ -1102,24 +1252,38 @@ function renderSlot(s) {{
 }}
 
 function showSlotTile(s, idx) {{
-  const d=slotData[s]; if(!d||!slotMaps[s]) return;
-  const omId=orderedOMs[idx], info=OM_BY_ID[omId]; if(!info) return;
-  if(slotLayers[s]) slotMaps[s].removeLayer(slotLayers[s]);
-  slotLayers[s]=L.tileLayer(info.tile_url,{{
-    tms:false, minZoom:info.min_zoom, maxZoom:22, maxNativeZoom:info.max_zoom,
-    opacity:1, attribution:'',
-    errorTileUrl:'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-  }}).addTo(slotMaps[s]);
-  if(d.bounds) {{
-    const sb=d.bounds;
-    const latSpan5 = sb.n - sb.s, lngSpan5 = sb.e - sb.w;
-    const buf = Math.min(0.00008, Math.max(0.00002, Math.max(latSpan5, lngSpan5) * 0.15));
-    slotMaps[s].fitBounds(
-      L.latLngBounds([sb.getSouthWest().lat-buf,sb.getSouthWest().lng-buf],
-                     [sb.getNorthEast().lat+buf,sb.getNorthEast().lng+buf]),
-      {{animate:false}}
-    );
+  const d=slotData[s]; if(!d) return;
+  const omId=orderedOMs[idx]; if(omId==null) return;
+  const img  = document.getElementById('cmap-img-'+s);
+  const load = document.getElementById('cmap-load-'+s);
+  if(!img) return;
+  const wrap = document.getElementById('cmap-wrap-'+s);
+  const W = (wrap && wrap.offsetWidth)  || 280;
+  const H = (wrap && wrap.offsetHeight) || 200;
+
+  // Same precise-centering logic as the right-hand panel's crop image:
+  // prefer this OM's own aligned bounds (PER_OM_BOUNDS), fall back to the
+  // consensus crown bounds captured when the crown was assigned to this slot.
+  const omBoundsMap = PER_OM_BOUNDS[d.label] || {{}};
+  const b = omBoundsMap[omId];
+  let cLng, cLat, sLng, sLat;
+  if (b) {{
+    cLng=(b[0]+b[2])/2; cLat=(b[1]+b[3])/2; sLng=b[2]-b[0]; sLat=b[3]-b[1];
+  }} else if (d.bounds) {{
+    const sw=d.bounds.getSouthWest(), ne=d.bounds.getNorthEast();
+    cLat=(sw.lat+ne.lat)/2; cLng=(sw.lng+ne.lng)/2; sLat=ne.lat-sw.lat; sLng=ne.lng-sw.lng;
+  }} else {{
+    return;
   }}
+  const cosL=Math.cos(cLat*Math.PI/180);
+  let hLat=sLat*0.65, hLng=sLng*0.65;
+  const cr=W/H, br=(hLng*cosL)/hLat;
+  if(br<cr) hLng=hLat*cr/cosL; else hLat=hLng*cosL/cr;
+
+  const RUN_ID=window.location.pathname.split('/')[2]||'';
+  if(load) {{ load.style.display='flex'; load.textContent='loading'; }}
+  img.style.display='none';
+  img.src=`/api/runs/${{RUN_ID}}/crop/${{omId}}?minx=${{(cLng-hLng).toFixed(7)}}&miny=${{(cLat-hLat).toFixed(7)}}&maxx=${{(cLng+hLng).toFixed(7)}}&maxy=${{(cLat+hLat).toFixed(7)}}&width=${{W}}&height=${{H}}`;
 }}
 
 function updateSlotDate(s,idx) {{
@@ -1169,6 +1333,11 @@ function doSearch(){{
       if(getSpecies(lyr.feature.properties.crown_label).toLowerCase().includes(q)) matches.push(lyr);
     }});
     if(matches.length){{
+      // Search is an explicit user action — if the filter is currently
+      // hiding (detached from the map) any of the matches, drop back to
+      // "All" so the results are actually visible.
+      if(activeFilter!=='all' && matches.some(lyr=>!passesFilter(lyr.feature.properties.crown_label)))
+        selectFilter('all');
       map.fitBounds(L.featureGroup(matches).getBounds().pad(.3));
       matches.forEach(lyr=>{{lyr.setStyle(styleHov(lyr.feature));lyr.bringToFront();}});
       document.getElementById('content').innerHTML=
@@ -1184,6 +1353,8 @@ function doSearch(){{
       `<div class="no-data" style="padding:16px;">No match for "${{q}}".</div>`;
     return;
   }}
+  if(activeFilter!=='all' && !passesFilter(found.feature.properties.crown_label))
+    selectFilter('all');
   map.fitBounds(found.getBounds().pad(1.5));
   if(selLayer&&selLayer!==found) selLayer.setStyle(styleDef(selLayer.feature));
   selLayer=found; found.setStyle(styleSel(found.feature)); found.bringToFront();
@@ -1192,23 +1363,71 @@ function doSearch(){{
 }}
 
 // ═══════════════════════════════════════════════════════
-// FILTER
+// FILTER — dropdown menu radio group
 // ═══════════════════════════════════════════════════════
-document.querySelectorAll('.pill').forEach(p=>{{
-  p.addEventListener('click',function(){{
-    document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
-    this.classList.add('active'); activeFilter=this.dataset.filter; applyFilter();
-  }});
+const FILTER_LABELS = {{all:'All', deciduous:'Deciduous', evergreen:'Evergreen'}};
+const filterTrigger  = document.getElementById('filter-trigger');
+const filterMenu     = document.getElementById('filter-menu');
+const filterLabelEl  = document.getElementById('filter-trigger-label');
+
+function closeFilterMenu() {{
+  filterMenu.classList.remove('open');
+  filterTrigger.classList.remove('open');
+  filterTrigger.setAttribute('aria-expanded','false');
+}}
+function openFilterMenu() {{
+  filterMenu.classList.add('open');
+  filterTrigger.classList.add('open');
+  filterTrigger.setAttribute('aria-expanded','true');
+}}
+filterTrigger.addEventListener('click', e => {{
+  e.stopPropagation();
+  filterMenu.classList.contains('open') ? closeFilterMenu() : openFilterMenu();
 }});
+document.addEventListener('click', closeFilterMenu);
+document.addEventListener('keydown', e => {{ if(e.key==='Escape') closeFilterMenu(); }});
+filterMenu.addEventListener('click', e => e.stopPropagation());
+
+document.querySelectorAll('.dm-radio-item').forEach(item=>{{
+  item.addEventListener('click', function(){{ selectFilter(this.dataset.filter); }});
+}});
+
+function selectFilter(filterKey){{
+  document.querySelectorAll('.dm-radio-item').forEach(x=>{{
+    const active = x.dataset.filter===filterKey;
+    x.classList.toggle('active', active);
+    x.setAttribute('aria-checked', active ? 'true':'false');
+  }});
+  activeFilter = filterKey;
+  filterLabelEl.textContent = FILTER_LABELS[activeFilter] || 'All';
+  closeFilterMenu();
+  applyFilter();
+}}
+
 function applyFilter(){{
   let vis=0;
   geoLayer.eachLayer(lyr=>{{
-    const lbl=lyr.feature.properties.crown_label, cls=getPhenoClass(lbl);
-    const show=activeFilter==='all'||
-      (activeFilter==='uncertain'&&(cls==='uncertain'||cls==='unknown'))||
-      activeFilter===cls;
-    if(show){{lyr.setStyle(styleDef(lyr.feature));lyr.bringToFront();vis++;}}
-    else lyr.setStyle({{color:'transparent',fillColor:'transparent',weight:0}});
+    const lbl=lyr.feature.properties.crown_label;
+    const show=passesFilter(lbl);
+    if(show){{
+      // Make sure it's actually attached to the map (may have been detached
+      // by a previous filter pass) and restore its normal/selected boundary.
+      if(!map.hasLayer(lyr)) lyr.addTo(map);
+      lyr.setStyle(lyr===selLayer ? styleSel(lyr.feature) : styleDef(lyr.feature));
+      lyr.bringToFront();
+      vis++;
+    }} else {{
+      // Detach from the map entirely — a layer that isn't on the map has no
+      // DOM element at all, so it cannot receive hover/click events no
+      // matter what. This is the only fully reliable way to disable it
+      // (toggling opacity/weight/pointer-events still leaves it hit-testable
+      // in some browsers).
+      if(lyr===selLayer){{
+        selLayer=null; curCrownId=null; curFeature=null;
+        document.getElementById('info-panel').style.display='none';
+      }}
+      if(map.hasLayer(lyr)) map.removeLayer(lyr);
+    }}
   }});
   document.getElementById('crown-count-badge').textContent=
     vis+(vis<numCrowns?' / '+numCrowns:'')+' crowns';
@@ -1451,7 +1670,7 @@ def main() -> int:
 
     # ── Phenology ─────────────────────────────────────────────────────────────
     print("\nLoading phenology data …")
-    pheno_data = load_phenology_data(phenology_dir)
+    pheno_data = load_phenophase_geojson(phenology_dir)
 
     # ── Build HTML ────────────────────────────────────────────────────────────
     html = build_html(
