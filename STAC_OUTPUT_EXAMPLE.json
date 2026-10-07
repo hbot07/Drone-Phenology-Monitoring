@@ -9,7 +9,7 @@
     "Updated: 2026-09-27 — params corrected (run_id primary; state/district/block/year removed)"
   ],
   "status": "success",
-  "asset_id": "demo-run-123",
+  "asset_id": ["demo-run-123"],
   "version": "1",
   "hosting_platform": "GeoServer",
   "stac_items": [
