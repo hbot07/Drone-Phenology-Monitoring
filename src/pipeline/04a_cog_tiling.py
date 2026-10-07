@@ -29,8 +29,6 @@ Requires: dpm-tracking conda environment
 
 Usage:
     python 04a_cog_tiling.py --config /path/to/pipeline_config.json
-        [--underlay-om last|first|N]
-        [--tile-size 256]
         [--max-cog-zoom 22]
         [--force-regen-cogs]
         [--skip-if-done]
@@ -829,16 +827,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Pipeline Step 4a: COG generation + XYZ tile pyramid")
     parser.add_argument("--config", required=True)
-    parser.add_argument("--underlay-om", default="last",
-                        help="Which OM to use as default map underlay: 'first', 'last', or N")
-    parser.add_argument("--tile-size", type=int, default=128)
     parser.add_argument("--max-cog-zoom", type=int, default=22)
     parser.add_argument("--force-regen-cogs", action="store_true",
                         help="Rebuild COGs and tiles even if they already exist")
     parser.add_argument("--skip-if-done", action="store_true",
                         help="Skip if tile_manifest.json already exists")
     args = parser.parse_args()
-    tile_size = args.tile_size  # px per tile — used in manifest and passed to tilers
+    # Fixed (not user-configurable): tile size and underlay OM.
+    TILE_SIZE = 256        # px per tile — web standard; used in manifest and passed to tilers
+    UNDERLAY_OM = "first"  # the first OM is always the default map underlay
+    tile_size = TILE_SIZE  # px per tile — used in manifest and passed to tilers
 
     config_path = Path(args.config).resolve()
     if not config_path.exists():
@@ -866,12 +864,12 @@ def main() -> int:
     num_oms = len(pairs)
 
     # Resolve underlay OM index
-    if args.underlay_om == "last":
+    if UNDERLAY_OM == "last":
         underlay_om_id = num_oms
-    elif args.underlay_om == "first":
+    elif UNDERLAY_OM == "first":
         underlay_om_id = 1
     else:
-        underlay_om_id = int(args.underlay_om)
+        underlay_om_id = int(UNDERLAY_OM)
     underlay_om_id = max(1, min(underlay_om_id, num_oms))
 
     print(f"Generating COGs and XYZ tiles for {num_oms} OMs \u2026")
@@ -892,7 +890,7 @@ def main() -> int:
         if needs_cog:
             print(f"    Building COG \u2026")
             try:
-                generate_cog(str(ortho_path), str(cog_path), tile_size=args.tile_size)
+                generate_cog(str(ortho_path), str(cog_path), tile_size=TILE_SIZE)
             except Exception as e:
                 print(f"    WARNING: COG generation failed: {e}")
         else:
@@ -904,7 +902,7 @@ def main() -> int:
                 src_for_tiles = str(cog_path) if cog_path.exists() else str(ortho_path)
                 tile_bounds = generate_xyz_tiles(
                     src_for_tiles, om_tile_dir,
-                    tile_size=args.tile_size,
+                    tile_size=TILE_SIZE,
                     max_zoom=args.max_cog_zoom,
                 )
             except Exception as e:
