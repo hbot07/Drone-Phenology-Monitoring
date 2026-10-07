@@ -263,6 +263,26 @@ footer {
   border-top: 1px solid var(--border-color); margin-top: 10px;
 }
 @media(max-width: 640px) { header h1 { font-size: 18px; } .tag { display: none; } .wrap { padding: 18px 14px 40px; } }
+
+/* ── shadcn-style switch ── */
+.dpm-switch { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; }
+.dpm-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.dpm-switch .track {
+  position: relative; flex: none;
+  width: 38px; height: 22px; border-radius: 999px;
+  background: #cdd3c2; transition: background 0.18s ease;
+}
+.dpm-switch .track::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: transform 0.18s ease;
+}
+.dpm-switch input:checked + .track { background: var(--accent); }
+.dpm-switch input:checked + .track::after { transform: translateX(16px); }
+.dpm-switch input:focus-visible + .track { box-shadow: 0 0 0 3px rgba(61,107,58,0.3); }
+.dpm-switch .sw-label { font-size: 13px; font-weight: 500; color: var(--text-main); }
+.dpm-switch .sw-hint  { font-size: 11px; color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -278,6 +298,7 @@ footer {
     </span>
   </span>
   <span class="hdr-nav">
+    <a href="/parameter-guide" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">Parameter guide</a>
     <a href="/dashboard" class="btn btn-ghost btn-sm" style="text-decoration:none">← All runs</a>
     <div class="nav-user-wrap" id="nav-user-wrap" data-name="">
       <div class="nav-avatar" id="nav-avatar" onclick="toggleAvatarDropdown(event)">
@@ -304,6 +325,18 @@ footer {
     <p class="lead">Used as the output folder name. No spaces — underscores are fine.</p>
     <label>Run name</label>
     <input id="nr-name" placeholder="e.g. my_sit_run_2026" maxlength="80"/>
+
+    <!-- visibility switch -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border-color)">
+      <div>
+        <div class="sw-label" style="font-size:13.5px;font-weight:600">Show on public landing page</div>
+        <div class="sw-hint">When on, the finished interactive viewer is listed publicly. You can change this later.</div>
+      </div>
+      <label class="dpm-switch">
+        <input type="checkbox" id="nr-public" checked/>
+        <span class="track"></span>
+      </label>
+    </div>
   </div>
 
   <div class="card">
@@ -457,40 +490,16 @@ footer {
     <details>
       <summary>COG tiling</summary>
       <div class="inner">
-        <div class="grid3">
+        <div>
           <div>
             <label>Max COG zoom<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-zoom','_blank')">i</button><span class="step-tip">Highest zoom in the viewer. z22 = native 5cm/px resolution. <a href="/parameter-guide#doc-zoom" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Highest zoom level in the tile pyramid. z22 = native 5 cm/px resolution.</span>
             <input id="nr-zoom" type="number" min="14" max="24" value="22"/>
           </div>
-          <div>
-            <label>Tile size (px)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-tilesize','_blank')">i</button><span class="step-tip">Size of each PNG map tile. 256 is the web standard. <a href="/parameter-guide#doc-tilesize" target="_blank">Full guide →</a></span></span></label>
-            <span class="hint">Width and height of each PNG tile. 256 is standard.</span>
-            <input id="nr-tilesize" type="number" min="64" max="512" step="64" value="256"/>
-          </div>
-          <div>
-            <label>Underlay OM<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-underlay_om','_blank')">i</button><span class="step-tip">Which date loads as the base layer in the viewer. <a href="/parameter-guide#doc-underlay_om" target="_blank">Full guide →</a></span></span></label>
-            <span class="hint">Which observation month loads by default in viewer.</span>
-            <select id="nr-underlay">
-              <option value="last">last (most recent)</option>
-              <option value="first">first (earliest)</option>
-            </select>
-          </div>
         </div>
       </div>
     </details>
 
-    <hr class="subtle"/>
-
-    <details>
-      <summary>Advanced</summary>
-      <div class="inner">
-        <label>Exclude orthomosaics</label>
-        <span class="hint">Select OMs to skip from the pipeline. Useful for badly misaligned or problematic dates.</span>
-        <div id="nr-exclude-list" style="margin-top:10px; display:grid; gap:8px; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr))"></div>
-        <input id="nr-exclude" type="hidden"/>
-      </div>
-    </details>
   </div>
 
   <div class="card">
@@ -719,34 +728,7 @@ nrDz.addEventListener('dragover', e => { e.preventDefault(); nrDz.classList.add(
 nrDz.addEventListener('dragleave', () => nrDz.classList.remove('drag'));
 nrDz.addEventListener('drop', e => { e.preventDefault(); nrDz.classList.remove('drag'); nrAddTifs(e.dataTransfer.files); });
 
-function nrUpdateExcludeList() {
-  const container = document.getElementById('nr-exclude-list');
-  if (!container) return;
-  const stems = nrTifs.map(f => f.name.replace(/\.(tif|tiff)$/i, ''));
-  if (stems.length === 0) {
-    container.innerHTML = '<span style="color:var(--text-muted);font-size:12px">Upload TIFs to see exclude options</span>';
-    return;
-  }
-  container.innerHTML = '';
-  stems.forEach(stem => {
-    const div = document.createElement('div');
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.gap = '8px';
-    div.innerHTML = `
-      <input type="checkbox" class="nr-exclude-checkbox" value="${stem}" style="width:18px;height:18px;cursor:pointer"/>
-      <label style="cursor:pointer;font-size:12px;flex:1;margin:0">${stem}</label>
-    `;
-    container.appendChild(div);
-    div.querySelector('input').addEventListener('change', nrUpdateExcludeField);
-  });
-}
 
-function nrUpdateExcludeField() {
-  const checked = Array.from(document.querySelectorAll('.nr-exclude-checkbox:checked'))
-    .map(el => el.value).join(',');
-  document.getElementById('nr-exclude').value = checked;
-}
 
 function nrAddTifs(fl) {
   for (const f of fl) {
@@ -757,10 +739,9 @@ function nrAddTifs(fl) {
   document.getElementById('nr-name-err').style.display = 'none';
   nrTifs.sort((a, b) => a.name.localeCompare(b.name));
   nrRenderTifs();
-  nrUpdateExcludeList();
 }
 
-function nrRemoveTif(n) { nrTifs = nrTifs.filter(f => f.name !== n); nrRenderTifs(); nrUpdateExcludeList(); }
+function nrRemoveTif(n) { nrTifs = nrTifs.filter(f => f.name !== n); nrRenderTifs(); }
 
 function nrRenderTifs() {
   const el = document.getElementById('nr-flist');
@@ -906,10 +887,11 @@ async function nrExtractDates() {
   btn.textContent = '⏳ Uploading…';
 
   try {
+    const isPublic = document.getElementById('nr-public')?.checked ?? true;
     const r = await fetch(`${API}/api/runs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ run_name: runName }),
+      body: JSON.stringify({ run_name: runName, is_public: isPublic }),
     });
     if (!r.ok) throw new Error('Could not create run');
     const { id: runId } = await r.json();
@@ -997,8 +979,6 @@ async function nrStartPipeline(runId) {
       w_depth:             wDep,
       w_gcc_amp:           wGcc,
       w_tex:               wTex,
-      underlay_om:         getVal('nr-underlay', 'last'),
-      exclude_stems:       getVal('nr-exclude').trim(),
       skip_viz:            getBoolVal('nr-skip-viz', true),
     };
     await fetch(`${API}/api/runs/${runId}/params`, {
