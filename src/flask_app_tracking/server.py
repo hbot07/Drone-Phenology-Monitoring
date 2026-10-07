@@ -18,6 +18,7 @@ import subprocess
 import uuid
 import zipfile
 import io
+import json
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -57,12 +58,32 @@ for candidate in [
 log.info("Platform: %s  Pipeline script: %s", platform.system(), PIPELINE_SCRIPT)
 
 # ---------------------------------------------------------------------------
-# Project root / model path — read straight from the environment, exactly
-# like DPM_RUNS_DIR above (docker-compose injects these from the root .env).
-# Defaults match env.example / docker-compose.yml.
+# Load .env for project root / model path
 # ---------------------------------------------------------------------------
-PROJECT_ROOT = Path(os.environ.get("DPM_PROJECT_ROOT", "/app")).resolve()
-MODEL_PATH = os.environ.get("DPM_MODEL_PATH", "/app/models/250312_flexi.pth")
+PROJECT_ROOT = None
+MODEL_PATH = ""
+
+
+def _win_to_wsl(p: str) -> str:
+    m = re.match(r"^([A-Za-z]):\\?(.*)", p)
+    if m:
+        return f"/mnt/{m.group(1).lower()}/" + m.group(2).replace("\\", "/")
+    return p
+
+
+env_file = HERE / ".env"
+if env_file.exists():
+    for line in env_file.read_text().splitlines():
+        if "=" not in line or line.startswith("#"):
+            continue
+        key, _, val = line.partition("=")
+        key, val = key.strip(), val.strip().strip('"').strip("'")
+        if not _ON_WINDOWS:
+            val = _win_to_wsl(val)
+        if key == "DPM_PROJECT_ROOT":
+            PROJECT_ROOT = Path(val).resolve()
+        elif key == "DPM_MODEL_PATH":
+            MODEL_PATH = val
 log.info("PROJECT_ROOT: %s  MODEL_PATH: %s", PROJECT_ROOT, MODEL_PATH)
 
 STEP_KEYS = [
@@ -179,6 +200,100 @@ def _log_path(run_id: str) -> Path:
     return RUNS_DIR / run_id / "pipeline.log"
 
 
+def _thumb_path(run_id: str) -> Path:
+    return _output_dir(run_id) / "04_viewer" / "thumbnail.jpg"
+
+
+def _thumb_url(run_id: str) -> str | None:
+    """Return the public thumbnail URL if thumbnail.jpg exists for this run."""
+    return f"/viewer/{run_id}/thumbnail.jpg" if _thumb_path(run_id).exists() else None
+
+
+def _generate_thumbnail(run_id: str) -> None:
+    """
+    Read the underlay COG for this run, downsample to ≤300 px wide using
+    rasterio's built-in overview levels (fast, no resampling from full res),
+    and write a compressed JPEG to 04_viewer/thumbnail.jpg.
+
+    Uses only rasterio + numpy — both present in the dpm-tracking conda env.
+    Safe to call from a background thread (blocking I/O only, no event loop).
+    Silently skips if the COG or manifest are missing.
+    """
+    try:
+        import numpy as _np
+        import rasterio as _rio
+        from rasterio.enums import Resampling as _RS
+
+        viewer   = _output_dir(run_id) / "04_viewer"
+        manifest = viewer / "tile_manifest.json"
+        if not manifest.exists():
+            return
+
+        m   = json.loads(manifest.read_text())
+        oms = m.get("oms") or []
+        if not oms:
+            return
+
+        underlay_id = m.get("underlay_om_id")
+        entry = next((o for o in oms if o.get("om_id") == underlay_id), oms[0])
+        stem  = entry.get("stem")
+        om_id = entry.get("om_id")
+        if stem is None or om_id is None:
+            return
+
+        cog_path = viewer / "cogs" / f"OM{int(om_id):02d}_{stem}.tif"
+        if not cog_path.exists():
+            return
+
+        target_w = 300  # max thumbnail width in pixels
+
+        with _rio.open(str(cog_path)) as src:
+            full_w, full_h = src.width, src.height
+            # pick the overview level closest to target_w (or just read full
+            # res at low scale if no overviews)
+            scale = max(1, full_w // target_w)
+            out_w = full_w  // scale
+            out_h = full_h // scale
+
+            # read the first 3 bands (or fewer if single-band)
+            band_count = min(src.count, 3)
+            bands = list(range(1, band_count + 1))
+            data = src.read(
+                bands,
+                out_shape=(band_count, out_h, out_w),
+                resampling=_RS.average,
+            )   # shape: (C, H, W), dtype varies
+
+        # normalise to uint8 per band, clipping to 2nd–98th percentile
+        rgb = _np.zeros((out_h, out_w, 3), dtype=_np.uint8)
+        for i in range(band_count):
+            b = data[i].astype(_np.float32)
+            lo, hi = _np.percentile(b[b > 0], [2, 98]) if (b > 0).any() else (b.min(), b.max())
+            if hi > lo:
+                b = (b - lo) / (hi - lo) * 255.0
+            b = _np.clip(b, 0, 255).astype(_np.uint8)
+            rgb[:, :, i] = b
+        if band_count == 1:
+            rgb[:, :, 1] = rgb[:, :, 0]
+            rgb[:, :, 2] = rgb[:, :, 0]
+
+        # write JPEG using rasterio (no Pillow needed)
+        out_path = _thumb_path(run_id)
+        with _rio.open(
+            str(out_path), "w",
+            driver="JPEG",
+            height=out_h, width=out_w,
+            count=3, dtype=_np.uint8,
+        ) as dst:
+            for i in range(3):
+                dst.write(rgb[:, :, i], i + 1)
+
+        log.info("Thumbnail written  run=%s  path=%s  size=%dx%d",
+                 run_id, out_path.name, out_w, out_h)
+    except Exception as exc:                           # noqa: BLE001
+        log.warning("Thumbnail generation skipped  run=%s  reason=%s", run_id, exc)
+
+
 # ---------------------------------------------------------------------------
 # Static pages
 # ---------------------------------------------------------------------------
@@ -267,6 +382,83 @@ def get_config():
     }
 
 
+@app.get("/api/public/runs")
+async def public_runs():
+    """
+    Finished runs whose owners have marked them public. No auth — used by the
+    landing page (index.html) to list example analyses. Only runs with a
+    generated viewer are returned.
+    """
+    runs = await db.list_public_runs()
+    result = []
+    for run in runs:
+        viewer_index = _output_dir(run["id"]) / "04_viewer" / "index.html"
+        if not viewer_index.exists():
+            continue
+        result.append({
+            "id":         run["id"],
+            "name":       run["run_name"],
+            "num_orthos": run.get("num_orthos", 0),
+            "created_at": run.get("created_at", ""),
+            "viewer_url": f"/viewer/{run['id']}/index.html",
+            "thumb_url":  _thumb_url(run["id"]),
+        })
+    return result
+
+
+@app.get("/api/debug/thumb/{run_id}")
+async def debug_thumb(run_id: str, user: dict = Depends(auth.get_current_user)):
+    """
+    Debug helper — shows thumbnail state and (re)generates it on demand.
+    Remove once thumbnail behaviour is confirmed working.
+    Call: GET /api/debug/thumb/<run_id>
+    """
+    viewer       = _output_dir(run_id) / "04_viewer"
+    manifest_path = viewer / "tile_manifest.json"
+    thumb        = _thumb_path(run_id)
+    info: dict   = {
+        "viewer_dir":       str(viewer),
+        "manifest_exists":  manifest_path.exists(),
+        "cogs_dir":         str(viewer / "cogs"),
+        "cogs":             [p.name for p in (viewer / "cogs").iterdir()] if (viewer / "cogs").is_dir() else [],
+        "thumbnail_exists": thumb.exists(),
+        "thumbnail_path":   str(thumb),
+        "thumb_url":        None,
+        "manifest_oms":     [],
+    }
+    if manifest_path.exists():
+        try:
+            m = json.loads(manifest_path.read_text())
+            info["manifest_oms"] = [
+                {"om_id": o.get("om_id"), "stem": o.get("stem")}
+                for o in (m.get("oms") or [])
+            ]
+            info["underlay_om_id"] = m.get("underlay_om_id")
+        except Exception as e:
+            info["manifest_parse_error"] = str(e)
+    # regenerate if missing
+    if not thumb.exists():
+        _generate_thumbnail(run_id)
+    info["thumbnail_exists_after"] = thumb.exists()
+    info["thumb_url"] = _thumb_url(run_id)
+    return info
+
+
+@app.post("/api/runs/{run_id}/generate-thumbnail")
+async def generate_thumbnail_endpoint(run_id: str, user: dict = Depends(auth.get_current_user)):
+    """
+    (Re)generate thumbnail.jpg for an existing completed run.
+    Useful for backfilling thumbnails on runs that finished before this feature
+    was added. Owner-only; runs synchronously (small image, fast).
+    """
+    await auth.require_run_owner(run_id, user)
+    _generate_thumbnail(run_id)
+    url = _thumb_url(run_id)
+    if url is None:
+        raise HTTPException(500, "Thumbnail generation failed — check server logs for details")
+    return {"thumb_url": url}
+
+
 @app.get("/api/me")
 async def whoami(user: dict = Depends(auth.get_current_user)):
     return user
@@ -321,6 +513,7 @@ async def google_login(req: auth.GoogleReq):
 # ---------------------------------------------------------------------------
 class CreateRunReq(BaseModel):
     run_name: str
+    is_public: bool = True
 
 
 @app.post("/api/runs", status_code=201)
@@ -328,7 +521,7 @@ async def create_run(req: CreateRunReq, user: dict = Depends(auth.get_current_us
     run_id = str(uuid.uuid4())
     _uploads_dir(run_id).mkdir(parents=True, exist_ok=True)
     _output_dir(run_id).mkdir(parents=True, exist_ok=True)
-    await db.create_run(run_id, user["email"], req.run_name)
+    await db.create_run(run_id, user["email"], req.run_name, req.is_public)
     return {"id": run_id}
 
 
@@ -516,6 +709,19 @@ async def update_params(run_id: str, body: dict, user: dict = Depends(auth.get_c
     merged = {**(run.get("params") or {}), **body}
     await db.update_run(run_id, params=merged)
     return {"updated": True}
+
+
+class VisibilityReq(BaseModel):
+    is_public: bool
+
+
+@app.patch("/api/runs/{run_id}/visibility")
+async def set_visibility(run_id: str, req: VisibilityReq,
+                         user: dict = Depends(auth.get_current_user)):
+    """Toggle whether this run appears on the public landing page (owner only)."""
+    await auth.require_run_owner(run_id, user)
+    await db.update_run(run_id, is_public=req.is_public)
+    return {"is_public": req.is_public}
 
 
 @app.post("/api/runs/{run_id}/start")
@@ -1026,6 +1232,7 @@ async def _run_pipeline_async(run_id: str, owner_email: str, params: dict, loop)
             await _update_job(state="SUCCEEDED", progress=1.0,
                               finished_at=datetime.now(timezone.utc))
             _write_progress(run_id, "04b_interactive_viz", 1.0, 0, 0, "Complete")
+            _generate_thumbnail(run_id)   # best-effort; logged on failure, never raises
         else:
             raw = "".join(raw_output_parts)
             current_step = await _get_step()
@@ -1104,25 +1311,12 @@ def _build_bash_cmd(run_name: str, om_dir: str, out_dir: str, params: dict) -> l
         if v is not None:
             args.extend([flag, str(int(v))])
 
-    def _sh_float(key, flag):
-        # Use "is not None" (not truthiness) so a legitimate 0.0 is still passed.
-        v = params.get(key)
-        if v is not None:
-            args.extend([flag, str(float(v))])
-
     _sh_int("tile_width", "--tile-width")
     _sh_int("tile_height", "--tile-height")
     _sh_int("tile_buffer", "--tile-buffer")
-    _sh_int("tile_size",   "--cog-tile-size")
     _sh("align_method", "--align-method")
-    _sh("underlay_om", "--underlay-om")
     _sh("base_threshold_tag", "--base-threshold-tag")
     _sh("align_threshold_tag", "--align-threshold-tag")
-    _sh_float("w_veg_amp", "--w-veg-amp")
-    _sh_float("w_depth",   "--w-depth")
-    _sh_float("w_gcc_amp", "--w-gcc-amp")
-    _sh_float("w_tex",     "--w-tex")
-    _sh_float("ds_threshold", "--ds-thresh")
     _sh("min_partial_len", "--min-partial-len")
     _sh("min_partial_ratio", "--min-partial-ratio")
     _sh("exclude_stems", "--exclude-stems")
@@ -1160,7 +1354,6 @@ def _build_windows_cmd(run_name: str, om_dir: str, out_dir: str, params: dict) -
     _ps_int("tile_height", "TileHeight")
     _ps_int("tile_buffer", "TileBuffer")
     _ps_str("align_method", "AlignMethod")
-    _ps_str("underlay_om", "UnderlayOm")
     _ps_str("base_threshold_tag", "BaseThresholdTag")
     _ps_str("align_threshold_tag", "AlignThresholdTag")
     _ps_str("min_partial_len", "MinPartialLen")
