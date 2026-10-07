@@ -244,7 +244,7 @@ def build_response_envelope(stac_item: dict, asset_id: Optional[str] = None) -> 
     """
     return {
         "status": "success",
-        "asset_id": asset_id or stac_item["id"],
+        "asset_id": [asset_id or stac_item["id"]],
         "version": "1",
         "hosting_platform": "GeoServer",
         "stac_items": [stac_item],
