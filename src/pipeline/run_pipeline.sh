@@ -33,8 +33,6 @@ TILE_HEIGHT=25
 TILE_BUFFER=15
 SKIP_EXISTING="--skip-existing"
 ALIGN_METHOD="pcc_tiled"
-UNDERLAY_OM="first"
-COG_TILE_SIZE=256
 BASE_THRESH_TAG="conf_0p45"
 ALIGN_THRESH_TAG="conf_0p65"
 MIN_PARTIAL_LEN=""
@@ -45,13 +43,6 @@ STEPS="0,1,2,3,4a,4b"
 BASE_ENV="dpm-detectree"
 TRACKING_ENV="dpm-tracking"
 PROJECT_ROOT_ARG=""
-# Phenology DS weights + threshold. Empty = let 03_phenology_analysis.py use
-# its own configured defaults. All configurable from the dashboard / DAG conf.
-W_VEG_AMP=""
-W_DEPTH=""
-W_GCC_AMP=""
-W_TEX=""
-DS_THRESH=""
 
 # ---------------------------------------------------------------------------
 # Parse arguments
@@ -70,8 +61,6 @@ while [[ $# -gt 0 ]]; do
         --skip-existing)       SKIP_EXISTING="--skip-existing";    shift ;;
         --no-skip-existing)    SKIP_EXISTING="--no-skip-existing"; shift ;;
         --align-method)        ALIGN_METHOD="$2";       shift 2 ;;
-        --underlay-om)         UNDERLAY_OM="$2";        shift 2 ;;
-        --cog-tile-size)       COG_TILE_SIZE="$2";      shift 2 ;;
         --base-threshold-tag)  BASE_THRESH_TAG="$2";   shift 2 ;;
         --align-threshold-tag) ALIGN_THRESH_TAG="$2";  shift 2 ;;
         --min-partial-len)     MIN_PARTIAL_LEN="$2";   shift 2 ;;
@@ -82,11 +71,6 @@ while [[ $# -gt 0 ]]; do
         --base-env)            BASE_ENV="$2";           shift 2 ;;
         --tracking-env)        TRACKING_ENV="$2";       shift 2 ;;
         --project-root)        PROJECT_ROOT_ARG="$2";   shift 2 ;;
-        --w-veg-amp)           W_VEG_AMP="$2";          shift 2 ;;
-        --w-depth)             W_DEPTH="$2";            shift 2 ;;
-        --w-gcc-amp)           W_GCC_AMP="$2";          shift 2 ;;
-        --w-tex)               W_TEX="$2";              shift 2 ;;
-        --ds-thresh)           DS_THRESH="$2";          shift 2 ;;
         *) echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
@@ -268,11 +252,6 @@ if should_run 3; then
         "${SCRIPT_DIR}/03_phenology_analysis.py"
         "--config" "$CONFIG_PATH"
     )
-    [[ -n "$W_VEG_AMP" ]] && PHENO_ARGS+=("--w-veg-amp" "$W_VEG_AMP")
-    [[ -n "$W_DEPTH" ]]   && PHENO_ARGS+=("--w-depth"   "$W_DEPTH")
-    [[ -n "$W_GCC_AMP" ]] && PHENO_ARGS+=("--w-gcc-amp" "$W_GCC_AMP")
-    [[ -n "$W_TEX" ]]     && PHENO_ARGS+=("--w-tex"     "$W_TEX")
-    [[ -n "$DS_THRESH" ]] && PHENO_ARGS+=("--ds-thresh" "$DS_THRESH")
 
     run_in_env "$TRACKING_ENV" "${PHENO_ARGS[@]}"
 
@@ -337,9 +316,7 @@ if should_run 4a; then
 
     COG_ARGS=(
         "${SCRIPT_DIR}/04a_cog_tiling.py"
-        "--config"      "$CONFIG_PATH"
-        "--underlay-om" "$UNDERLAY_OM"
-        "--tile-size"   "$COG_TILE_SIZE"
+        "--config" "$CONFIG_PATH"
     )
 
     run_in_env "$TRACKING_ENV" "${COG_ARGS[@]}"
@@ -359,8 +336,8 @@ if should_run 4b; then
     VIZ_ARGS=(
         "${SCRIPT_DIR}/04b_interactive_viz.py"
         "--config" "$CONFIG_PATH"
-        # Note: --underlay-om not accepted by 04b; it reads underlay_om_id
-        # from tile_manifest.json written by Step 4a.
+        # Note: underlay OM is fixed to the first OM in 04a; 04b reads
+        # underlay_om_id from tile_manifest.json written by Step 4a.
     )
 
     run_in_env "$TRACKING_ENV" "${VIZ_ARGS[@]}"
