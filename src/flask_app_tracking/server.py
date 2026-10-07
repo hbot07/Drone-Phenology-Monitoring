@@ -23,12 +23,14 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, UploadFile, HTTPException, BackgroundTasks, Depends
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 import db
 import auth
 import errors
+import airflow_client
+import stac_utils
 from log_config import get_logger
 
 log = get_logger("server")
@@ -728,12 +730,272 @@ async def set_visibility(run_id: str, req: VisibilityReq,
 async def start_run(run_id: str, background_tasks: BackgroundTasks,
                     user: dict = Depends(auth.get_current_user)):
     run = await auth.require_run_owner(run_id, user)
+    params = run.get("params") or {}
+    log.info("Compute trigger  run=%s  user=%s  airflow=%s",
+             run_id, user["email"], airflow_client.AIRFLOW_ENABLED)
+
+    if airflow_client.AIRFLOW_ENABLED:
+        # ── Airflow path (§2/§8): trigger the DAG and record the dag_run_id ──
+        conf = {"run_id": run_id, **params}
+        try:
+            dag_run_id = await airflow_client.trigger_conf(conf)
+        except airflow_client.AirflowClientError as e:
+            log.error("Airflow trigger failed  run=%s  error=%s", run_id, e)
+            raise HTTPException(502, f"Airflow trigger failed: {e}")
+        log.info("Airflow triggered  run=%s  dag_run_id=%s", run_id, dag_run_id)
+        await db.update_run(run_id, status="running",
+                            started_at=datetime.now(timezone.utc))
+        # Record dag_run_id so /api/dag/status can poll it.
+        # Store in the run's params (no schema change needed).
+        merged_params = {**params, "_dag_run_id": dag_run_id}
+        await db.update_run(run_id, params=merged_params)
+        # Create a job record for this compute attempt
+        job_id = str(uuid.uuid4())
+        await db.create_job(run_id, job_type="airflow",
+                            request_id=dag_run_id)
+        return {"status": "started", "run_id": run_id,
+                "mode": "airflow", "dag_run_id": dag_run_id}
+    else:
+        # ── Local path: run inside this container ──
+        if not PIPELINE_SCRIPT:
+            log.error("Pipeline script not found on server")
+            raise HTTPException(500, "Pipeline script not found on server")
+        background_tasks.add_task(_run_pipeline, run_id, user["email"], params)
+        return {"status": "started", "run_id": run_id, "mode": "local"}
+
+
+# ---------------------------------------------------------------------------
+# Airflow proxy endpoints (§8: UI → your /api/dag/run and /api/dag/status.
+# Never call Airflow from JavaScript — no CORS; credentials stay off the page.)
+# ---------------------------------------------------------------------------
+class DagRunReq(BaseModel):
+    run_id: str
+    params: dict = {}
+
+
+@app.post("/api/dag/run")
+async def dag_run(req: DagRunReq, user: dict = Depends(auth.get_current_user)):
+    """
+    Proxy: trigger the Airflow DAG from the UI.
+    This is the endpoint the frontend calls instead of hitting Airflow directly.
+    """
+    if not airflow_client.AIRFLOW_ENABLED:
+        raise HTTPException(400, "Airflow is not configured — AIRFLOW_API_BASE is empty")
+    # Verify the user owns this run
+    await auth.require_run_owner(req.run_id, user)
+    conf = {"run_id": req.run_id, **req.params}
+    try:
+        dag_run_id = await airflow_client.trigger_conf(conf)
+    except airflow_client.AirflowClientError as e:
+        log.error("Airflow trigger failed  run=%s  error=%s", req.run_id, e)
+        raise HTTPException(502, f"Airflow trigger failed: {e}")
+    log.info("DAG triggered via proxy  run=%s  dag_run_id=%s  user=%s",
+             req.run_id, dag_run_id, user["email"])
+    return {"dag_run_id": dag_run_id, "status": "triggered"}
+
+
+@app.get("/api/dag/status")
+async def dag_status(dag_run_id: str, user: dict = Depends(auth.get_current_user)):
+    """
+    Proxy: poll the Airflow DAG run status.
+    The frontend polls this endpoint — never Airflow directly.
+    """
+    if not airflow_client.AIRFLOW_ENABLED:
+        raise HTTPException(400, "Airflow is not configured — AIRFLOW_API_BASE is empty")
+    try:
+        state = await airflow_client.run_state(dag_run_id)
+    except airflow_client.AirflowClientError as e:
+        log.error("Airflow status poll failed  dag_run_id=%s  error=%s", dag_run_id, e)
+        raise HTTPException(502, f"Airflow status poll failed: {e}")
+    return state
+
+
+# ---------------------------------------------------------------------------
+# Airflow callback — POST /api/export-phenology  (§7/§8)
+#
+# This is what the Airflow DAG calls back to (via CORESTACK_API_BASE) to run
+# the pipeline and collect the STAC result. The algorithm repo YAML points:
+#   url: "http://dpm-dashboard:8000/api/export-phenology"
+#
+# STACD §12 HTTP status contract:
+#   200  success  → asset registered
+#   400  skipped  → invalid params
+#   404  skipped  → no data for this run
+#   500  failed   → pipeline/computation error
+# ---------------------------------------------------------------------------
+class ExportPhenologyReq(BaseModel):
+    run_id: str
+    # All other pipeline params are optional — they override the run's stored params
+    model_type: str | None = None
+    tile_width: int | None = None
+    tile_height: int | None = None
+    tile_buffer: int | None = None
+    fixed_iou: float | None = None
+    base_threshold_tag: str | None = None
+    align_threshold_tag: str | None = None
+    align_method: str | None = None
+    w_veg_amp: float | None = None
+    w_depth: float | None = None
+    w_gcc_amp: float | None = None
+    w_tex: float | None = None
+    exclude_stems: str | None = None
+    skip_viz: bool | None = None
+
+
+@app.post("/api/export-phenology")
+async def export_phenology(req: ExportPhenologyReq):
+    """
+    Airflow callback endpoint. The DAG's API-mode task POSTs the run conf here.
+    Runs the pipeline synchronously (Airflow is waiting for the response), builds
+    a STAC Item from the output, and returns the STACD response envelope.
+
+    No user auth — this is called from the Airflow worker, not a browser.
+    The worker authenticates via the AIRFLOW_TOKEN / basic auth it already uses
+    to talk to Airflow's own API. For additional security, consider adding a
+    bearer token check (see areas/api_security.md).
+    """
+    run_id = req.run_id
+    if not run_id:
+        return JSONResponse(
+            status_code=400,
+            content=stac_utils.build_error_response("missing_param", "run_id is required"),
+        )
+
+    # Look up the run in the DB
+    run = await db.get_run(run_id)
+    if run is None:
+        return JSONResponse(
+            status_code=404,
+            content=stac_utils.build_error_response("not_found", f"Run {run_id} not found"),
+        )
+
+    # Merge request params over stored run params
+    stored_params = run.get("params") or {}
+    override = {k: v for k, v in req.model_dump(exclude={"run_id"}).items() if v is not None}
+    params = {**stored_params, **override}
+
+    log.info("Export-phenology callback  run=%s  params=%s", run_id, list(params.keys()))
+
+    # Check that orthomosaics exist
+    om_dir = _uploads_dir(run_id)
+    tifs = list(om_dir.glob("*.tif")) + list(om_dir.glob("*.tiff"))
+    if not tifs:
+        log.warning("Export-phenology: no orthomosaics  run=%s", run_id)
+        return JSONResponse(
+            status_code=404,
+            content=stac_utils.build_error_response("no_data", f"No orthomosaics found for run {run_id}"),
+        )
+
+    # Run the pipeline synchronously (Airflow is waiting)
     if not PIPELINE_SCRIPT:
-        log.error("Pipeline script not found on server")
-        raise HTTPException(500, "Pipeline script not found on server")
-    log.info("Compute trigger  run=%s  user=%s", run_id, user["email"])
-    background_tasks.add_task(_run_pipeline, run_id, user["email"], run.get("params") or {})
-    return {"status": "started", "run_id": run_id}
+        log.error("Pipeline script not found")
+        return JSONResponse(
+            status_code=500,
+            content=stac_utils.build_error_response("server_error", "Pipeline script not found on server"),
+        )
+
+    out_dir = str(_output_dir(run_id))
+    run_name = run.get("run_name") or run_id
+    cmd = _build_cmd(run_name, str(om_dir), out_dir, params)
+    log.info("Export-phenology: running pipeline  run=%s", run_id)
+
+    await db.update_run(run_id, status="running",
+                        started_at=datetime.now(timezone.utc))
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            cwd=str(PIPELINE_SCRIPT.parent),
+            timeout=7200,  # 2-hour safety timeout
+        )
+    except subprocess.TimeoutExpired:
+        log.error("Export-phenology: pipeline timed out  run=%s", run_id)
+        await db.update_run(run_id, status="failed",
+                            error_msg="Pipeline timed out (2h limit)",
+                            finished_at=datetime.now(timezone.utc))
+        return JSONResponse(
+            status_code=500,
+            content=stac_utils.build_error_response("timeout", "Pipeline timed out after 2 hours"),
+        )
+    except Exception as e:
+        log.error("Export-phenology: pipeline exception  run=%s  error=%s",
+                  run_id, e, exc_info=True)
+        await db.update_run(run_id, status="failed",
+                            error_msg=str(e),
+                            finished_at=datetime.now(timezone.utc))
+        return JSONResponse(
+            status_code=500,
+            content=stac_utils.build_error_response("pipeline_error", str(e)),
+        )
+
+    # Write the pipeline log
+    run_log = _log_path(run_id)
+    run_log.write_text(result.stdout + "\n" + result.stderr, encoding="utf-8")
+
+    if result.returncode != 0:
+        summary = errors.classify_pipeline_error(result.stdout + result.stderr)
+        log.error("Export-phenology: pipeline failed  run=%s  summary=%s", run_id, summary)
+        await db.update_run(run_id, status="failed",
+                            error_msg=summary,
+                            finished_at=datetime.now(timezone.utc))
+        return JSONResponse(
+            status_code=500,
+            content=stac_utils.build_error_response("pipeline_failed", summary),
+        )
+
+    # Pipeline succeeded — find the phenology GeoJSON output
+    phenoclf = Path(out_dir) / "03_phenology" / "tree_master_geojson_phenoclf.geojson"
+    if not phenoclf.exists():
+        # Fall back to the non-phenophase version
+        phenoclf = Path(out_dir) / "03_phenology" / "tree_master_geojson.geojson"
+    if not phenoclf.exists():
+        log.warning("Export-phenology: no output GeoJSON  run=%s", run_id)
+        await db.update_run(run_id, status="failed",
+                            error_msg="Pipeline succeeded but no phenology GeoJSON produced",
+                            finished_at=datetime.now(timezone.utc))
+        return JSONResponse(
+            status_code=404,
+            content=stac_utils.build_error_response("no_output", "Pipeline ran but produced no phenology GeoJSON"),
+        )
+
+    geojson = json.loads(phenoclf.read_text(encoding="utf-8"))
+
+    # Build temporal coverage from ortho acquisition dates
+    orthos = await db.list_orthos(run_id)
+    dates = sorted([o["acquisition_date"] for o in orthos if o.get("acquisition_date")])
+    start_dt = dates[0].isoformat() + "T00:00:00Z" if dates else None
+    end_dt = dates[-1].isoformat() + "T00:00:00Z" if dates else None
+
+    # Thumbnail
+    _generate_thumbnail(run_id)
+    thumb_url = _thumb_url(run_id)
+
+    # Construct the STAC Item
+    corestack_base = os.environ.get("CORESTACK_API_BASE", "").rstrip("/")
+    data_href = (
+        f"{corestack_base}/dl/{run_id}/file?path=output/03_phenology/{phenoclf.name}"
+        if corestack_base
+        else f"/dl/{run_id}/file?path=output/03_phenology/{phenoclf.name}"
+    )
+
+    stac_item = stac_utils.build_phenology_stac_item(
+        run_id=run_id,
+        run_name=run_name,
+        geojson=geojson,
+        data_href=data_href,
+        start_datetime=start_dt,
+        end_datetime=end_dt,
+        thumbnail_href=thumb_url,
+        params=params,
+    )
+
+    await db.update_run(run_id, status="done", step_progress=1.0,
+                        finished_at=datetime.now(timezone.utc))
+    log.info("Export-phenology: success  run=%s  features=%d",
+             run_id, len(geojson.get("features", [])))
+
+    return stac_utils.build_response_envelope(stac_item)
 
 
 @app.delete("/api/runs/{run_id}")
