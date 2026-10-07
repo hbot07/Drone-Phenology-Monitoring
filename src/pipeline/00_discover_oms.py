@@ -286,6 +286,62 @@ def main() -> int:
     for i, s in enumerate(stems, 1):
         print(f"  OM{i:02d}: {s}")
 
+    # Safety guard + CRS capture: every orthomosaic must carry a CRS. The upload
+    # UI confirms an EPSG for files that lack one, but a run started outside that
+    # flow could still slip a CRS-less file through — fail loudly here rather than
+    # produce misplaced crowns far downstream. While checking, record each OM's
+    # EPSG so it can be written into the config for downstream use and logging.
+    om_crs: dict = {}              # stem -> "EPSG:XXXX" / CRS string / status
+    run_epsg: Optional[int] = None
+    try:
+        import rasterio
+        no_crs = []
+        epsgs: dict = {}           # stem -> int EPSG (only OMs that have one)
+        for s in stems:
+            tif = om_dir / f"{s}.tif"
+            try:
+                with rasterio.open(tif) as src:
+                    if src.crs is None:
+                        no_crs.append(s)
+                        om_crs[s] = "unknown"
+                    else:
+                        code = src.crs.to_epsg()
+                        om_crs[s] = f"EPSG:{code}" if code else src.crs.to_string()
+                        if code:
+                            epsgs[s] = int(code)
+            except Exception:
+                no_crs.append(s)
+                om_crs[s] = "unreadable"
+
+        if no_crs:
+            print(f"ERROR: these orthomosaics have no CRS: {no_crs}", file=sys.stderr)
+            print(
+                "ERROR: assign an EPSG code (via the upload UI, or "
+                "gdal_translate -a_srs EPSG:XXXX) before running.",
+                file=sys.stderr,
+            )
+            return 1
+
+        # All OMs must share one coordinate frame for tracking/alignment to be
+        # meaningful. Step 2 uses the first OM as the reference frame, so take
+        # its EPSG as the run's nominal CRS. Warn (do not block) on a mismatch —
+        # tiling handles each OM independently, but tracking assumes one frame.
+        distinct = sorted(set(epsgs.values()))
+        if len(distinct) > 1:
+            print(
+                f"WARNING: orthomosaics have mixed CRS {distinct} — "
+                f"tracking/alignment assumes one shared frame.",
+                file=sys.stderr,
+            )
+        if epsgs:
+            run_epsg = epsgs.get(stems[0]) or next(iter(epsgs.values()))
+            if len(distinct) == 1:
+                print(f"CRS: all orthomosaics use EPSG:{run_epsg}")
+            else:
+                print(f"CRS: run nominal EPSG:{run_epsg} (mixed set {distinct})")
+    except ImportError:
+        print("WARNING: rasterio unavailable — skipping CRS check.", file=sys.stderr)
+
     # Model path is optional for step 0 — only used in the config
     # Step 1+ will need it, but step 0 just discovers OMs
     model_path = args.model_path or ""
@@ -371,6 +427,12 @@ def main() -> int:
             ]
             for s in stems
         ]
+
+    # Record CRS info captured during discovery. Additive — downstream steps
+    # still read the CRS directly from each raster; this is for the config and
+    # logs (and lets a reader see the run's frame without opening the rasters).
+    config["crs_epsg"] = run_epsg
+    config["om_crs"] = om_crs
 
     config_path = output_dir / "pipeline_config.json"
     config_path.write_text(json.dumps(config, indent=2))
