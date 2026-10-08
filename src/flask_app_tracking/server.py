@@ -10,11 +10,14 @@ New in v2:
 
 Runs the bash pipeline on Linux/WSL/Docker, or the PowerShell one on Windows.
 """
+import asyncio
 import os
 import re
 import platform
 import shutil
+import signal
 import subprocess
+import threading
 import uuid
 import zipfile
 import io
@@ -87,6 +90,42 @@ if env_file.exists():
         elif key == "DPM_MODEL_PATH":
             MODEL_PATH = val
 log.info("PROJECT_ROOT: %s  MODEL_PATH: %s", PROJECT_ROOT, MODEL_PATH)
+
+# Hard limit for one pipeline run triggered through /api/export-phenology.
+# Kept just under the 7200 s the Airflow/STACD task waits for the HTTP
+# response, so our own "timeout" error body arrives before Airflow gives up.
+PIPELINE_TIMEOUT_S = int(os.environ.get("DPM_PIPELINE_TIMEOUT", "7000"))
+
+
+def _resolve_model_path(params: dict) -> str:
+    """
+    Turn the UI's `model_type` (e.g. "urban_canopy") into a weights file.
+
+    Looks for <model_type>.pth in, in order: $DPM_MODELS_DIR, the folder that
+    holds the default model (DPM_MODEL_PATH), <project>/models and
+    <project>/input/detectree_models. If nothing matches, the default
+    DPM_MODEL_PATH is used — i.e. exactly the previous behaviour.
+    """
+    model_type = str((params or {}).get("model_type") or "").strip()
+    # Plain file stem only — no slashes, so it cannot point outside the folders.
+    if model_type and re.fullmatch(r"[A-Za-z0-9_.-]+", model_type):
+        search_dirs: list[Path] = []
+        if os.environ.get("DPM_MODELS_DIR"):
+            search_dirs.append(Path(os.environ["DPM_MODELS_DIR"]))
+        if MODEL_PATH:
+            search_dirs.append(Path(MODEL_PATH).parent)
+        if PROJECT_ROOT:
+            search_dirs.append(PROJECT_ROOT / "models")
+            search_dirs.append(PROJECT_ROOT / "input" / "detectree_models")
+        search_dirs = list(dict.fromkeys(search_dirs))   # drop duplicates, keep order
+        for d in search_dirs:
+            candidate = d / f"{model_type}.pth"
+            if candidate.is_file():
+                return str(candidate)
+        log.warning("model_type=%s: no %s.pth in %s — using default model %s",
+                    model_type, model_type,
+                    [str(d) for d in search_dirs], MODEL_PATH or "(pipeline default)")
+    return str(MODEL_PATH) if MODEL_PATH else ""
 
 STEP_KEYS = [
     "00_discover_oms", "01_crown_detection", "02_crown_tracking",
@@ -811,6 +850,118 @@ async def dag_status(dag_run_id: str, user: dict = Depends(auth.get_current_user
 
 
 # ---------------------------------------------------------------------------
+# Blocking pipeline runner for the Airflow callback.
+#
+# /api/export-phenology must keep the HTTP request open until the pipeline is
+# done (Airflow is waiting on it), but it must NOT run the pipeline on the
+# event loop — that would freeze every other request, /health included, for
+# the whole run. So the callback awaits this function in a worker thread
+# (asyncio.to_thread). It touches only files, never the DB pool, so it is
+# safe off the event loop.
+# ---------------------------------------------------------------------------
+def _marker_progress(line: str):
+    """
+    Parse one line of pipeline output.
+    Returns (step_key, global_progress, cur, tot, label) for a STEP:/PROGRESS:
+    marker, or None for an ordinary line.
+    """
+    stripped = line.strip()
+    if stripped.startswith("STEP:"):
+        key = stripped[5:].strip()
+        if key in STEP_KEYS:
+            return key, round(_STEP_START.get(key, 0.0), 4), 0, 0, STEP_LABELS.get(key, key)
+        return None
+    if stripped.startswith("PROGRESS:"):
+        # PROGRESS:<step_key>:<cur>/<tot>:<label>
+        parts = stripped[len("PROGRESS:"):].split(":", 2)
+        if len(parts) >= 2 and parts[0] in STEP_WEIGHTS:
+            step = parts[0]
+            label = parts[2].strip() if len(parts) >= 3 else STEP_LABELS.get(step, step)
+            cur = tot = 0
+            within = 0.0
+            cs, sep, ts = parts[1].strip().partition("/")
+            if sep:
+                try:
+                    cur, tot = int(cs), int(ts)
+                    within = (cur / tot) if tot > 0 else 0.0
+                except ValueError:
+                    cur = tot = 0
+            within = max(0.0, min(1.0, within))
+            progress = round(_STEP_START.get(step, 0.0)
+                             + within * STEP_WEIGHTS.get(step, 0.0), 4)
+            return step, progress, cur, tot, label
+    return None
+
+
+def _kill_process_tree(proc: subprocess.Popen) -> None:
+    """Kill the pipeline AND its children (bash -> conda run -> python)."""
+    try:
+        if _ON_WINDOWS:
+            subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                           capture_output=True)
+        else:
+            # start_new_session=True below makes proc.pid the process-group id.
+            os.killpg(proc.pid, signal.SIGKILL)
+    except Exception:                                # noqa: BLE001
+        try:
+            proc.kill()
+        except Exception:                            # noqa: BLE001
+            pass
+
+
+def _run_pipeline_streaming(run_id: str, cmd: list, timeout_s: float):
+    """
+    Run the pipeline to completion. BLOCKING — call via asyncio.to_thread.
+
+    Streams output line by line into pipeline.log (so the log is readable
+    while the run is in flight) and keeps progress.json current from the
+    STEP:/PROGRESS: markers (so the dashboard progress bar moves).
+
+    Returns (returncode, full_output, timed_out).
+    """
+    run_log = _log_path(run_id)
+    run_log.parent.mkdir(parents=True, exist_ok=True)
+    parts: list[str] = []
+    timed_out = threading.Event()
+
+    with open(run_log, "w", buffering=1, encoding="utf-8") as lf:
+        lf.write(f"[server] cmd  : {' '.join(str(a) for a in cmd)}\n")
+        lf.write(f"[server] cwd  : {PIPELINE_SCRIPT.parent}\n")
+        lf.write("[server] mode : airflow callback (/api/export-phenology)\n\n")
+
+        proc = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace",
+            bufsize=1, cwd=str(PIPELINE_SCRIPT.parent),
+            start_new_session=not _ON_WINDOWS,
+        )
+
+        def _on_timeout():
+            timed_out.set()
+            _kill_process_tree(proc)
+
+        timer = threading.Timer(timeout_s, _on_timeout)
+        timer.daemon = True
+        timer.start()
+        try:
+            for line in proc.stdout:
+                lf.write(line)
+                parts.append(line)
+                marker = _marker_progress(line)
+                if marker:
+                    step, progress, cur, tot, label = marker
+                    _write_progress(run_id, step, progress, cur, tot, label)
+            proc.wait()
+        finally:
+            timer.cancel()
+
+        if timed_out.is_set():
+            lf.write(f"\n[server] pipeline killed after {timeout_s:.0f}s timeout\n")
+
+    return proc.returncode, "".join(parts), timed_out.is_set()
+
+
+# ---------------------------------------------------------------------------
 # Airflow callback — POST /api/export-phenology  (§7/§8)
 #
 # This is what the Airflow DAG calls back to (via CORESTACK_API_BASE) to run
@@ -846,8 +997,9 @@ class ExportPhenologyReq(BaseModel):
 async def export_phenology(req: ExportPhenologyReq):
     """
     Airflow callback endpoint. The DAG's API-mode task POSTs the run conf here.
-    Runs the pipeline synchronously (Airflow is waiting for the response), builds
-    a STAC Item from the output, and returns the STACD response envelope.
+    Runs the pipeline in a worker thread and waits for it (Airflow is holding the
+    request open), builds a STAC Item from the output, and returns the STACD
+    response envelope. The event loop stays free the whole time.
 
     No user auth — this is called from the Airflow worker, not a browser.
     The worker authenticates via the AIRFLOW_TOKEN / basic auth it already uses
@@ -897,27 +1049,19 @@ async def export_phenology(req: ExportPhenologyReq):
     out_dir = str(_output_dir(run_id))
     run_name = run.get("run_name") or run_id
     cmd = _build_cmd(run_name, str(om_dir), out_dir, params)
-    log.info("Export-phenology: running pipeline  run=%s", run_id)
+    log.info("Export-phenology: running pipeline  run=%s  timeout=%ss",
+             run_id, PIPELINE_TIMEOUT_S)
 
-    await db.update_run(run_id, status="running",
+    await db.update_run(run_id, status="running", step_progress=0.0,
                         started_at=datetime.now(timezone.utc))
 
+    # The pipeline runs for minutes to hours. It runs in a worker thread, so
+    # this coroutine only *waits* here: the event loop stays free to serve
+    # /health, the dashboard and status polling while Airflow holds this
+    # request open.
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
-            cwd=str(PIPELINE_SCRIPT.parent),
-            timeout=7200,  # 2-hour safety timeout
-        )
-    except subprocess.TimeoutExpired:
-        log.error("Export-phenology: pipeline timed out  run=%s", run_id)
-        await db.update_run(run_id, status="failed",
-                            error_msg="Pipeline timed out (2h limit)",
-                            finished_at=datetime.now(timezone.utc))
-        return JSONResponse(
-            status_code=500,
-            content=stac_utils.build_error_response("timeout", "Pipeline timed out after 2 hours"),
-        )
+        returncode, raw_output, timed_out = await asyncio.to_thread(
+            _run_pipeline_streaming, run_id, cmd, PIPELINE_TIMEOUT_S)
     except Exception as e:
         log.error("Export-phenology: pipeline exception  run=%s  error=%s",
                   run_id, e, exc_info=True)
@@ -929,12 +1073,18 @@ async def export_phenology(req: ExportPhenologyReq):
             content=stac_utils.build_error_response("pipeline_error", str(e)),
         )
 
-    # Write the pipeline log
-    run_log = _log_path(run_id)
-    run_log.write_text(result.stdout + "\n" + result.stderr, encoding="utf-8")
+    if timed_out:
+        msg = f"Pipeline timed out ({PIPELINE_TIMEOUT_S}s limit)"
+        log.error("Export-phenology: pipeline timed out  run=%s", run_id)
+        await db.update_run(run_id, status="failed", error_msg=msg,
+                            finished_at=datetime.now(timezone.utc))
+        return JSONResponse(
+            status_code=500,
+            content=stac_utils.build_error_response("timeout", msg),
+        )
 
-    if result.returncode != 0:
-        summary = errors.classify_pipeline_error(result.stdout + result.stderr)
+    if returncode != 0:
+        summary = errors.classify_pipeline_error(raw_output)
         log.error("Export-phenology: pipeline failed  run=%s  summary=%s", run_id, summary)
         await db.update_run(run_id, status="failed",
                             error_msg=summary,
@@ -947,7 +1097,8 @@ async def export_phenology(req: ExportPhenologyReq):
     # Pipeline succeeded — find the phenology GeoJSON output
     phenoclf = Path(out_dir) / "03_phenology" / "tree_master_geojson_phenoclf.geojson"
     if not phenoclf.exists():
-        # Fall back to the non-phenophase version
+        # Step 3b (phenophase classifier) did not run — fall back to the
+        # step-3 file. The STAC Item says so (see phenophase_classified below).
         phenoclf = Path(out_dir) / "03_phenology" / "tree_master_geojson.geojson"
     if not phenoclf.exists():
         log.warning("Export-phenology: no output GeoJSON  run=%s", run_id)
@@ -958,40 +1109,70 @@ async def export_phenology(req: ExportPhenologyReq):
             status_code=404,
             content=stac_utils.build_error_response("no_output", "Pipeline ran but produced no phenology GeoJSON"),
         )
+    phenophase_classified = phenoclf.name.endswith("_phenoclf.geojson")
+    if not phenophase_classified:
+        log.warning("Export-phenology: step 3b output missing, exporting the "
+                    "unclassified GeoJSON  run=%s", run_id)
 
-    geojson = json.loads(phenoclf.read_text(encoding="utf-8"))
+    try:
+        # File parsing and thumbnail rendering are blocking I/O too — keep
+        # them off the event loop.
+        geojson = await asyncio.to_thread(
+            lambda: json.loads(phenoclf.read_text(encoding="utf-8")))
 
-    # Build temporal coverage from ortho acquisition dates
-    orthos = await db.list_orthos(run_id)
-    dates = sorted([o["acquisition_date"] for o in orthos if o.get("acquisition_date")])
-    start_dt = dates[0].isoformat() + "T00:00:00Z" if dates else None
-    end_dt = dates[-1].isoformat() + "T00:00:00Z" if dates else None
+        # Build temporal coverage from ortho acquisition dates
+        orthos = await db.list_orthos(run_id)
+        dates = sorted([o["acquisition_date"] for o in orthos if o.get("acquisition_date")])
+        start_dt = dates[0].isoformat() + "T00:00:00Z" if dates else None
+        end_dt = dates[-1].isoformat() + "T00:00:00Z" if dates else None
 
-    # Thumbnail
-    _generate_thumbnail(run_id)
-    thumb_url = _thumb_url(run_id)
+        # Thumbnail
+        await asyncio.to_thread(_generate_thumbnail, run_id)
+        thumb_url = _thumb_url(run_id)
 
-    # Construct the STAC Item
-    corestack_base = os.environ.get("CORESTACK_API_BASE", "").rstrip("/")
-    data_href = (
-        f"{corestack_base}/dl/{run_id}/file?path=output/03_phenology/{phenoclf.name}"
-        if corestack_base
-        else f"/dl/{run_id}/file?path=output/03_phenology/{phenoclf.name}"
-    )
+        # Construct the STAC Item
+        corestack_base = os.environ.get("CORESTACK_API_BASE", "").rstrip("/")
+        data_href = (
+            f"{corestack_base}/dl/{run_id}/file?path=output/03_phenology/{phenoclf.name}"
+            if corestack_base
+            else f"/dl/{run_id}/file?path=output/03_phenology/{phenoclf.name}"
+        )
 
-    stac_item = stac_utils.build_phenology_stac_item(
-        run_id=run_id,
-        run_name=run_name,
-        geojson=geojson,
-        data_href=data_href,
-        start_datetime=start_dt,
-        end_datetime=end_dt,
-        thumbnail_href=thumb_url,
-        params=params,
-    )
+        # Lineage: record the model that was actually loaded, not just the
+        # name that was requested (the resolver falls back to the default
+        # when <model_type>.pth is not on disk).
+        lineage_params = dict(params)
+        resolved_model = _resolve_model_path(params)
+        if resolved_model:
+            lineage_params["model_type"] = Path(resolved_model).stem
+
+        stac_item = stac_utils.build_phenology_stac_item(
+            run_id=run_id,
+            run_name=run_name,
+            geojson=geojson,
+            data_href=data_href,
+            start_datetime=start_dt,
+            end_datetime=end_dt,
+            thumbnail_href=thumb_url,
+            params=lineage_params,
+            phenophase_classified=phenophase_classified,
+        )
+    except Exception as e:
+        # Without this the run would stay "running" forever if the export
+        # step raised (e.g. unknown CRS, unreadable GeoJSON).
+        log.error("Export-phenology: STAC export failed  run=%s  error=%s",
+                  run_id, e, exc_info=True)
+        await db.update_run(run_id, status="failed",
+                            error_msg=f"STAC export failed: {e}",
+                            finished_at=datetime.now(timezone.utc))
+        return JSONResponse(
+            status_code=500,
+            content=stac_utils.build_error_response("stac_export_failed", str(e)),
+        )
 
     await db.update_run(run_id, status="done", step_progress=1.0,
                         finished_at=datetime.now(timezone.utc))
+    _write_progress(run_id, "04b_interactive_viz", 1.0, 0, 0, "Complete")
     log.info("Export-phenology: success  run=%s  features=%d",
              run_id, len(geojson.get("features", [])))
 
@@ -1560,8 +1741,9 @@ def _build_bash_cmd(run_name: str, om_dir: str, out_dir: str, params: dict) -> l
             "--om-dir", om_dir, "--output-dir", out_dir, "--run-name", run_name]
     if PROJECT_ROOT:
         args += ["--project-root", str(PROJECT_ROOT)]
-    if MODEL_PATH:
-        args += ["--model-path", str(MODEL_PATH)]
+    model_path = _resolve_model_path(params)
+    if model_path:
+        args += ["--model-path", model_path]
 
     def _sh(key, flag):
         v = params.get(key, "")
@@ -1573,9 +1755,51 @@ def _build_bash_cmd(run_name: str, om_dir: str, out_dir: str, params: dict) -> l
         if v is not None:
             args.extend([flag, str(int(v))])
 
+    def _sh_unit_float(key, flag):
+        """Pass a 0..1 number through; ignore anything else (e.g. an unset
+        Airflow param arriving as a placeholder string) so the pipeline
+        falls back to its own default instead of crashing."""
+        v = params.get(key)
+        if v is None or v == "":
+            return
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            log.warning("Ignoring non-numeric %s=%r", key, v)
+            return
+        if not 0.0 <= f <= 1.0:
+            log.warning("Ignoring out-of-range %s=%r (expected 0..1)", key, v)
+            return
+        args.extend([flag, repr(f)])
+
     _sh_int("tile_width", "--tile-width")
     _sh_int("tile_height", "--tile-height")
     _sh_int("tile_buffer", "--tile-buffer")
+    _sh_unit_float("fixed_iou", "--fixed-iou")
+
+    def _sh_float(key, flag):
+        """Pass any finite number through — including 0 and negatives, which
+        the generic _sh() helper below would drop or mangle. Non-numbers are
+        ignored so the pipeline default applies."""
+        v = params.get(key)
+        if v is None or v == "" or isinstance(v, bool):
+            return
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            log.warning("Ignoring non-numeric %s=%r", key, v)
+            return
+        if f != f or f in (float("inf"), float("-inf")):
+            log.warning("Ignoring non-finite %s=%r", key, v)
+            return
+        args.extend([flag, repr(f)])
+
+    # Deciduousness-score weights (and optional threshold) -> steps 3 and 3b
+    _sh_float("w_veg_amp", "--w-veg-amp")
+    _sh_float("w_depth", "--w-depth")
+    _sh_float("w_gcc_amp", "--w-gcc-amp")
+    _sh_float("w_tex", "--w-tex")
+    _sh_float("ds_threshold", "--ds-thresh")
     _sh("align_method", "--align-method")
     _sh("base_threshold_tag", "--base-threshold-tag")
     _sh("align_threshold_tag", "--align-threshold-tag")
@@ -1599,8 +1823,9 @@ def _build_windows_cmd(run_name: str, om_dir: str, out_dir: str, params: dict) -
     ps = [f"-OmDir '{om_dir}'", f"-OutputDir '{out_dir}'", f"-RunName '{run_name}'"]
     if PROJECT_ROOT:
         ps.append(f"-ProjectRoot '{PROJECT_ROOT}'")
-    if MODEL_PATH:
-        ps.append(f"-ModelPath '{MODEL_PATH}'")
+    model_path = _resolve_model_path(params)
+    if model_path:
+        ps.append(f"-ModelPath '{model_path}'")
 
     def _ps_str(key, flag):
         v = params.get(key, "")
