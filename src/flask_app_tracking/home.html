@@ -254,21 +254,36 @@ hr.subtle { border: 0; border-top: 1px solid var(--border-color); margin: 16px 0
 }
 
 
-/* ── labeled progress bar (shadcn-style) ── */
+/* ── progress bar label row ── */
 .pbar-wrap { margin: 6px 0 12px; }
 .pbar-top { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:7px; }
 .pbar-label { font-size:13.5px; font-weight:600; color:var(--text-main); font-family:'Source Serif 4',serif; }
-.pbar-pct { font-size:12.5px; font-weight:700; color:var(--accent); font-family:'DM Mono',monospace; flex:none; }
-.pbar-track { position:relative; height:9px; border-radius:999px; background:var(--border-color); overflow:hidden; }
-.pbar-fill { position:absolute; left:0; top:0; bottom:0; width:0%; border-radius:999px;
-  background:var(--accent); transition:width .5s cubic-bezier(.4,0,.2,1); }
-.pbar-fill.fail { background:var(--err); }
-.pbar-track.indet .pbar-fill { width:35% !important;
-  animation:pbarIndet 1.25s ease-in-out infinite; }
-@keyframes pbarIndet { 0%{left:-35%} 100%{left:100%} }
-.pbar-sub { margin-top:7px; font-size:11.5px; color:var(--text-muted);
-  font-family:'DM Mono',monospace; min-height:14px; }
-.pbar-sub .om { color:var(--accent); font-weight:600; }
+
+/* MUI-style linear indeterminate progress bar */
+.mui-lin {
+  position: relative; overflow: hidden; height: 4px; width: 100%;
+  background-color: var(--accent-l); border-radius: 2px;
+}
+.mui-lin-bar {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  background-color: var(--accent); transform-origin: left;
+  will-change: left, right;
+}
+.mui-lin-bar1 { animation: mui-indeterminate1 2.1s cubic-bezier(0.65,0.815,0.735,0.395) infinite; }
+.mui-lin-bar2 { animation: mui-indeterminate2 2.1s cubic-bezier(0.165,0.84,0.44,1) 1.15s infinite; }
+@keyframes mui-indeterminate1 {
+  0%   { left: -35%;  right: 100%; }
+  60%  { left: 100%;  right: -90%; }
+  100% { left: 100%;  right: -90%; }
+}
+@keyframes mui-indeterminate2 {
+  0%   { left: -200%; right: 100%; }
+  60%  { left: 107%;  right: -8%;  }
+  100% { left: 107%;  right: -8%;  }
+}
+.mui-lin.done { background-color: var(--accent); }
+.mui-lin.fail { background-color: var(--err); }
+.mui-lin.done .mui-lin-bar, .mui-lin.fail .mui-lin-bar { animation: none; display: none; }
 
 .run-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 16px; }
 .run-card {
@@ -479,32 +494,27 @@ footer {
           <h2 id="vr-title" style="font-size:22px;margin:0 0 6px"></h2>
           <div class="muted" id="vr-meta" style="font-size:13.5px; color:var(--text-muted)"></div>
         </div>
-        <button class="btn btn-danger btn-sm" onclick="deleteRun()">Delete run</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Pipeline status</h2>
-            <div class="pbar-wrap"><div class="pbar-top"><span class="pbar-label" id="pbar-vrf-label">Waiting…</span><span class="pbar-pct" id="pbar-vrf-pct">0%</span></div><div class="pbar-track" id="pbar-vrf-track"><div class="pbar-fill" id="pbar-vrf-fill"></div></div><div class="pbar-sub" id="pbar-vrf-sub"></div></div>
-      <div id="vr-status-msg" style="margin-top:12px;font-size:14px"></div>
-
-      <!-- Visibility toggle — shown only when run is complete -->
-      <div id="vr-public-row" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border-color);display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-          <div>
-            <div style="font-size:13.5px;font-weight:600;color:var(--text-main)">Show on public landing page</div>
-            <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">When on, the interactive viewer for this run is listed publicly.</div>
-          </div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
           <label class="dpm-switch" title="Show this run's viewer on the public landing page">
             <input type="checkbox" id="vr-public" onchange="togglePublic(this.checked)"/>
             <span class="track"></span>
             <span class="sw-label" id="vr-public-label">Public</span>
           </label>
+          <button class="btn btn-danger btn-sm" onclick="deleteRun()">Delete run</button>
         </div>
       </div>
+    </div>
 
-      <div class="log-box" id="vr-log" style="display:none;margin-top:16px"></div>
-      <button class="btn btn-ghost btn-sm" id="vr-log-btn" onclick="toggleVrLog()" style="margin-top:12px;display:none">Show log</button>
+    <div class="card">
+      <h2>Pipeline status</h2>
+      <div class="pbar-wrap">
+        <div class="pbar-top"><span class="pbar-label" id="pbar-vrf-label">Waiting…</span></div>
+        <div class="mui-lin" id="pbar-vrf-track">
+          <div class="mui-lin-bar mui-lin-bar1"></div>
+          <div class="mui-lin-bar mui-lin-bar2"></div>
+        </div>
+      </div>
+      <div id="vr-status-msg" style="margin-top:12px;font-size:14px"></div>
     </div>
 
     <div class="card">
@@ -616,7 +626,7 @@ window.addEventListener('load', () => {
   });
 });
 // ===========================================================================
-let viewRunId = null, pollTimer = null, vrLogVisible = false;
+let viewRunId = null, pollTimer = null;
 
 function goTo(page, arg) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -625,7 +635,6 @@ function goTo(page, arg) {
   else if (page === 'new')  { window.location.href = '/new-run'; return; }
   else if (page === 'view') {
     document.getElementById('pg-view').classList.add('active');
-    if (viewRunId !== arg) vrLogVisible = false; // reset log visibility when switching runs
     viewRunId = arg;
     loadView(arg);
   }
@@ -686,74 +695,32 @@ const STEP_TOTAL_LABEL = {
 
 function resetFlow(prefix) {
   const L=document.getElementById(`pbar-${prefix}-label`);
-  const P=document.getElementById(`pbar-${prefix}-pct`);
-  const F=document.getElementById(`pbar-${prefix}-fill`);
   const T=document.getElementById(`pbar-${prefix}-track`);
-  const S=document.getElementById(`pbar-${prefix}-sub`);
   if(L) L.textContent='Waiting…';
-  if(P) P.textContent='0%';
-  if(F){ F.style.width='0%'; F.className='pbar-fill'; }
-  if(T) T.className='pbar-track';
-  if(S) S.innerHTML='';
+  if(T) T.className='mui-lin';
 }
 
-// updateFlow(prefix, run) — driven entirely by the server's step_progress /
-// om_current / om_total / step_detail. No log parsing: the bar advances
-// gradually as the pipeline emits PROGRESS markers.
+// updateFlow(prefix, run) — shows the current step label above an
+// indeterminate MUI-style bar; the bar turns solid on done/failed.
 function updateFlow(prefix, run) {
   const L=document.getElementById(`pbar-${prefix}-label`);
-  const P=document.getElementById(`pbar-${prefix}-pct`);
-  const F=document.getElementById(`pbar-${prefix}-fill`);
   const T=document.getElementById(`pbar-${prefix}-track`);
-  const S=document.getElementById(`pbar-${prefix}-sub`);
-  if(!F) return;
+  if(!T) return;
 
   const status = run.status;
   const step   = run.current_step || null;
-  let prog = (typeof run.step_progress === 'number') ? run.step_progress : 0;
-  let pct  = Math.round(prog * 100);
-  const omCur = run.om_current || 0;
-  const omTot = run.om_total   || 0;
-  const detail = run.step_detail || '';
 
   let labelText = step ? (STEP_TOTAL_LABEL[step] || run.step_label || step) : 'Starting…';
-  if (status === 'done')   { pct = 100; labelText = 'Pipeline complete'; }
+  if (status === 'done')        { labelText = 'Pipeline complete'; }
   else if (status === 'failed') { labelText = 'Failed — ' + (STEP_TOTAL_LABEL[step] || step || 'unknown step'); }
 
-  F.className = 'pbar-fill' + (status === 'failed' ? ' fail' : '');
-  const indet = (status === 'running' && pct <= 0 && omTot === 0);
-  if (T) T.className = 'pbar-track' + (indet ? ' indet' : '');
-  F.style.width = indet ? '' : Math.max(0, Math.min(100, pct)) + '%';
-
   if (L) L.textContent = labelText;
-  if (P) P.textContent = indet ? '' : pct + '%';
-
-  if (S) {
-    let sub = '';
-    if (omTot > 0) {
-      sub = `<span class="om">OM ${omCur} / ${omTot}</span>`;
-      if (detail) sub += ` · ${escHtml(detail)}`;
-    } else if (detail) {
-      sub = escHtml(detail);
-    } else if (status === 'running') {
-      sub = 'Working…';
-    }
-    S.innerHTML = sub;
-  }
+  T.className = 'mui-lin' + (status === 'done' ? ' done' : status === 'failed' ? ' fail' : '');
 }
 
 const STEP_NAMES = {'00_discover_oms':'00 — Discovering OMs','01_crown_detection':'01 — Detecting crowns','02_crown_tracking':'02 — Tracking crowns across dates','03_phenology_analysis':'03 — Computing phenology metrics','04a_cog_tiling':'04a — Generating COGs and tile pyramid','04b_interactive_viz':'04b — Building interactive viewer'};
 
 
-function appendLog(lines, elId) {
-  const el = document.getElementById(elId);
-  if (!el) return;
-  el.innerHTML = lines.map(l => {
-    const cls = l.includes('FAILED') || l.includes('ERROR') ? 'log-err' : l.includes('complete') || l.includes('===') ? 'log-ok' : '';
-    return `<span class="${cls}">${escHtml(l)}</span>`;
-  }).join('\n');
-  el.scrollTop = el.scrollHeight;
-}
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 async function loadView(id) {
@@ -769,12 +736,9 @@ async function loadView(id) {
     document.getElementById('vr-meta').innerHTML =
       `Created ${new Date(run.created_at).toLocaleString()} · ${run.num_oms} OMs · ${(run.total_tiles||0).toLocaleString()} tiles`;
 
-    // visibility switch — show only when run is done
-    const pubRow = document.getElementById('vr-public-row');
-    const pubEl  = document.getElementById('vr-public');
-    if (pubRow && pubEl) {
-      const isDone = run.status === 'done';
-      pubRow.style.display = isDone ? 'block' : 'none';
+    // visibility switch — default public unless explicitly set false
+    const pubEl = document.getElementById('vr-public');
+    if (pubEl) {
       pubEl.checked = run.is_public !== false;
       document.getElementById('vr-public-label').textContent = pubEl.checked ? 'Public' : 'Private';
     }
@@ -782,7 +746,6 @@ async function loadView(id) {
     updateFlow('vrf', run);
 
     const statusEl = document.getElementById('vr-status-msg');
-    const logBtn   = document.getElementById('vr-log-btn');
 
     if (run.status === 'done') {
       statusEl.innerHTML = `<div class="alert alert-ok"><b>Complete</b> · all 6 steps finished${run.finished_at ? ' · ' + new Date(run.finished_at).toLocaleString() : ''}</div>`;
@@ -791,10 +754,8 @@ async function loadView(id) {
         `<details style="margin-top:8px"><summary style="font-size:13px;cursor:pointer">Show error</summary>` +
         `<pre style="margin-top:8px;font-size:12px;max-height:200px;overflow:auto;white-space:pre-wrap;background:#fef2f2;padding:10px;border-radius:4px">${escHtml(run.error_msg || '')}</pre>` +
         `</details></div>`;
-      logBtn.style.display = 'inline-flex';
     } else if (run.status === 'running') {
       statusEl.innerHTML = `<div class="alert alert-warn"><b>Running…</b> ${STEP_NAMES[run.current_step] || run.current_step}</div>`;
-      logBtn.style.display = 'inline-flex';
       pollTimer = setInterval(() => loadView(id), 5000);
     } else {
       statusEl.innerHTML = `<span style="color:var(--text-muted);font-size:14px">Status: ${run.status}</span>`;
@@ -817,29 +778,9 @@ async function loadView(id) {
       document.getElementById('vr-viewer-link').href = vUrl;
       document.getElementById('vr-info-link').href = `${API}/api/runs/${id}/info`;
     } else { vc.style.display = 'none'; }
-
-    // Always fetch the log on every poll cycle so it stays current
-    // regardless of whether the log box is currently visible
-    await fetchVrLog(id);
   } catch(e) {
     document.getElementById('vr-status-msg').innerHTML = `<div class="alert alert-err"><b>Error.</b> ${e.message}</div>`;
   }
-}
-
-async function fetchVrLog(id) {
-  try {
-    const r = await fetch(`${API}/api/runs/${id}/log?lines=200`);
-    const d = await r.json();
-    appendLog(d.lines || [], 'vr-log');
-  } catch(e) {}
-}
-
-async function toggleVrLog() {
-  vrLogVisible = !vrLogVisible;
-  const el = document.getElementById('vr-log');
-  el.style.display = vrLogVisible ? 'block' : 'none';
-  document.getElementById('vr-log-btn').textContent = vrLogVisible ? 'Hide log' : 'Show log';
-  if (vrLogVisible && viewRunId) await fetchVrLog(viewRunId);
 }
 
 async function deleteRun() {
