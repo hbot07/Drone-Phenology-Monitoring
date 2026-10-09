@@ -1,27 +1,24 @@
 """
-Authentication - email/password + Google sign-in, unified behind a session JWT.
+Authentication - Google sign-in only, backed by a session JWT.
 
-Two ways to log in:
-  A) Email + password  -> POST /api/auth/signup, POST /api/auth/login
-  B) Google ID token   -> POST /api/auth/google
-
-Both issue our own **session JWT** (signed with DPM_SECRET_KEY). The browser
-stores it and sends it as  Authorization: Bearer <session_jwt>  on every API
-call. get_current_user() validates that session JWT -- it does NOT re-verify
-Google on every request (Google is only verified once, at /api/auth/google).
+Sign-in flow:
+  Browser → Google Identity Services → id_token → POST /api/auth/google
+  Server verifies the id_token, issues its own HS256 session JWT.
+  Browser stores it in localStorage and sends it as:
+    Authorization: Bearer <session_jwt>
+  on every API call. get_current_user() validates that session JWT --
+  it does NOT re-verify Google on every request.
 
 Set DPM_AUTH_ENABLED=false to bypass everything for local dev.
 """
 import os
 import time
-import hashlib
-import hmac
-import secrets
 
 from fastapi import Header, HTTPException
 from pydantic import BaseModel
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+import requests as _requests
 import jwt  # PyJWT
 
 import db
@@ -35,27 +32,32 @@ SECRET_KEY = os.environ.get("DPM_SECRET_KEY", "dev-secret-change-me")
 SESSION_HOURS = int(os.environ.get("DPM_SESSION_HOURS", "24"))
 
 _DEV_USER = {"email": "dev@localhost", "name": "Local Dev", "picture": None}
-_google_request = google_requests.Request()
 
 
-# ---------------------------------------------------------------------------
-# Password hashing -- PBKDF2-HMAC-SHA256 (stdlib only)
-# ---------------------------------------------------------------------------
-def hash_password(password: str) -> str:
-    """Return 'salt$hash' -- salt and PBKDF2 hash, both hex-encoded."""
-    salt = secrets.token_hex(16)
-    dk = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), 200_000)
-    return f"{salt}${dk.hex()}"
+def _build_google_request() -> google_requests.Request:
+    """
+    Build a requests.Session that explicitly routes through the institutional
+    proxy (HTTPS_PROXY / HTTP_PROXY env vars).
+
+    This is necessary on networks like IITD where all outbound internet traffic
+    must go through a proxy. Without this, google.oauth2.id_token.verify_oauth2_token
+    tries a direct connection to Google, the firewall blocks it, and the call
+    hangs until the upstream proxy (nginx) returns a 504.
+
+    We set the proxy explicitly on the session rather than relying on NO_PROXY
+    not listing Google domains — belt-and-suspenders.
+    """
+    session = _requests.Session()
+    https_proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY", "")
+    if https_proxy:
+        session.proxies = {"http": https_proxy, "https": https_proxy}
+        _log.info("Google token verification will use proxy: %s", https_proxy)
+    else:
+        _log.info("Google token verification: no proxy configured (direct connection)")
+    return google_requests.Request(session=session)
 
 
-def verify_password(password: str, stored: str) -> bool:
-    """Check a password against a stored 'salt$hash'."""
-    try:
-        salt, expected = stored.split("$", 1)
-    except (ValueError, AttributeError):
-        return False
-    dk = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), 200_000)
-    return hmac.compare_digest(dk.hex(), expected)
+_google_request = _build_google_request()
 
 
 # ---------------------------------------------------------------------------
@@ -136,18 +138,7 @@ async def require_run_owner(run_id: str, user: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Request models for the auth endpoints (imported by server.py)
+# Request model for the Google auth endpoint (imported by server.py)
 # ---------------------------------------------------------------------------
-class SignupReq(BaseModel):
-    email: str
-    password: str
-    name: str | None = None
-
-
-class LoginReq(BaseModel):
-    email: str
-    password: str
-
-
 class GoogleReq(BaseModel):
     credential: str   # the Google ID token from the browser
