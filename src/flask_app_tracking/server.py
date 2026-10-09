@@ -96,6 +96,17 @@ log.info("PROJECT_ROOT: %s  MODEL_PATH: %s", PROJECT_ROOT, MODEL_PATH)
 # response, so our own "timeout" error body arrives before Airflow gives up.
 PIPELINE_TIMEOUT_S = int(os.environ.get("DPM_PIPELINE_TIMEOUT", "7000"))
 
+# Max size (bytes) for a single orthomosaic upload.  Default: 2 GB.  Set 0 to disable.
+MAX_OM_BYTES = int(os.environ.get("DPM_MAX_OM_BYTES", str(2 * 1024 ** 3)))
+
+# ---------------------------------------------------------------------------
+# API base URL — exposed to the frontend via /api/config so JS never
+# hardcodes paths.  Set DPM_API_BASE_URL in .env:
+#   /api            → same-origin, same container (default)
+#   https://dpm.example.com/api  → cross-origin / CDN-hosted frontend
+# ---------------------------------------------------------------------------
+API_BASE_URL = os.environ.get("DPM_API_BASE_URL", "/api").rstrip("/")
+
 
 def _resolve_model_path(params: dict) -> str:
     """
@@ -356,19 +367,10 @@ def landing():
 
 @app.get("/dashboard")
 def dashboard():
-    """Dashboard (home.html). The page itself redirects to /login if there's
-    no stored session token — see home.html's boot script."""
+    """Dashboard (home.html). Auth is handled client-side via the stored session token."""
     p = _find_page("home.html")
     if not p:
         raise HTTPException(404, "home.html not found")
-    return FileResponse(str(p))
-
-
-@app.get("/login")
-def login_page():
-    p = _find_page("login.html")
-    if not p:
-        raise HTTPException(404, "login.html not found")
     return FileResponse(str(p))
 
 
@@ -416,10 +418,12 @@ def param_docs_js():
 
 @app.get("/api/config")
 def get_config():
-    """Public config the frontend needs to bootstrap sign-in."""
+    """Public config the frontend needs to bootstrap sign-in and API calls."""
     return {
         "auth_enabled": auth.AUTH_ENABLED,
         "google_client_id": auth.GOOGLE_CLIENT_ID,
+        "max_om_bytes": MAX_OM_BYTES,
+        "api_base_url": API_BASE_URL,
     }
 
 
@@ -506,38 +510,9 @@ async def whoami(user: dict = Depends(auth.get_current_user)):
 
 
 # ---------------------------------------------------------------------------
-# Auth endpoints — signup / login (password) and Google. Each returns a
-# session token the browser stores and sends on every subsequent request.
+# Auth endpoint — Google SSO only. Returns a session token the browser stores
+# and sends on every subsequent request as Bearer <token>.
 # ---------------------------------------------------------------------------
-@app.post("/api/auth/signup")
-async def signup(req: auth.SignupReq):
-    email = req.email.strip().lower()
-    if not email or "@" not in email:
-        raise HTTPException(400, "Please provide a valid email address")
-    if len(req.password) < 8:
-        raise HTTPException(400, "Password must be at least 8 characters")
-    existing = await db.get_user(email)
-    if existing:
-        raise HTTPException(409, "An account with this email already exists — try logging in")
-    await db.create_password_user(email, req.name, auth.hash_password(req.password))
-    token = auth.issue_session_token(email, req.name)
-    return {"token": token, "user": {"email": email, "name": req.name}}
-
-
-@app.post("/api/auth/login")
-async def login(req: auth.LoginReq):
-    email = req.email.strip().lower()
-    user = await db.get_user(email)
-    if not user or not user.get("password_hash"):
-        # Either no account, or a Google-only account with no password
-        raise HTTPException(401, "Invalid email or password")
-    if not auth.verify_password(req.password, user["password_hash"]):
-        raise HTTPException(401, "Invalid email or password")
-    await db.touch_user(email)
-    token = auth.issue_session_token(email, user.get("name"))
-    return {"token": token, "user": {"email": email, "name": user.get("name")}}
-
-
 @app.post("/api/auth/google")
 async def google_login(req: auth.GoogleReq):
     claims = auth.verify_google_token(req.credential)
@@ -605,6 +580,17 @@ async def upload_file(run_id: str, file: UploadFile, user: dict = Depends(auth.g
     await auth.require_run_owner(run_id, user)
     dest = _uploads_dir(run_id) / file.filename
     content = await file.read()
+    # ── Size guard ──────────────────────────────────────────────────────────
+    if MAX_OM_BYTES and len(content) > MAX_OM_BYTES:
+        mb_limit = MAX_OM_BYTES / 1024 ** 2
+        mb_actual = len(content) / 1024 ** 2
+        raise HTTPException(
+            413,
+            f"File too large: {file.filename} is {mb_actual:.0f} MB "
+            f"(limit is {mb_limit:.0f} MB per orthomosaic). "
+            "Compress or tile the orthomosaic before uploading."
+        )
+    # ────────────────────────────────────────────────────────────────────────
     with open(dest, "wb") as f:
         f.write(content)
 
