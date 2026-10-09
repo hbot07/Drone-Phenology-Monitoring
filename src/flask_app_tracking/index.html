@@ -77,9 +77,6 @@ nav {
   font-size: 13.5px; font-weight: 500; color: var(--muted);
   text-decoration: none; transition: color 0.15s;
 }
-.nav-links a:not(.nav-cta) {
-  /* Regular nav links stay grey */
-}
 .nav-links a:hover { color: var(--primary); }
 .nav-cta {
   display: inline-flex; align-items: center; gap: 6px;
@@ -90,7 +87,7 @@ nav {
   border: none; cursor: pointer; font-family: 'DM Sans', sans-serif;
 }
 .nav-cta:hover { background: var(--accent-d); color: #fff !important; }
-
+.nav-cta:disabled { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
 
 /* ── Hero ── */
 .hero { padding: 80px 0 72px; text-align: left; }
@@ -109,6 +106,7 @@ nav {
   font-family: 'DM Sans', sans-serif; border: none; cursor: pointer;
 }
 .btn-primary:hover { background: var(--accent-d); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
 .btn-secondary {
   display: inline-flex; align-items: center; gap: 8px;
   background: var(--card); color: var(--primary);
@@ -202,8 +200,6 @@ nav {
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--border);
 }
-
-/* ── CTA ── */
 
 /* ── Footer ── */
 footer {
@@ -332,7 +328,6 @@ footer a:hover { text-decoration: underline; }
 <!-- Nav -->
 <nav>
   <div class="nav-inner">
-    
     <a href="/" class="nav-brand">
       <div class="nav-brand-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 22c4-4 8-7.5 8-12a8 8 0 10-16 0c0 4.5 4 8 8 12z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -341,8 +336,8 @@ footer a:hover { text-decoration: underline; }
     </a>
     <div class="nav-links">
       <a href="#analyses" style="font-size:13.5px;font-weight:500;color:var(--muted);text-decoration:none">Public runs</a>
-      <!-- Shown when logged out -->
-      <a href="#" id="nav-signin-btn" class="nav-cta" onclick="signInWithGoogle(); return false;" style="display:none">Sign in</a>
+      <!-- Shown when logged out (hidden until config loads to avoid flash) -->
+      <button class="nav-cta" id="nav-signin-btn" onclick="signInWithGoogle()" style="display:none" disabled>Sign in</button>
       <!-- Shown when logged in -->
       <div class="nav-user" id="nav-user" data-name="" style="display:none">
         <div class="nav-avatar" id="nav-avatar" onclick="toggleDropdown(event)" title="">
@@ -353,6 +348,10 @@ footer a:hover { text-decoration: underline; }
             <div class="dd-label">Signed in as</div>
             <div class="dd-email" id="dd-email"></div>
           </div>
+          <a class="nav-dropdown-item" href="/dashboard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Dashboard
+          </a>
           <button class="nav-dropdown-item danger" onclick="doSignOut()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Sign out
@@ -376,7 +375,15 @@ footer a:hover { text-decoration: underline; }
           click any tree and see its phenology.
         </p>
         <div class="hero-actions">
-          <a href="#" id="open-dashboard-btn" class="btn-primary" onclick="openDashboard(); return false;">Open the dashboard</a>
+          <!--
+            No inline onclick — initAuthUI() wires this up after config loads:
+            • Logged in  → "Go to dashboard"  → window.location.href = '/dashboard'
+            • Logged out → "Sign in to get started" → signInWithGoogle()
+            • Loading    → "Loading…" (disabled)
+          -->
+          <button class="btn-primary" id="open-dashboard-btn" disabled>
+            Open the dashboard
+          </button>
           <a href="#features" class="btn-secondary">See how it works</a>
         </div>
       </div>
@@ -628,76 +635,101 @@ footer a:hover { text-decoration: underline; }
 </footer>
 
 
+<!-- Hidden container for the programmatically-rendered Google button -->
+<div id="_g_btn_container" style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;overflow:hidden;"></div>
+
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
-  // Fetch Google Client ID from server config
+  // ── Config ──────────────────────────────────────────────────────────────
+  // Loaded once at boot from /api/config (always a relative path — we don't
+  // know _apiBase yet at bootstrap time).  All API calls other than this one
+  // bootstrap fetch use _apiBase so the server's DPM_API_BASE_URL env var is
+  // respected in cross-origin / CDN-hosted deployments.
   let _googleClientId = null;
+  let _configLoaded   = false;
+  let _apiBase        = '/api';  // overwritten by loadConfig(); fallback keeps same-origin deploys working
 
-  async function initGoogleAuth() {
+  async function loadConfig() {
     try {
+      // Bootstrap fetch: always relative — _apiBase is not known yet.
       const r = await fetch('/api/config');
+      if (!r.ok) throw new Error('config fetch failed');
       const cfg = await r.json();
-      _googleClientId = cfg.google_client_id;
+      _googleClientId = cfg.google_client_id || null;
+      _apiBase        = (cfg.api_base_url || '/api').replace(/\/$/, '');
     } catch (e) {
-      console.warn('Could not fetch config:', e);
+      console.warn('Could not load /api/config:', e);
     }
+    _configLoaded = true;
   }
 
-  // ── Auth UI helpers ──────────────────────────────────────────────────────
+  // ── Auth UI ──────────────────────────────────────────────────────────────
   function initAuthUI() {
-    const token = localStorage.getItem('dpm_token');
+    const token   = localStorage.getItem('dpm_token');
     const userRaw = localStorage.getItem('dpm_user');
+
     const signinBtn = document.getElementById('nav-signin-btn');
     const navUser   = document.getElementById('nav-user');
+    const dashBtn   = document.getElementById('open-dashboard-btn');
 
     if (token && userRaw) {
       try {
-        const user = JSON.parse(userRaw);
-        const email = user.email || '';
-        const name  = user.name  || email.split('@')[0] || 'User';
-        const pic   = user.picture || '';
-        const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+        const user     = JSON.parse(userRaw);
+        const email    = user.email   || '';
+        const name     = user.name    || email.split('@')[0] || 'User';
+        const pic      = user.picture || '';
+        const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
-        // Set avatar
+        // Avatar
         const avatarEl = document.getElementById('nav-avatar');
         if (pic) {
           avatarEl.innerHTML = `<img src="${pic}" alt="${name}" referrerpolicy="no-referrer"/>`;
         } else {
           document.getElementById('av-initials').textContent = initials;
         }
-
-        // Set dropdown content
         document.getElementById('dd-email').textContent = email;
         navUser.setAttribute('data-name', name);
 
-        // Show avatar, hide sign-in btn
+        // Show avatar, hide sign-in button
         signinBtn.style.display = 'none';
         navUser.style.display   = 'block';
 
-        // Update CTA button to "Go to dashboard"
-        const ctaBtn = document.getElementById('cta-main-btn');
-        if (ctaBtn) {
-          ctaBtn.textContent = 'Go to dashboard';
-          ctaBtn.onclick = null;
-          ctaBtn.href = '/dashboard';
+        // Hero CTA → go straight to dashboard
+        if (dashBtn) {
+          dashBtn.textContent = 'Go to dashboard';
+          dashBtn.disabled    = false;
+          dashBtn.onclick     = () => { window.location.href = '/dashboard'; };
         }
-      } catch(e) {
-        showSignIn(signinBtn, navUser);
+        return;
+      } catch (e) {
+        // Corrupt localStorage — fall through to sign-in state
+        localStorage.removeItem('dpm_token');
+        localStorage.removeItem('dpm_user');
+      }
+    }
+
+    // ── Logged-out state ────────────────────────────────────────────────
+    navUser.style.display = 'none';
+
+    if (_googleClientId) {
+      // Config loaded and Google is configured — enable sign-in
+      signinBtn.style.display = 'flex';
+      signinBtn.disabled      = false;
+
+      if (dashBtn) {
+        // Button triggers Google SSO, not a redirect to /dashboard
+        dashBtn.textContent = 'Sign in to get started';
+        dashBtn.disabled    = false;
+        dashBtn.onclick     = () => signInWithGoogle();
       }
     } else {
-      showSignIn(signinBtn, navUser);
-    }
-  }
-
-  function showSignIn(signinBtn, navUser) {
-    signinBtn.style.display = 'flex';
-    if (navUser) navUser.style.display = 'none';
-    // Reset CTA button to sign in state
-    const ctaBtn = document.getElementById('cta-main-btn');
-    if (ctaBtn) {
-      ctaBtn.textContent = 'Sign in to get started';
-      ctaBtn.href = '#';
-      ctaBtn.onclick = (e) => { e.preventDefault(); signInWithGoogle(); };
+      // Config not yet loaded or Google client ID missing — keep disabled
+      signinBtn.style.display = 'none';
+      if (dashBtn) {
+        dashBtn.textContent = _configLoaded ? 'Sign-in not configured' : 'Loading…';
+        dashBtn.disabled    = true;
+        dashBtn.onclick     = null;
+      }
     }
   }
 
@@ -706,7 +738,6 @@ footer a:hover { text-decoration: underline; }
     document.getElementById('nav-dropdown').classList.toggle('open');
   }
 
-  // Close dropdown when clicking outside the nav-user element only
   document.addEventListener('click', (e) => {
     const navUser = document.getElementById('nav-user');
     if (navUser && !navUser.contains(e.target)) {
@@ -718,28 +749,26 @@ footer a:hover { text-decoration: underline; }
   function doSignOut() {
     localStorage.removeItem('dpm_token');
     localStorage.removeItem('dpm_user');
+    // Revoke the Google session so the account picker shows next time
+    if (window.google && _googleClientId) {
+      try { google.accounts.id.revoke(_googleClientId, () => {}); } catch (_) {}
+    }
     initAuthUI();
   }
 
-  function openDashboard() {
-    const token = localStorage.getItem('dpm_token');
-    if (token) {
-      // Already logged in — go straight to dashboard
-      window.location.href = '/dashboard';
-    } else {
-      // Not logged in — trigger Google OAuth
-      signInWithGoogle();
-    }
-  }
-
+  // ── Google Sign-In ───────────────────────────────────────────────────────
   function signInWithGoogle() {
     if (!_googleClientId) {
-      window.location.href = '/login';
+      // Should not be reachable — button is disabled until config loads.
+      console.error('DPM_GOOGLE_CLIENT_ID is not configured on the server.');
+      alert('Sign-in is not configured. Contact the administrator.');
       return;
     }
-    // Render a real Google button into a hidden div and click it —
-    // google.accounts.id.prompt() is suppressed by browsers if dismissed before.
-    // renderButton always works on a direct user gesture.
+
+    // Render a real Google button into a hidden div and click it.
+    // google.accounts.id.prompt() is suppressed by browsers if the user
+    // previously dismissed it; renderButton + click always works on a
+    // direct user gesture.
     const container = document.getElementById('_g_btn_container');
     container.innerHTML = '';
     google.accounts.id.initialize({
@@ -747,34 +776,35 @@ footer a:hover { text-decoration: underline; }
       callback: handleGoogleResponse,
     });
     google.accounts.id.renderButton(container, {
-      type: 'standard',
-      theme: 'outline',
-      size: 'large',
+      type: 'standard', theme: 'outline', size: 'large',
     });
-    // Click the rendered button immediately
     const btn = container.querySelector('div[role=button]') || container.firstElementChild;
     if (btn) btn.click();
   }
 
   async function handleGoogleResponse(response) {
     try {
-      const r = await fetch('/api/auth/google', {
+      const r = await fetch(_apiBase + '/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: response.credential }),
       });
-      if (!r.ok) throw new Error('Authentication failed');
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        throw new Error(body.detail || `Auth failed (${r.status})`);
+      }
       const data = await r.json();
       localStorage.setItem('dpm_token', data.token);
       localStorage.setItem('dpm_user', JSON.stringify(data.user));
+      // Redirect to dashboard after successful sign-in
       window.location.href = '/dashboard';
     } catch (e) {
-      alert('Sign-in failed. Please try again.');
-      console.error(e);
+      console.error('Google sign-in error:', e);
+      alert('Sign-in failed: ' + e.message);
     }
   }
 
-  // ── Slideshow controller ────────────────────────────────────────────────────────────────
+  // ── Slideshow ────────────────────────────────────────────────────────────
   (function () {
     const DURATION = 5000;
     const slides = Array.from(document.querySelectorAll('.slide'));
@@ -811,13 +841,14 @@ footer a:hover { text-decoration: underline; }
     }
     startProgress();
   })();
-  // Load public runs for the landing page
+
+  // ── Public runs ──────────────────────────────────────────────────────────
   async function loadPublicRuns() {
-    const grid = document.getElementById('analyses-grid');
+    const grid    = document.getElementById('analyses-grid');
     const loading = document.getElementById('analyses-loading');
     if (!grid) return;
     try {
-      const r = await fetch('/api/public/runs');
+      const r    = await fetch(_apiBase + '/public/runs');
       const runs = await r.json();
       if (loading) loading.remove();
       if (!Array.isArray(runs) || !runs.length) {
@@ -830,9 +861,9 @@ footer a:hover { text-decoration: underline; }
           : '';
         const card = document.createElement('a');
         card.className = 'run-card';
-        card.href = run.viewer_url;
-        card.target = '_blank';
-        card.rel = 'noopener';
+        card.href      = run.viewer_url;
+        card.target    = '_blank';
+        card.rel       = 'noopener';
         card.innerHTML =
           '<div class="run-card__thumb">' +
             '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5">' +
@@ -847,7 +878,7 @@ footer a:hover { text-decoration: underline; }
               '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>' +
             '</div>' +
           '</div>';
-        // Set text via textContent to avoid HTML injection from run names
+        // textContent prevents XSS from run names
         card.querySelector('.run-card__name').textContent = run.name || 'Untitled run';
         card.querySelector('.run-card__meta').textContent = date;
         grid.appendChild(card);
@@ -857,13 +888,17 @@ footer a:hover { text-decoration: underline; }
     }
   }
 
-  // If user is already logged in, redirect "Open the dashboard" directly
-  document.addEventListener('DOMContentLoaded', () => {
-    initGoogleAuth();
-    initAuthUI();
-    loadPublicRuns();
+  // ── Boot ─────────────────────────────────────────────────────────────────
+  // Config is awaited FIRST so _apiBase is populated before any other API
+  // call.  initAuthUI() is called twice: immediately (renders logged-in state
+  // from localStorage without waiting for the network) and again after config
+  // loads (enables the sign-in button / SSO flow if the user is logged out).
+  document.addEventListener('DOMContentLoaded', async () => {
+    initAuthUI();       // immediate render from localStorage
+    await loadConfig(); // sets _apiBase + Google client ID before any API call
+    loadPublicRuns();   // now safe: _apiBase is populated
+    initAuthUI();       // re-render: enables SSO button if logged out
   });
 </script>
-<div id="_g_btn_container" style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;overflow:hidden;"></div>
 </body>
 </html>
