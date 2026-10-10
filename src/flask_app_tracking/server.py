@@ -1109,8 +1109,8 @@ async def export_phenology(req: ExportPhenologyReq):
         # Build temporal coverage from ortho acquisition dates
         orthos = await db.list_orthos(run_id)
         dates = sorted([o["acquisition_date"] for o in orthos if o.get("acquisition_date")])
-        start_dt = dates[0].isoformat() + "T00:00:00Z" if dates else None
-        end_dt = dates[-1].isoformat() + "T00:00:00Z" if dates else None
+        start_dt = dates[0] + "T00:00:00Z" if dates else None
+        end_dt = dates[-1] + "T00:00:00Z" if dates else None
 
         # Thumbnail
         await asyncio.to_thread(_generate_thumbnail, run_id)
