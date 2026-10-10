@@ -19,7 +19,7 @@
 #
 # Usage (local dev, from the folder containing this file):
 #   cp .env.example .env          # fill in Google client ID + secret key
-#   docker build -t dpm-pipeline:latest .
+#   docker build -t dpm-pipeline:latest .\
 #   docker compose up -d
 #   docker compose logs -f dashboard
 #   open http://localhost:8090
@@ -84,10 +84,14 @@ services:
     environment:
       HTTP_PROXY: ${HTTP_PROXY:-}
       HTTPS_PROXY: ${HTTPS_PROXY:-}
-      # Google auth domains are excluded so SSO works through the IITD proxy.
-      # Do not remove the googleapis.com entries — token verification fails without them.
-      NO_PROXY: "dpm-titiler,dpm-postgres,localhost,127.0.0.1,www.googleapis.com,googleapis.com,accounts.google.com,oauth2.googleapis.com"
-      no_proxy: "dpm-titiler,dpm-postgres,localhost,127.0.0.1,www.googleapis.com,googleapis.com,accounts.google.com,oauth2.googleapis.com"
+      # NO_PROXY must only list internal Docker-network hostnames.
+      # Google domains must NOT be here — they need to reach the internet
+      # through the IITD proxy (proxy21.iitd.ac.in:3128). If googleapis.com
+      # is in NO_PROXY, Python's requests library bypasses the proxy for Google,
+      # the direct connection is blocked by the IITD firewall, verify_oauth2_token
+      # hangs, and nginx returns a 504 on every Google sign-in attempt.
+      NO_PROXY: "dpm-titiler,dpm-postgres,localhost,127.0.0.1"
+      no_proxy: "dpm-titiler,dpm-postgres,localhost,127.0.0.1"
       # --- Database ---
       DPM_DB_HOST: ${DPM_DB_HOST:-dpm-postgres}
       DPM_DB_PORT: ${DPM_DB_PORT:-5432}
@@ -105,6 +109,7 @@ services:
       DPM_MODEL_PATH: ${DPM_MODEL_PATH:-/app/models/250312_flexi.pth}
       DPM_LOG_DIR: /app/data/logs/drone-phenology-monitoring
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      DPM_PIPELINE_TIMEOUT: "14400" 
     volumes:
       # -------------------------------------------------------------------------
       # LOCAL DEV — single mount (laptop shortcut).
@@ -139,7 +144,7 @@ services:
       - /bin/bash
       - -c
       - |
-        mkdir -p /app/data/runs /app/data/logs/drone-phenology-monitoring
+        mkdir -p /app/data/logs/drone-phenology-monitoring
         cd /app/src/flask_app_tracking
         /opt/conda/envs/dpm-tracking/bin/uvicorn server:app \
           --host 0.0.0.0 --port 8000 \
