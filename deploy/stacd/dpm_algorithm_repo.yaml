@@ -1,26 +1,20 @@
 # =============================================================================
 # DPM — STACD Algorithm Instance Repository
 #
-# Corrected 2026-09-26 against authoritative STACD examples:
-#   full_dag/algorithm_repo_full.yaml   (API mode)
-#   plugins/update_algo_v2_docker.yaml  (API + Docker dual mode)
+# Target schema: STACD_framework (!Algorithm_Instance with execution_modes).
+# Unchanged in substance from the previous draft — it was already correct for
+# this schema. Re-emitted here only so the three YAMLs are consistent (the
+# algorithm no longer references any input dataset; see dpm_dag.yaml).
 #
-# THE KEY FIX vs our earlier draft:
-#   WRONG (our draft):        RIGHT (STACD schema):
-#     execution_mode: API       execution_modes:      # plural, a MAP
-#     endpoint: <url>             api:
-#     image: <img>                  enabled: true
-#                                   priority: 1
-#                                   url: "<url>"       # field is `url`, not `endpoint`
+# Schema (stacd_classes.py + full_dag/algorithm_repo_full.yaml):
+#   !Algorithm_Instance: type, version, assets, date, execution_modes
+#   execution_modes is a MAP with 'api' and/or 'docker' keys. Each has
+#   enabled / priority; api also has `url`, docker also has image/module/function.
 #
-#   - `type` must match the !Algorithm_Type id in dpm_dag.yaml (Phenology_Export).
-#   - `assets.code` links the GitHub repo (informational; code is mounted at run,
-#     never baked into the DAG — runbook §2/§7).
-#   - `url` must be reachable FROM THE AIRFLOW WORKER, not from a laptop. Use the
-#     LAN/Docker-network address of this backend = ${CORESTACK_API_BASE} + path.
-#     STACD does not expand ${...}; put the concrete host in when you register,
-#     or rely on the value the deployment substitutes. Shown here as the literal
-#     the cluster uses.
+#   - `type` MUST equal the !Algorithm_Type id in dpm_dag.yaml (Phenology_Export).
+#   - `url` must be reachable FROM THE AIRFLOW WORKER (Docker DNS name or
+#     host:port on the shared network), NOT localhost. Set it to whatever
+#     CORESTACK_API_BASE resolves to from the worker, plus /api/export-phenology.
 # =============================================================================
 
 --- !Algorithm_Instance
@@ -29,30 +23,29 @@ version: "1"
 assets:
   code: "https://github.com/core-stack-org/drone-phenology-monitoring"
   documentation: "README.md"
-date: 2026-09-26 00:00:00
+date: 2026-10-09 00:00:00
 execution_modes:
   # ---- API mode (primary) --------------------------------------------------
   # Airflow POSTs the run conf to this URL on the always-up DPM backend.
-  # This is the same pattern as Custom LULC (/api/export-asset). Our callback
-  # is /api/export-phenology and already accepts the conf envelope + returns
-  # {status, asset_id, stac_items:[<STAC Item>]}.
+  # Same pattern as Custom LULC (/api/export-asset). Our callback is
+  # /api/export-phenology; it runs the pipeline and returns
+  # {status, asset_id, asset_ids, hosting_platform, stac_items, stac_spec}.
   api:
     enabled: true
     priority: 1
     url: "http://dpm-dashboard:8000/api/export-phenology"
-    # ^ Replace `dpm-dashboard:8000` with whatever CORESTACK_API_BASE resolves to
-    #   from the Airflow worker's network (Docker DNS name or host:port).
-    #   NOT localhost (Airflow worker's localhost != this backend).
+    # ^ REPLACE `dpm-dashboard:8000` at registration with the address the
+    #   Airflow worker uses to reach this backend (CORESTACK_API_BASE host).
+    #   NOT localhost — the worker's localhost is not this backend.
 
   # ---- Docker mode (optional fallback) ------------------------------------
-  # Only needed if the cluster wants Airflow to run the pipeline as a batch
-  # image instead of calling the live backend. If enabled, the container's
-  # entry function must print the STAC Item between
-  # ===RESULT_JSON_START=== / ===RESULT_JSON_END=== markers (STACD §11).
-  # Leave disabled while API mode is the chosen path.
+  # Only if the cluster wants Airflow to run the pipeline as a batch image
+  # instead of calling the live backend. If enabled, the entry function must
+  # print the STAC Item between ===RESULT_JSON_START=== / ===RESULT_JSON_END===.
+  # Left disabled while API mode is the chosen path.
   docker:
     enabled: false
     priority: 2
-    image: "ghcr.io/core-stack-org/dpm-pipeline:1.0.0"
-    module: "run_pipeline"          # e.g. a module exposing a callable entrypoint
-    function: "export_phenology"    # (only used if docker mode is enabled)
+    image: "surryyansh/dpm-pipeline:1.0.0"
+    module: "run_pipeline"
+    function: "export_phenology"
