@@ -1,40 +1,36 @@
 # =============================================================================
 # DPM — STACD Root Dataset Instance Repository
 #
-# Corrected 2026-09-26 against authoritative STACD examples:
-#   STACD-Airflow/stacd_dataset_repo.yaml
-#   full_dag/dataset_repo_full.yaml
+# Rewritten 2026-10-09 for the STACD_framework schema.
 #
-# ANSWERS THE "per-run dataset" QUESTION:
-#   You do NOT generate one file per DPM run. You register ONLY the root input
-#   dataset(s) — the ones that pre-exist and are not produced by any algorithm.
-#   Everything an algorithm outputs (DPM_Phenology_Vector) is registered
-#   automatically by Airflow/STACD during the run. Per-run specifics (which
-#   block, which year) travel in the DAG trigger `conf`, not in new YAML files.
+# THIS FILE IS INTENTIONALLY EMPTY (no !Dataset_Instance entries).
 #
-#   So: ONE !Dataset_Instance for DPM_Orthomosaic_Series, parameterised. The
-#   region/year below is a registration example; real runs pass state/district/
-#   block/year in the dagRun conf.
+# WHY:
+#   The dataset repo registers ROOT datasets only — pre-existing inputs that no
+#   algorithm produces (e.g. a public GEE asset), using the schema:
+#       --- !Dataset_Instance
+#       type_id: <a Dataset_Type id>
+#       version: "1"
+#       region:  <region key>
+#       asset_id: "projects/.../assets/..."   # a real, fetchable asset
+#       metadata: {...}
 #
-# Schema (from STACD-Airflow/stacd_dataset_repo.yaml):
-#   !Dataset_Instance needs: version, type (== a Dataset_Type id), params (list
-#   of single-key maps), alg_name: null (root inputs have no producing algo),
-#   alg_inputs.params: [], input_datasets: [], date.
+#   DPM has NO such root dataset. Its only input — a time series of drone
+#   orthomosaics — is uploaded through the dashboard and staged against a
+#   run_id; it is never a pre-registered GEE/GeoServer asset. So there is
+#   nothing to register here. (This is the Custom LULC pattern: "no root
+#   input; the inputs travel as params".)
+#
+#   The single OUTPUT dataset (DPM_Phenology_Vector) is NOT registered here
+#   either — STACD registers algorithm outputs automatically during the run,
+#   from the STAC Item returned by /api/export-phenology.
+#
+# NOTE: the earlier draft of this file used the STACD-Airflow schema
+#   (type / params / alg_name / alg_inputs / input_datasets / date). That schema
+#   belongs to the older STACD-Airflow *prototype* (bookkeeping only, no real
+#   execution) and is NOT valid in STACD_framework. It has been removed.
+#
+# If the cluster's init tooling requires at least one entry, re-add a single
+# correctly-shaped root dataset here (type_id / version / region / asset_id),
+# but for DPM that should not be necessary.
 # =============================================================================
-
---- !Dataset_Instance
-version: 1
-type: DPM_Orthomosaic_Series
-params:
-  - source: "DPM dashboard upload"
-  - staging: "data/uploads/<run_id>/orthomosaics"
-alg_name: null              # root input — not produced by an algorithm
-alg_inputs:
-  params: []
-input_datasets: []
-date: 2026-09-26 00:00:00
-metadata:
-  description: >
-    Root input placeholder for drone orthomosaic series. Actual per-run inputs
-    (block, year, specific OM files) are staged via the DPM dashboard and passed
-    to the DAG through the trigger conf; they are not enumerated here.
