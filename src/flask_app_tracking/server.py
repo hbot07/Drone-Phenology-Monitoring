@@ -34,6 +34,7 @@ import auth
 import errors
 import airflow_client
 import stac_utils
+import filebrowser_client
 from log_config import get_logger
 
 log = get_logger("server")
@@ -538,6 +539,18 @@ async def create_run(req: CreateRunReq, user: dict = Depends(auth.get_current_us
     _uploads_dir(run_id).mkdir(parents=True, exist_ok=True)
     _output_dir(run_id).mkdir(parents=True, exist_ok=True)
     await db.create_run(run_id, user["email"], req.run_name, req.is_public)
+
+    # Create a FileBrowser share for this run (if FileBrowser is enabled).
+    # Run in a thread to avoid blocking the async event loop — the FileBrowser
+    # client uses urllib (synchronous I/O).
+    if filebrowser_client.filebrowser_enabled():
+        loop = asyncio.get_running_loop()
+        share_hash = await loop.run_in_executor(
+            None, filebrowser_client.create_run_share, run_id
+        )
+        if share_hash:
+            await db.update_run(run_id, share_hash=share_hash)
+
     return {"id": run_id}
 
 
@@ -556,6 +569,14 @@ def _attach_progress(run: dict) -> dict:
     return run
 
 
+def _attach_files_url(run: dict) -> dict:
+    """Add files_url to a run dict if FileBrowser is enabled and a share exists."""
+    share_hash = run.get("share_hash")
+    if share_hash and filebrowser_client.filebrowser_enabled():
+        run["files_url"] = filebrowser_client.share_url(share_hash)
+    return run
+
+
 @app.get("/api/runs")
 async def list_runs(user: dict = Depends(auth.get_current_user)):
     runs = await db.list_runs_for_user(user["email"])
@@ -563,6 +584,7 @@ async def list_runs(user: dict = Depends(auth.get_current_user)):
         viewer_index = _output_dir(run["id"]) / "04_viewer" / "index.html"
         run["has_viewer"] = viewer_index.exists()
         _attach_progress(run)
+        _attach_files_url(run)
     return runs
 
 
@@ -572,6 +594,7 @@ async def get_run(run_id: str, user: dict = Depends(auth.get_current_user)):
     viewer_index = _output_dir(run_id) / "04_viewer" / "index.html"
     run["has_viewer"] = viewer_index.exists()
     _attach_progress(run)
+    _attach_files_url(run)
     return run
 
 
