@@ -187,6 +187,26 @@
 <footer>Drone Phenology Monitoring</footer>
 
 <script>
+  // ── Subpath base detection ──────────────────────────────────────────────
+  // The app may be served under a path prefix by a reverse proxy
+  // (e.g. https://host/act4dws5/dpm/). This page is served at
+  // <base>/files/<run_id>, so strip "/files/<run_id>" to get the base prefix.
+  const _BASE = window.location.pathname.replace(/\/files\/[^\/]*\/?$/, '');
+  window._BASE = _BASE;
+  function _dpmRewriteLinks() {
+    if (!_BASE) return;
+    document.querySelectorAll('a[href^="/"]:not([href^="//"])').forEach(a => {
+      if (a.dataset.dpmFixed) return;
+      a.setAttribute('href', _BASE + a.getAttribute('href'));
+      a.dataset.dpmFixed = '1';
+    });
+  }
+  _dpmRewriteLinks();
+
+  // API base URL — derived from the detected base prefix; overwritten from
+  // /api/config at startup only for cross-origin (absolute) deployments.
+  let _API = _BASE + '/api';
+
   // ── SVG icon templates ──────────────────────────────────────────────────
   const IC = {
     folder:   '<svg class="ic" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>',
@@ -242,18 +262,35 @@
 
   // ── Auth ──────────────────────────────────────────────────────────────
   const TOKEN = localStorage.getItem('dpm_token');
-  if (!TOKEN) window.location.href = '/';
+  if (!TOKEN) window.location.href = _BASE + '/';
 
   async function apiFetch(url) {
     const r = await fetch(url, { headers:{ 'Authorization':'Bearer ' + TOKEN } });
-    if (r.status === 401) { localStorage.removeItem('dpm_token'); window.location.href = '/'; }
+    if (r.status === 401) { localStorage.removeItem('dpm_token'); window.location.href = _BASE + '/'; }
     return r;
   }
 
   // ── Run ID from URL ──────────────────────────────────────────────────
-  const RUN_ID = window.location.pathname.split('/')[2] || '';
-  const API = '';
+  // Robust under a subpath: find the "files" segment and take the one after it
+  // (falls back to the second path segment for a root deployment).
+  const _pathParts = window.location.pathname.split('/').filter(Boolean);
+  const _filesIdx  = _pathParts.indexOf('files');
+  const RUN_ID = (_filesIdx >= 0 ? _pathParts[_filesIdx + 1] : _pathParts[1]) || '';
   let currentPath = '';
+
+  // Read DPM_API_BASE_URL from /api/config so the frontend honours the server's
+  // configured base path. Falls back to the detected base prefix if the fetch
+  // fails. The server value only overrides _API when it is an absolute
+  // (cross-origin) URL, so it never clobbers the subpath prefix we detected.
+  // Download links (/dl/...) are under the base prefix too, but NOT under _API.
+  (async () => {
+    try {
+      const cfg = await fetch(_BASE + '/api/config').then(r => r.json());
+      const cfgApi = (cfg.api_base_url || '').replace(/\/$/, '');
+      if (/^https?:\/\//i.test(cfgApi)) _API = cfgApi;
+    } catch (e) { /* keep detected base */ }
+    init();
+  })();
 
   function showSpinner(el) {
     el.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><span class="spinner-text">Loading files</span></div>';
@@ -262,7 +299,7 @@
   // ── Init ──────────────────────────────────────────────────────────────
   async function init() {
     try {
-      const r = await apiFetch(`${API}/api/runs/${RUN_ID}`);
+      const r = await apiFetch(`${_API}/runs/${RUN_ID}`);
       if (r.ok) {
         const run = await r.json();
         document.getElementById('run-name-badge').textContent = run.run_name || RUN_ID.slice(0,8);
@@ -270,10 +307,11 @@
       }
     } catch(e) {}
 
-    // Public download links (no auth needed)
-    document.getElementById('dl-all').href    = `${API}/dl/${RUN_ID}/zip?which=all`;
-    document.getElementById('dl-output').href  = `${API}/dl/${RUN_ID}/zip?which=output`;
-    document.getElementById('dl-uploads').href = `${API}/dl/${RUN_ID}/zip?which=uploads`;
+    // Public download links (no auth needed, not under the API path).
+    // Still under the app base prefix so the reverse proxy routes them.
+    document.getElementById('dl-all').href    = `${_BASE}/dl/${RUN_ID}/zip?which=all`;
+    document.getElementById('dl-output').href  = `${_BASE}/dl/${RUN_ID}/zip?which=output`;
+    document.getElementById('dl-uploads').href = `${_BASE}/dl/${RUN_ID}/zip?which=uploads`;
 
     await loadTree();
     await browse('');
@@ -284,7 +322,7 @@
     const el = document.getElementById('sb-tree');
     showSpinner(el);
     try {
-      const r = await apiFetch(`${API}/api/runs/${RUN_ID}/files?subpath=`);
+      const r = await apiFetch(`${_API}/runs/${RUN_ID}/files?subpath=`);
       if (!r.ok) { el.innerHTML = '<li style="color:var(--accent-d);font-size:12px">Could not load.</li>'; return; }
       const data = await r.json();
       el.innerHTML = '';
@@ -303,7 +341,7 @@
 
         if (entry.name === 'output') {
           try {
-            const sr = await apiFetch(`${API}/api/runs/${RUN_ID}/files?subpath=${encodeURIComponent(entry.path)}`);
+            const sr = await apiFetch(`${_API}/runs/${RUN_ID}/files?subpath=${encodeURIComponent(entry.path)}`);
             if (sr.ok) {
               const sd = await sr.json();
               for (const sub of (sd.entries || [])) {
@@ -354,7 +392,7 @@
     showSpinner(el);
 
     try {
-      const r = await apiFetch(`${API}/api/runs/${RUN_ID}/files?subpath=${encodeURIComponent(subpath)}`);
+      const r = await apiFetch(`${_API}/runs/${RUN_ID}/files?subpath=${encodeURIComponent(subpath)}`);
       if (!r.ok) { el.innerHTML = '<div class="empty">Could not load this folder.</div>'; return; }
       const data = await r.json();
 
@@ -388,8 +426,9 @@
 
       files.forEach(entry => {
         const icon = fileIcon(entry.name);
-        // Public download route — no auth header needed
-        const dlUrl = `${API}/dl/${RUN_ID}/file?path=${encodeURIComponent(entry.path)}`;
+        // Public download route — no auth header needed, not under the API path,
+        // but still under the app base prefix so the reverse proxy routes it.
+        const dlUrl = `${_BASE}/dl/${RUN_ID}/file?path=${encodeURIComponent(entry.path)}`;
         html += `<tr>` +
           `<td class="ft-icon">${icon}</td>` +
           `<td class="ft-name"><a href="${dlUrl}" target="_blank">${escHtml(entry.name)}</a></td>` +
@@ -404,8 +443,6 @@
       el.innerHTML = `<div class="empty" style="color:var(--accent-d)">Error: ${e.message}</div>`;
     }
   }
-
-  init();
 </script>
 </body>
 </html>
