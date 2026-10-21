@@ -394,8 +394,8 @@ footer {
 
 <div id="pg-dash" class="page active">
   <header><div class="hdr">
-    
-    <span class="brand" onclick="window.location.href='/'" style="cursor:pointer">
+
+    <span class="brand" onclick="window.location.href=_BASE+'/'" style="cursor:pointer">
       <span class="brand-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 22c4-4 8-7.5 8-12a8 8 0 10-16 0c0 4.5 4 8 8 12z"/><circle cx="12" cy="10" r="3"/></svg>
       </span>
@@ -428,7 +428,7 @@ footer {
       <h2>Runs</h2>
       <p class="lead">Each run is one batch of orthomosaics through the full 6-step pipeline. Click a run to view it, or create a new one.</p>
       <div class="run-grid" id="runs-grid">
-        <div class="run-card new-run-card" onclick="window.location.href='/new-run'">
+        <div class="run-card new-run-card" onclick="window.location.href=_BASE+'/new-run'">
           <span class="plus">＋</span>
           <div style="font-size:14px; font-weight:500; color:var(--accent)">New run</div>
         </div>
@@ -478,8 +478,8 @@ footer {
 
 <div id="pg-view" class="page">
   <header><div class="hdr">
-    
-    <span class="brand" onclick="window.location.href='/'" style="cursor:pointer">
+
+    <span class="brand" onclick="window.location.href=_BASE+'/'" style="cursor:pointer">
       <span class="brand-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 22c4-4 8-7.5 8-12a8 8 0 10-16 0c0 4.5 4 8 8 12z"/><circle cx="12" cy="10" r="3"/></svg>
       </span>
@@ -542,24 +542,46 @@ footer {
 <footer>Phenology Pipeline · drone imagery to interactive crown viewer · automated analysis</footer>
 
 <script>
-const API = '';
+// ── Subpath base detection ────────────────────────────────────────────────
+// The app may be served under a path prefix by a reverse proxy
+// (e.g. https://host/act4dws5/dpm/). Derive that prefix from the current URL
+// so every link, navigation and API call resolves whether the app is served
+// at the root or under a subpath. This page is served at <base>/dashboard,
+// so stripping the last path segment yields the base prefix.
+const _BASE = location.pathname.replace(/\/[^\/]*\/?$/, '');
+// Expose on window so inline onclick="...=_BASE+..." attributes (which resolve
+// against the global object, not this script's lexical scope) can read it.
+window._BASE = _BASE;
+function _dpmRewriteLinks() {
+  if (!_BASE) return;
+  document.querySelectorAll('a[href^="/"]:not([href^="//"])').forEach(a => {
+    if (a.dataset.dpmFixed) return;
+    a.setAttribute('href', _BASE + a.getAttribute('href'));
+    a.dataset.dpmFixed = '1';
+  });
+}
+_dpmRewriteLinks();
+
+// API base URL — derived from the detected base prefix; overwritten from
+// /api/config at startup only for cross-origin (absolute) deployments.
+let _API = _BASE + '/api';
 
 // ==== AUTH GUARD ============================================================
 const DPM_TOKEN = localStorage.getItem('dpm_token');
-if (!DPM_TOKEN) { window.location.href = '/'; }
+if (!DPM_TOKEN) { window.location.href = _BASE + '/'; }
 const DPM_USER = JSON.parse(localStorage.getItem('dpm_user') || 'null');
 
-// Wrap fetch so every /api/ call carries the bearer token automatically
+// Wrap fetch so every API call carries the bearer token automatically
 const _origFetch = window.fetch;
 window.fetch = function (url, opts = {}) {
-  if (typeof url === 'string' && url.includes('/api/') && DPM_TOKEN) {
+  if (typeof url === 'string' && url.startsWith(_API) && DPM_TOKEN) {
     opts.headers = { ...(opts.headers || {}), 'Authorization': 'Bearer ' + DPM_TOKEN };
   }
   return _origFetch(url, opts).then(res => {
     if (res.status === 401) {
       localStorage.removeItem('dpm_token');
       localStorage.removeItem('dpm_user');
-      window.location.href = '/';
+      window.location.href = _BASE + '/';
     }
     return res;
   });
@@ -575,7 +597,7 @@ document.addEventListener('visibilitychange', () => {
 function dpmSignOut() {
   localStorage.removeItem('dpm_token');
   localStorage.removeItem('dpm_user');
-  window.location.href = '/';
+  window.location.href = _BASE + '/';
 }
 
 function scrollToPrereq() {
@@ -632,7 +654,7 @@ function goTo(page, arg) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   clearInterval(pollTimer); pollTimer = null;
   if (page === 'dash')      { document.getElementById('pg-dash').classList.add('active'); loadDash(); }
-  else if (page === 'new')  { window.location.href = '/new-run'; return; }
+  else if (page === 'new')  { window.location.href = _BASE + '/new-run'; return; }
   else if (page === 'view') {
     document.getElementById('pg-view').classList.add('active');
     viewRunId = arg;
@@ -642,9 +664,9 @@ function goTo(page, arg) {
 
 async function loadDash() {
   const grid = document.getElementById('runs-grid');
-  const newCard = `<div class="run-card new-run-card" onclick="window.location.href='/new-run'"><span class="plus">＋</span><div style="font-size:14.5px;font-weight:500;color:var(--accent)">New run</div></div>`;
+  const newCard = `<div class="run-card new-run-card" onclick="window.location.href=_BASE+'/new-run'"><span class="plus">＋</span><div style="font-size:14.5px;font-weight:500;color:var(--accent)">New run</div></div>`;
   try {
-    const r = await fetch(`${API}/api/runs`);
+    const r = await fetch(`${_API}/runs`);
     const runs = await r.json();
     grid.innerHTML = newCard + runs.map(run => `
       <div class="run-card" onclick="goTo('view','${run.id}')">
@@ -728,7 +750,7 @@ async function loadView(id) {
   // when the user clicks different runs or loadView calls itself via setInterval
   clearInterval(pollTimer); pollTimer = null;
   try {
-    const r = await fetch(`${API}/api/runs/${id}`);
+    const r = await fetch(`${_API}/runs/${id}`);
     if (!r.ok) throw new Error('Run not found');
     const run = await r.json();
 
@@ -763,20 +785,21 @@ async function loadView(id) {
 
     // Wire file browser and download links
     const browsBtn = document.getElementById('vr-browse-btn');
-    if (browsBtn) browsBtn.href = `/files/${id}`;
+    // Use FileBrowser share URL when available, fall back to custom file browser
+    if (browsBtn) browsBtn.href = run.files_url || (_BASE + `/files/${id}`);
     const dlOut = document.getElementById('vr-dl-output');
-    if (dlOut) dlOut.href = `${API}/api/runs/${id}/download-all?which=output`;
+    if (dlOut) dlOut.href = `${_API}/runs/${id}/download-all?which=output`;
     const dlUp = document.getElementById('vr-dl-uploads');
-    if (dlUp) dlUp.href = `${API}/api/runs/${id}/download-all?which=uploads`;
+    if (dlUp) dlUp.href = `${_API}/runs/${id}/download-all?which=uploads`;
 
     const vc = document.getElementById('vr-viewer-card');
     if (run.has_viewer) {
       vc.style.display = 'block';
-      const vUrl = `${API}/viewer/${id}/index.html`;
+      const vUrl = _BASE + `/viewer/${id}/index.html`;
       document.getElementById('vr-viewer-frame').src = vUrl;
-        document.getElementById('vr-browse-btn').href = `/files/${id}`;
+      document.getElementById('vr-browse-btn').href = run.files_url || (_BASE + `/files/${id}`);
       document.getElementById('vr-viewer-link').href = vUrl;
-      document.getElementById('vr-info-link').href = `${API}/api/runs/${id}/info`;
+      document.getElementById('vr-info-link').href = `${_API}/runs/${id}/info`;
     } else { vc.style.display = 'none'; }
   } catch(e) {
     document.getElementById('vr-status-msg').innerHTML = `<div class="alert alert-err"><b>Error.</b> ${e.message}</div>`;
@@ -786,7 +809,7 @@ async function loadView(id) {
 async function deleteRun() {
   if (!viewRunId) return;
   if (!confirm('Delete this run and all files? This cannot be undone.')) return;
-  await fetch(`${API}/api/runs/${viewRunId}`, {method:'DELETE'});
+  await fetch(`${_API}/runs/${viewRunId}`, {method:'DELETE'});
   goTo('dash');
 }
 
@@ -795,7 +818,7 @@ async function togglePublic(isPublic) {
   if (label) label.textContent = isPublic ? 'Public' : 'Private';
   if (!viewRunId) return;
   try {
-    const r = await fetch(`${API}/api/runs/${viewRunId}/visibility`, {
+    const r = await fetch(`${_API}/runs/${viewRunId}/visibility`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_public: isPublic }),
@@ -818,7 +841,18 @@ function fmtSize(n) {
   return (n/1048576).toFixed(1) + ' MB';
 }
 
-loadDash();
+// Read DPM_API_BASE_URL from /api/config, then load the dashboard.
+// Falls back to the detected base prefix if the fetch fails. The server value
+// only overrides _API when it is an absolute (cross-origin) URL, so it never
+// clobbers the subpath prefix we detected from the page URL.
+(async () => {
+  try {
+    const cfg = await _origFetch(_BASE + '/api/config').then(r => r.json());
+    const cfgApi = (cfg.api_base_url || '').replace(/\/$/, '');
+    if (/^https?:\/\//i.test(cfgApi)) _API = cfgApi;
+  } catch (e) { /* keep detected base */ }
+  loadDash();
+})();
 </script>
 </body>
 </html>
