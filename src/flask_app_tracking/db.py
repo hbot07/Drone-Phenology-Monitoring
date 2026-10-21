@@ -99,7 +99,8 @@ async def init_db():
                 started_at    TIMESTAMPTZ,
                 finished_at   TIMESTAMPTZ,
                 updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-                is_public     BOOLEAN NOT NULL DEFAULT TRUE
+                is_public     BOOLEAN NOT NULL DEFAULT TRUE,
+                share_hash    TEXT
             );
         """)
         await con.execute("CREATE INDEX IF NOT EXISTS idx_runs_owner ON runs(owner_email);")
@@ -151,6 +152,7 @@ async def init_db():
             "ALTER TABLE runs ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;",
             "ALTER TABLE runs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();",
             "ALTER TABLE runs ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT TRUE;",
+            "ALTER TABLE runs ADD COLUMN IF NOT EXISTS share_hash TEXT;",
         ]:
             try:
                 await con.execute(col_sql)
