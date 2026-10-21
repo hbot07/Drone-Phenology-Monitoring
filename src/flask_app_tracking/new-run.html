@@ -191,17 +191,32 @@ hr.subtle { border: 0; border-top: 1px solid var(--border-color); margin: 16px 0
 .pbar-wrap { margin: 6px 0 12px; }
 .pbar-top { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:7px; }
 .pbar-label { font-size:13.5px; font-weight:600; color:var(--text-main); font-family:'Source Serif 4',serif; }
-.pbar-pct { font-size:12.5px; font-weight:700; color:var(--accent); font-family:'DM Mono',monospace; flex:none; }
-.pbar-track { position:relative; height:9px; border-radius:999px; background:var(--border-color); overflow:hidden; }
-.pbar-fill { position:absolute; left:0; top:0; bottom:0; width:0%; border-radius:999px;
-  background:var(--accent); transition:width .5s cubic-bezier(.4,0,.2,1); }
-.pbar-fill.fail { background:var(--err); }
-.pbar-track.indet .pbar-fill { width:35% !important;
-  animation:pbarIndet 1.25s ease-in-out infinite; }
-@keyframes pbarIndet { 0%{left:-35%} 100%{left:100%} }
-.pbar-sub { margin-top:7px; font-size:11.5px; color:var(--text-muted);
-  font-family:'DM Mono',monospace; min-height:14px; }
-.pbar-sub .om { color:var(--accent); font-weight:600; }
+
+/* MUI-style linear indeterminate progress bar */
+.mui-lin {
+  position: relative; overflow: hidden; height: 4px; width: 100%;
+  background-color: var(--accent-l); border-radius: 2px;
+}
+.mui-lin-bar {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  background-color: var(--accent); transform-origin: left;
+  will-change: left, right;
+}
+.mui-lin-bar1 { animation: mui-indeterminate1 2.1s cubic-bezier(0.65,0.815,0.735,0.395) infinite; }
+.mui-lin-bar2 { animation: mui-indeterminate2 2.1s cubic-bezier(0.165,0.84,0.44,1) 1.15s infinite; }
+@keyframes mui-indeterminate1 {
+  0%   { left: -35%;  right: 100%; }
+  60%  { left: 100%;  right: -90%; }
+  100% { left: 100%;  right: -90%; }
+}
+@keyframes mui-indeterminate2 {
+  0%   { left: -200%; right: 100%; }
+  60%  { left: 107%;  right: -8%;  }
+  100% { left: 107%;  right: -8%;  }
+}
+.mui-lin.done { background-color: var(--accent); }
+.mui-lin.fail { background-color: var(--err); }
+.mui-lin.done .mui-lin-bar, .mui-lin.fail .mui-lin-bar { animation: none; display: none; }
 
 .dropzone {
   border: 2px dashed var(--border-color); border-radius: var(--radius); padding: 32px 20px; text-align: center;
@@ -232,13 +247,6 @@ hr.subtle { border: 0; border-top: 1px solid var(--border-color); margin: 16px 0
 .frow .fdate::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .fsummary { font-size: 12px; color: var(--text-muted); margin-top: 8px; font-style: italic; font-family: 'Source Serif 4', serif; }
 
-.log-box {
-  background: #141a0d; color: #c8d4b8; border-radius: var(--radius); padding: 14px;
-  font: 12px/1.6 'DM Mono', ui-monospace, monospace;
-  max-height: 250px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin-top: 12px;
-  box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.25);
-}
-.log-err { color: #f4a49a; } .log-ok { color: #86d9a0; }
 
 .viewer-wrap { border: 1px solid var(--border-color); border-radius: var(--radius); overflow: hidden; margin-top: 16px; }
 .viewer-wrap iframe { display: block; width: 100%; height: 75vh; border: 0; background: #f5f7f2; }
@@ -288,7 +296,7 @@ footer {
 <body>
 
 <header><div class="hdr">
-  <span class="brand" onclick="window.location.href='/'" style="cursor:pointer">
+  <span class="brand" onclick="window.location.href=_BASE+'/'" style="cursor:pointer">
     <span class="brand-icon">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 22c4-4 8-7.5 8-12a8 8 0 10-16 0c0 4.5 4 8 8 12z"/><circle cx="12" cy="10" r="3"/></svg>
     </span>
@@ -299,7 +307,7 @@ footer {
   </span>
   <span class="hdr-nav">
     <a href="/parameter-guide" target="_blank" class="btn btn-ghost btn-sm" style="text-decoration:none">Parameter guide</a>
-    <a href="/dashboard" class="btn btn-ghost btn-sm" style="text-decoration:none">← All runs</a>
+    <a href="/" class="btn btn-ghost btn-sm" style="text-decoration:none">← All runs</a>
     <div class="nav-user-wrap" id="nav-user-wrap" data-name="">
       <div class="nav-avatar" id="nav-avatar" onclick="toggleAvatarDropdown(event)">
         <span id="av-initials"></span>
@@ -392,22 +400,22 @@ footer {
 
     <div class="grid3">
       <div>
-        <label>Tile width (m)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-tile_width','_blank')">i</button><span class="step-tip">Detection tile width. Smaller = finer &amp; more tiles, but slower. (keep tile width and height equal)</span></span></label>
+        <label>Tile width (m)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-tile_width','_blank')">i</button><span class="step-tip">Detection tile width. Smaller = finer &amp; more tiles, but slower. (keep tile width and height equal)</span></span></label>
         <span class="hint">Width of each inference tile in metres.</span>
         <input id="nr-tile-w" type="number" min="10" max="200" value="25"/>
       </div>
       <div>
-        <label>Tile height (m)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-tile_height','_blank')">i</button><span class="step-tip">Detection tile height. Smaller = finer &amp; more tiles, but slower. (keep tile width and height equal)</span></span></label>
+        <label>Tile height (m)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-tile_height','_blank')">i</button><span class="step-tip">Detection tile height. Smaller = finer &amp; more tiles, but slower. (keep tile width and height equal)</span></span></label>
         <span class="hint">Height of each inference tile in metres.</span>
         <input id="nr-tile-h" type="number" min="10" max="200" value="25"/>
       </div>
       <div>
-        <label>Tile buffer (m)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-tile_buffer','_blank')">i</button><span class="step-tip">Tile overlap so crowns on tile edges aren't cut in half.</span></span></label>
+        <label>Tile buffer (m)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-tile_buffer','_blank')">i</button><span class="step-tip">Tile overlap so crowns on tile edges aren't cut in half.</span></span></label>
         <span class="hint">Overlap between adjacent tiles to reduce edge artefacts. Typically 50–60% of tile size.</span>
         <input id="nr-tile-buf" type="number" min="0" max="100" value="15"/>
       </div>
       <div>
-        <label>IoU threshold<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-iou_threshold','_blank')">i</button><span class="step-tip">Merge overlapping crown boxes above this (0–1). Higher = fewer merges.</span></span></label>
+        <label>IoU threshold<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-iou_threshold','_blank')">i</button><span class="step-tip">Merge overlapping crown boxes above this (0–1). Higher = fewer merges.</span></span></label>
         <span class="hint">Intersection-over-union threshold used in clean_crowns to remove duplicates.</span>
         <input id="nr-iou" type="number" step="0.01" min="0" max="1" value="0.7"/>
       </div>
@@ -428,12 +436,12 @@ footer {
         <span class="section-label">Threshold tags</span>
         <div class="grid2" style="margin-top:4px;margin-bottom:12px">
           <div>
-            <label>Base threshold (%)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-base_threshold_tag','_blank')">i</button><span class="step-tip">Confidence for matching crowns across dates. Lower = denser, higher = sparser. <a href="/parameter-guide#doc-base_threshold_tag" target="_blank">Full guide →</a></span></span></label>
+            <label>Base threshold (%)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-base_threshold_tag','_blank')">i</button><span class="step-tip">Confidence for matching crowns across dates. Lower = denser, higher = sparser. <a href="/parameter-guide#doc-base_threshold_tag" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Confidence level for crown matching in tracking (0-100). Lower = denser, higher = sparser. Default: 45.</span>
             <input id="nr-base-tag" type="number" min="0" max="100" step="1" value="45" placeholder="45"/>
           </div>
           <div>
-            <label>Align threshold (%)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-align_threshold_tag','_blank')">i</button><span class="step-tip">Confidence for anchor crowns used to align dates. Higher = more stable. <a href="/parameter-guide#doc-align_threshold_tag" target="_blank">Full guide →</a></span></span></label>
+            <label>Align threshold (%)<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-align_threshold_tag','_blank')">i</button><span class="step-tip">Confidence for anchor crowns used to align dates. Higher = more stable. <a href="/parameter-guide#doc-align_threshold_tag" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Confidence for alignment anchors (0-100). Higher = more stable alignment. Default: 65.</span>
             <input id="nr-align-tag" type="number" min="0" max="100" step="1" value="65" placeholder="65"/>
           </div>
@@ -459,22 +467,22 @@ footer {
         </p>
         <div class="grid2">
           <div>
-            <label>w_veg_amp — vegetation amplitude<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_veg_amp','_blank')">i</button><span class="step-tip">Weight on peak-to-trough vegetation range in the deciduousness score. <a href="/parameter-guide#doc-w_veg_amp" target="_blank">Full guide →</a></span></span></label>
+            <label>w_veg_amp — vegetation amplitude<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-w_veg_amp','_blank')">i</button><span class="step-tip">Weight on peak-to-trough vegetation range in the deciduousness score. <a href="/parameter-guide#doc-w_veg_amp" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Weight on peak-to-trough vegetation range.</span>
             <input id="nr-w-veg-amp" type="number" step="0.0001" min="-2" max="2" value="-0.4772"/>
           </div>
           <div>
-            <label>w_depth — seasonal depth<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_depth','_blank')">i</button><span class="step-tip">Weight on how far the canopy falls at its most dormant. <a href="/parameter-guide#doc-w_depth" target="_blank">Full guide →</a></span></span></label>
+            <label>w_depth — seasonal depth<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-w_depth','_blank')">i</button><span class="step-tip">Weight on how far the canopy falls at its most dormant. <a href="/parameter-guide#doc-w_depth" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Weight on dormancy depth relative to peak.</span>
             <input id="nr-w-depth" type="number" step="0.0001" min="-2" max="2" value="0.7921"/>
           </div>
           <div>
-            <label>w_gcc_amp — GCC amplitude<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_gcc_amp','_blank')">i</button><span class="step-tip">Weight on green chromatic coordinate seasonal amplitude. <a href="/parameter-guide#doc-w_gcc_amp" target="_blank">Full guide →</a></span></span></label>
+            <label>w_gcc_amp — GCC amplitude<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-w_gcc_amp','_blank')">i</button><span class="step-tip">Weight on green chromatic coordinate seasonal amplitude. <a href="/parameter-guide#doc-w_gcc_amp" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Weight on green chromatic coordinate amplitude.</span>
             <input id="nr-w-gcc-amp" type="number" step="0.0001" min="-2" max="2" value="-0.6147"/>
           </div>
           <div>
-            <label>w_tex — texture<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-w_tex','_blank')">i</button><span class="step-tip">Weight on texture amplitude (branches vs leaves). Noisiest signal. <a href="/parameter-guide#doc-w_tex" target="_blank">Full guide →</a></span></span></label>
+            <label>w_tex — texture<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-w_tex','_blank')">i</button><span class="step-tip">Weight on texture amplitude (branches vs leaves). Noisiest signal. <a href="/parameter-guide#doc-w_tex" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Weight on Laplacian variance amplitude.</span>
             <input id="nr-w-tex" type="number" step="0.0001" min="-2" max="2" value="0.3949"/>
           </div>
@@ -492,7 +500,7 @@ footer {
       <div class="inner">
         <div>
           <div>
-            <label>Max COG zoom<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open('/parameter-guide#doc-zoom','_blank')">i</button><span class="step-tip">Highest zoom in the viewer. z22 = native 5cm/px resolution. <a href="/parameter-guide#doc-zoom" target="_blank">Full guide →</a></span></span></label>
+            <label>Max COG zoom<span class="info-wrap"><button type="button" class="info-btn" tabindex="-1" onclick="window.open(_BASE+'/parameter-guide#doc-zoom','_blank')">i</button><span class="step-tip">Highest zoom in the viewer. z22 = native 5cm/px resolution. <a href="/parameter-guide#doc-zoom" target="_blank">Full guide →</a></span></span></label>
             <span class="hint">Highest zoom level in the tile pyramid. z22 = native 5 cm/px resolution.</span>
             <input id="nr-zoom" type="number" min="14" max="24" value="22"/>
           </div>
@@ -508,7 +516,11 @@ footer {
     <div id="nr-preflight" class="alert alert-err" style="display:none"></div>
     <div class="btn-row">
       <button class="btn" id="nr-upload-dates-btn" onclick="nrExtractDates()" style="margin-right:10px">▶ Run pipeline</button>
-      <a href="/dashboard" class="btn btn-ghost" style="text-decoration:none">Cancel</a>
+      <a href="/" class="btn btn-ghost" style="text-decoration:none">Cancel</a>
+    </div>
+
+    <div id="nr-upload-warn" class="alert alert-warn" style="display:none">
+      ⚠ Please keep this window open until all orthomosaics have finished uploading. Closing it now will cancel the upload.
     </div>
 
     <div id="nr-running-banner" class="running-banner">
@@ -516,13 +528,14 @@ footer {
     </div>
 
     <div id="nr-flow" style="display:none;margin-top:24px">
-      <div class="pbar-wrap"><div class="pbar-top"><span class="pbar-label" id="pbar-nrf-label">Waiting…</span><span class="pbar-pct" id="pbar-nrf-pct">0%</span></div><div class="pbar-track" id="pbar-nrf-track"><div class="pbar-fill" id="pbar-nrf-fill"></div></div><div class="pbar-sub" id="pbar-nrf-sub"></div></div>
-      <div id="nr-step-detail" class="muted" style="font-size:13px; color:var(--text-muted); margin-top:8px"></div>
-      <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13.5px;font-weight:500;color:var(--primary)">Live execution log</span>
-        <button class="btn btn-ghost btn-sm" id="nr-toggle-log-btn" onclick="toggleLog()">Toggle log</button>
+      <div class="pbar-wrap">
+        <div class="pbar-top"><span class="pbar-label" id="pbar-nrf-label">Waiting…</span></div>
+        <div class="mui-lin" id="pbar-nrf-track">
+          <div class="mui-lin-bar mui-lin-bar1"></div>
+          <div class="mui-lin-bar mui-lin-bar2"></div>
+        </div>
       </div>
-      <div class="log-box" id="nr-log" style="display:none"></div>
+      <div id="nr-step-detail" class="muted" style="font-size:13px; color:var(--text-muted); margin-top:8px"></div>
     </div>
     <div id="nr-alert" style="margin-top:16px"></div>
   </div>
@@ -545,27 +558,62 @@ footer {
 <footer>Phenology Pipeline · drone imagery to interactive crown viewer · automated analysis</footer>
 
 <script>
-const API = '';
+// ── Subpath base detection ────────────────────────────────────────────────
+// The app may be served under a path prefix by a reverse proxy
+// (e.g. https://host/act4dws5/dpm/). Derive that prefix from the current URL
+// so every link, navigation and API call resolves whether the app is served
+// at the root or under a subpath. This page is served at <base>/new-run, so
+// stripping the last path segment yields the base prefix.
+const _BASE = location.pathname.replace(/\/[^\/]*\/?$/, '');
+// Expose on window so inline onclick="...=_BASE+..." / window.open(_BASE+...)
+// attributes (which resolve against the global object, not this script's
+// lexical scope) can read it.
+window._BASE = _BASE;
+function _dpmRewriteLinks() {
+  if (!_BASE) return;
+  document.querySelectorAll('a[href^="/"]:not([href^="//"])').forEach(a => {
+    if (a.dataset.dpmFixed) return;
+    a.setAttribute('href', _BASE + a.getAttribute('href'));
+    a.dataset.dpmFixed = '1';
+  });
+}
+_dpmRewriteLinks();
+
+// API base URL — derived from the detected base prefix; overwritten from
+// /api/config at startup only for cross-origin (absolute) deployments.
+let _API = _BASE + '/api';
 
 // ==== AUTH GUARD ============================================================
 const DPM_TOKEN = localStorage.getItem('dpm_token');
-if (!DPM_TOKEN) { window.location.href = '/'; }
+if (!DPM_TOKEN) { window.location.href = _BASE + '/'; }
 const DPM_USER = JSON.parse(localStorage.getItem('dpm_user') || 'null');
 
 const _origFetch = window.fetch;
 window.fetch = function (url, opts = {}) {
-  if (typeof url === 'string' && url.includes('/api/') && DPM_TOKEN) {
+  if (typeof url === 'string' && url.startsWith(_API) && DPM_TOKEN) {
     opts.headers = { ...(opts.headers || {}), 'Authorization': 'Bearer ' + DPM_TOKEN };
   }
   return _origFetch(url, opts).then(res => {
     if (res.status === 401) {
       localStorage.removeItem('dpm_token');
       localStorage.removeItem('dpm_user');
-      window.location.href = '/';
+      window.location.href = _BASE + '/';
     }
     return res;
   });
 };
+
+// Read DPM_API_BASE_URL from /api/config so the frontend honours the server's
+// configured base path. Falls back to the detected base prefix if the fetch
+// fails. The server value only overrides _API when it is an absolute
+// (cross-origin) URL, so it never clobbers the subpath prefix we detected.
+(async () => {
+  try {
+    const cfg = await _origFetch(_BASE + '/api/config').then(r => r.json());
+    const cfgApi = (cfg.api_base_url || '').replace(/\/$/, '');
+    if (/^https?:\/\//i.test(cfgApi)) _API = cfgApi;
+  } catch (e) { /* keep detected base */ }
+})();
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { clearInterval(pollTimer); pollTimer = null; }
@@ -574,7 +622,7 @@ document.addEventListener('visibilitychange', () => {
 function dpmSignOut() {
   localStorage.removeItem('dpm_token');
   localStorage.removeItem('dpm_user');
-  window.location.href = '/';
+  window.location.href = _BASE + '/';
 }
 
 function toggleAvatarDropdown(e) {
@@ -602,8 +650,14 @@ window.addEventListener('load', () => {
 });
 // ===========================================================================
 
-let pollTimer = null, logVisible = false;
+let pollTimer = null;
 let nrTifs = [];
+let nrUploading = false;
+
+// Warn the user if they try to close/reload while orthomosaics are still uploading
+window.addEventListener('beforeunload', (e) => {
+  if (nrUploading) { e.preventDefault(); e.returnValue = ''; return ''; }
+});
 
 // ── Shared utilities ──
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -629,20 +683,6 @@ function getBoolVal(id, defaultVal = false) {
   return el ? el.checked : defaultVal;
 }
 
-function appendLog(lines, elId) {
-  const el = document.getElementById(elId);
-  if (!el) return;
-  el.innerHTML = lines.map(l => {
-    const cls = l.includes('FAILED') || l.includes('ERROR') ? 'log-err' : l.includes('complete') || l.includes('===') ? 'log-ok' : '';
-    return `<span class="${cls}">${escHtml(l)}</span>`;
-  }).join('\n');
-  el.scrollTop = el.scrollHeight;
-}
-
-function toggleLog() {
-  logVisible = !logVisible;
-  document.getElementById('nr-log').style.display = logVisible ? 'block' : 'none';
-}
 
 // ── Progress bar ──
 const STEP_TOTAL_LABEL = {
@@ -657,57 +697,25 @@ const STEP_TOTAL_LABEL = {
 
 function resetFlow(prefix) {
   const L=document.getElementById(`pbar-${prefix}-label`);
-  const P=document.getElementById(`pbar-${prefix}-pct`);
-  const F=document.getElementById(`pbar-${prefix}-fill`);
   const T=document.getElementById(`pbar-${prefix}-track`);
-  const S=document.getElementById(`pbar-${prefix}-sub`);
   if(L) L.textContent='Waiting…';
-  if(P) P.textContent='0%';
-  if(F){ F.style.width='0%'; F.className='pbar-fill'; }
-  if(T) T.className='pbar-track';
-  if(S) S.innerHTML='';
+  if(T) T.className='mui-lin';
 }
 
 function updateFlow(prefix, run) {
   const L=document.getElementById(`pbar-${prefix}-label`);
-  const P=document.getElementById(`pbar-${prefix}-pct`);
-  const F=document.getElementById(`pbar-${prefix}-fill`);
   const T=document.getElementById(`pbar-${prefix}-track`);
-  const S=document.getElementById(`pbar-${prefix}-sub`);
-  if(!F) return;
+  if(!T) return;
 
   const status = run.status;
   const step   = run.current_step || null;
-  let prog = (typeof run.step_progress === 'number') ? run.step_progress : 0;
-  let pct  = Math.round(prog * 100);
-  const omCur = run.om_current || 0;
-  const omTot = run.om_total   || 0;
-  const detail = run.step_detail || '';
 
   let labelText = step ? (STEP_TOTAL_LABEL[step] || run.step_label || step) : 'Starting…';
-  if (status === 'done')   { pct = 100; labelText = 'Pipeline complete'; }
+  if (status === 'done')        { labelText = 'Pipeline complete'; }
   else if (status === 'failed') { labelText = 'Failed — ' + (STEP_TOTAL_LABEL[step] || step || 'unknown step'); }
 
-  F.className = 'pbar-fill' + (status === 'failed' ? ' fail' : '');
-  const indet = (status === 'running' && pct <= 0 && omTot === 0);
-  if (T) T.className = 'pbar-track' + (indet ? ' indet' : '');
-  F.style.width = indet ? '' : Math.max(0, Math.min(100, pct)) + '%';
-
   if (L) L.textContent = labelText;
-  if (P) P.textContent = indet ? '' : pct + '%';
-
-  if (S) {
-    let sub = '';
-    if (omTot > 0) {
-      sub = `<span class="om">OM ${omCur} / ${omTot}</span>`;
-      if (detail) sub += ` · ${escHtml(detail)}`;
-    } else if (detail) {
-      sub = escHtml(detail);
-    } else if (status === 'running') {
-      sub = 'Working…';
-    }
-    S.innerHTML = sub;
-  }
+  T.className = 'mui-lin' + (status === 'done' ? ' done' : status === 'failed' ? ' fail' : '');
 }
 
 // ── Threshold conversion ──
@@ -844,7 +852,7 @@ async function nrConfirmMissingDates() {
   btn.disabled = true;
   btn.textContent = '⏳ Starting pipeline…';
   try {
-    const patchR = await fetch(`${API}/api/runs/${nrActiveRunId}/rename-dates`, {
+    const patchR = await fetch(`${_API}/runs/${nrActiveRunId}/rename-dates`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date_overrides: dates }),
@@ -886,9 +894,13 @@ async function nrExtractDates() {
   btn.disabled = true;
   btn.textContent = '⏳ Uploading…';
 
+  const uploadWarn = document.getElementById('nr-upload-warn');
+  nrUploading = true;
+  if (uploadWarn) uploadWarn.style.display = 'block';
+
   try {
     const isPublic = document.getElementById('nr-public')?.checked ?? true;
-    const r = await fetch(`${API}/api/runs`, {
+    const r = await fetch(`${_API}/runs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ run_name: runName, is_public: isPublic }),
@@ -901,15 +913,19 @@ async function nrExtractDates() {
       btn.textContent = `⏳ Uploading ${i + 1}/${nrTifs.length}…`;
       const fd = new FormData();
       fd.append('file', nrTifs[i].file);
-      const ur = await fetch(`${API}/api/runs/${runId}/upload`, { method: 'POST', body: fd });
+      const ur = await fetch(`${_API}/runs/${runId}/upload`, { method: 'POST', body: fd });
       if (!ur.ok) throw new Error(`Upload failed: ${nrTifs[i].name}`);
     }
+
+    // All orthomosaics uploaded — safe to close now, pipeline runs on the server
+    nrUploading = false;
+    if (uploadWarn) uploadWarn.style.display = 'none';
 
     btn.textContent = '⏳ Applying dates…';
     const dateMap = {};
     nrTifs.forEach(f => { dateMap[f.name] = f.date; });
 
-    const dr = await fetch(`${API}/api/runs/${runId}/apply-dates`, {
+    const dr = await fetch(`${_API}/runs/${runId}/apply-dates`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date_map: dateMap }),
@@ -919,6 +935,8 @@ async function nrExtractDates() {
     btn.textContent = '⏳ Starting pipeline…';
     await nrStartPipeline(runId);
   } catch (e) {
+    nrUploading = false;
+    if (uploadWarn) uploadWarn.style.display = 'none';
     pf.innerHTML = `<b>Error:</b> ${e.message}`;
     pf.style.display = 'block';
     btn.disabled = false;
@@ -931,7 +949,6 @@ async function nrExtractDates() {
 function nrLockForm() {
   document.querySelectorAll('.card input, .card select, .card textarea, .card button').forEach(el => {
     if (el.closest('.hdr-nav')) return;
-    if (el.id === 'nr-toggle-log-btn') return;
     el.dataset._wasDisabled = el.disabled ? '1' : '';
     el.disabled = true;
   });
@@ -981,13 +998,13 @@ async function nrStartPipeline(runId) {
       w_tex:               wTex,
       skip_viz:            getBoolVal('nr-skip-viz', true),
     };
-    await fetch(`${API}/api/runs/${runId}/params`, {
+    await fetch(`${_API}/runs/${runId}/params`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(fullParams),
     });
 
-    const r = await fetch(`${API}/api/runs/${runId}/start`, { method: 'POST' });
+    const r = await fetch(`${_API}/runs/${runId}/start`, { method: 'POST' });
     if (!r.ok) throw new Error((await r.json()).detail || 'Pipeline start failed');
   } catch (e) {
     document.getElementById('nr-alert').innerHTML =
@@ -1006,11 +1023,8 @@ async function nrPollRun(runId) {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
     try {
-      const r   = await fetch(`${API}/api/runs/${runId}`);
+      const r   = await fetch(`${_API}/runs/${runId}`);
       const run = await r.json();
-      const lr  = await fetch(`${API}/api/runs/${runId}/log?lines=200`);
-      const ld  = await lr.json();
-      appendLog(ld.lines || [], 'nr-log');
       updateFlow('nrf', run);
 
       if (run.status === 'done') {
@@ -1018,15 +1032,15 @@ async function nrPollRun(runId) {
         nrUnlockForm();
         btn.disabled = false;
         btn.textContent = '▶ Run pipeline';
-        const vUrl = `${API}/viewer/${runId}/index.html`;
+        const vUrl = _BASE + `/viewer/${runId}/index.html`;
         document.getElementById('nr-alert').innerHTML =
           `<div class="alert alert-ok"><b>Pipeline complete.</b> ` +
           `<a href="${vUrl}" target="_blank" style="color:var(--accent);font-weight:600">Open viewer ↗</a></div>`;
         document.getElementById('nr-viewer-card').style.display = 'block';
         document.getElementById('nr-viewer-frame').src = vUrl;
         document.getElementById('nr-viewer-link').href = vUrl;
-        document.getElementById('nr-browse-files').href = `/files/${runId}`;
-        document.getElementById('nr-info-link').href = `${API}/api/runs/${runId}/info`;
+        document.getElementById('nr-browse-files').href = run.files_url || (_BASE + `/files/${runId}`);
+        document.getElementById('nr-info-link').href = `${_API}/runs/${runId}/info`;
         document.getElementById('nr-viewer-card').scrollIntoView({behavior:'smooth'});
         window.open(vUrl, '_blank');
       } else if (run.status === 'failed') {
