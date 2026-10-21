@@ -12,7 +12,8 @@ Requires: dpm-tracking conda environment
 Usage:
     python 03_phenology_analysis.py --config /path/to/pipeline_config.json \\
         [--dataset-id DATASET_ID]   # default: from run_name in config
-        [--veg-min 0.45] [--ds-thresh 0.70] [--on-thresh 0.65] [--off-thresh 0.35] \\
+        [--veg-min 0.45] [--ds-thresh -0.145] [--on-thresh 0.65] [--off-thresh 0.35] \\
+        [--w-veg-amp -0.4772] [--w-depth 0.7921] [--w-gcc-amp -0.6147] [--w-tex 0.3949] \\
         [--skip-if-done]
 
 Reads:
@@ -289,22 +290,24 @@ def main() -> int:
     parser.add_argument("--align-method", default="pcc_tiled")
     parser.add_argument("--veg-min", type=float, default=0.45,
                         help="Minimum vegetation fraction threshold (default: 0.45)")
-    parser.add_argument("--ds-thresh", type=float, default=-0.145,
-                        help="Deciduous score threshold (default: -0.145)")
+    # Deciduousness-score settings. Defaults are None on purpose: anything not
+    # given on the command line falls back to LeafShedConfig in
+    # phenology_leafshed.py, so the defaults live in exactly one place.
+    parser.add_argument("--ds-thresh", type=float, default=None,
+                        help="Deciduous score threshold: crown is deciduous when "
+                             "DS >= this (default: LeafShedConfig.ds_threshold, -0.145)")
+    parser.add_argument("--w-veg-amp", type=float, default=None,
+                        help="DS weight on vegetation amplitude (default: -0.4772)")
+    parser.add_argument("--w-depth", type=float, default=None,
+                        help="DS weight on seasonal depth (default: 0.7921)")
+    parser.add_argument("--w-gcc-amp", type=float, default=None,
+                        help="DS weight on GCC amplitude (default: -0.6147)")
+    parser.add_argument("--w-tex", type=float, default=None,
+                        help="DS weight on texture amplitude (default: 0.3949)")
     parser.add_argument("--on-thresh", type=float, default=0.65,
                         help="Phenophase 'leaf-on' threshold (default: 0.65)")
     parser.add_argument("--off-thresh", type=float, default=0.35,
                         help="Phenophase 'leaf-off' threshold (default: 0.35)")
-    # Deciduousness-score (DS) weights — learned linear-model coefficients.
-    # Configurable from the dashboard / DAG conf; forwarded here by run_pipeline.sh.
-    parser.add_argument("--w-veg-amp", type=float, default=-0.4772,
-                        help="DS weight: vegetation amplitude (default: -0.4772)")
-    parser.add_argument("--w-depth", type=float, default=0.7921,
-                        help="DS weight: seasonal depth (default: 0.7921)")
-    parser.add_argument("--w-gcc-amp", type=float, default=-0.6147,
-                        help="DS weight: GCC amplitude (default: -0.6147)")
-    parser.add_argument("--w-tex", type=float, default=0.3949,
-                        help="DS weight: texture (default: 0.3949)")
     parser.add_argument("--skip-if-done", action="store_true",
                         help="Skip if tree_master_geojson.geojson already exists")
     args = parser.parse_args()
@@ -482,16 +485,24 @@ def main() -> int:
 
     # --- Compute leafshed scores ---
     print("\nComputing leafshed scores and phenophases...")
-    cfg = LeafShedConfig(
+    cfg_kwargs = dict(
         veg_min_threshold=args.veg_min,
-        ds_threshold=args.ds_thresh,
         phenophase_on=args.on_thresh,
         phenophase_off=args.off_thresh,
-        w_veg_amp=args.w_veg_amp,
-        w_depth=args.w_depth,
-        w_gcc_amp=args.w_gcc_amp,
-        w_tex=args.w_tex,
     )
+    # Only override what was actually passed; the rest comes from LeafShedConfig.
+    for _field, _value in (
+        ("ds_threshold", args.ds_thresh),
+        ("w_veg_amp", args.w_veg_amp),
+        ("w_depth", args.w_depth),
+        ("w_gcc_amp", args.w_gcc_amp),
+        ("w_tex", args.w_tex),
+    ):
+        if _value is not None:
+            cfg_kwargs[_field] = float(_value)
+    cfg = LeafShedConfig(**cfg_kwargs)
+    print(f"  DS weights: veg_amp={cfg.w_veg_amp}  depth={cfg.w_depth}  "
+          f"gcc_amp={cfg.w_gcc_amp}  tex={cfg.w_tex}  |  deciduous if DS >= {cfg.ds_threshold}")
     tree_scores_df, phenophase_df, normalizers = compute_leafshed_scores(
         features_df, om_ids=tracker.om_ids, cfg=cfg
     )
