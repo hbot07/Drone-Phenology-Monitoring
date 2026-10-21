@@ -640,23 +640,42 @@ footer a:hover { text-decoration: underline; }
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
+  // ── Subpath base detection ────────────────────────────────────────────────
+  // The app may be served under a path prefix by a reverse proxy
+  // (e.g. https://host/act4dws5/dpm/). Derive that prefix from the current URL
+  // so every link, navigation and API call resolves whether the app is served
+  // at the root or under a subpath. index.html is served at the app root, so
+  // the whole path (minus any trailing slash) IS the base prefix.
+  const _BASE = location.pathname.replace(/\/+$/, '');
+  function _dpmRewriteLinks() {
+    if (!_BASE) return;
+    document.querySelectorAll('a[href^="/"]:not([href^="//"])').forEach(a => {
+      if (a.dataset.dpmFixed) return;
+      a.setAttribute('href', _BASE + a.getAttribute('href'));
+      a.dataset.dpmFixed = '1';
+    });
+  }
+
   // ── Config ──────────────────────────────────────────────────────────────
-  // Loaded once at boot from /api/config (always a relative path — we don't
-  // know _apiBase yet at bootstrap time).  All API calls other than this one
-  // bootstrap fetch use _apiBase so the server's DPM_API_BASE_URL env var is
-  // respected in cross-origin / CDN-hosted deployments.
+  // Loaded once at boot from <base>/api/config.  All API calls use _apiBase so
+  // the deployment's path prefix (and any cross-origin DPM_API_BASE_URL) is
+  // respected.
   let _googleClientId = null;
   let _configLoaded   = false;
-  let _apiBase        = '/api';  // overwritten by loadConfig(); fallback keeps same-origin deploys working
+  let _apiBase        = _BASE + '/api';  // may be overridden by loadConfig() for cross-origin deploys
 
   async function loadConfig() {
     try {
-      // Bootstrap fetch: always relative — _apiBase is not known yet.
-      const r = await fetch('/api/config');
+      // Bootstrap fetch: use the detected base prefix so it resolves under a subpath.
+      const r = await fetch(_BASE + '/api/config');
       if (!r.ok) throw new Error('config fetch failed');
       const cfg = await r.json();
       _googleClientId = cfg.google_client_id || null;
-      _apiBase        = (cfg.api_base_url || '/api').replace(/\/$/, '');
+      // Only let the server override the API base when it points to another
+      // origin (CDN / cross-origin frontend). A relative value would clobber
+      // the subpath prefix we just detected, so ignore it.
+      const cfgApi = (cfg.api_base_url || '').replace(/\/$/, '');
+      if (/^https?:\/\//i.test(cfgApi)) _apiBase = cfgApi;
     } catch (e) {
       console.warn('Could not load /api/config:', e);
     }
@@ -698,7 +717,7 @@ footer a:hover { text-decoration: underline; }
         if (dashBtn) {
           dashBtn.textContent = 'Go to dashboard';
           dashBtn.disabled    = false;
-          dashBtn.onclick     = () => { window.location.href = '/dashboard'; };
+          dashBtn.onclick     = () => { window.location.href = _BASE + '/dashboard'; };
         }
         return;
       } catch (e) {
@@ -797,7 +816,7 @@ footer a:hover { text-decoration: underline; }
       localStorage.setItem('dpm_token', data.token);
       localStorage.setItem('dpm_user', JSON.stringify(data.user));
       // Redirect to dashboard after successful sign-in
-      window.location.href = '/dashboard';
+      window.location.href = _BASE + '/dashboard';
     } catch (e) {
       console.error('Google sign-in error:', e);
       alert('Sign-in failed: ' + e.message);
@@ -861,7 +880,7 @@ footer a:hover { text-decoration: underline; }
           : '';
         const card = document.createElement('a');
         card.className = 'run-card';
-        card.href      = run.viewer_url;
+        card.href      = _BASE + run.viewer_url;
         card.target    = '_blank';
         card.rel       = 'noopener';
         card.innerHTML =
@@ -894,6 +913,7 @@ footer a:hover { text-decoration: underline; }
   // from localStorage without waiting for the network) and again after config
   // loads (enables the sign-in button / SSO flow if the user is logged out).
   document.addEventListener('DOMContentLoaded', async () => {
+    _dpmRewriteLinks(); // prefix static nav links with the subpath base
     initAuthUI();       // immediate render from localStorage
     await loadConfig(); // sets _apiBase + Google client ID before any API call
     loadPublicRuns();   // now safe: _apiBase is populated
