@@ -31,6 +31,15 @@ CROWNS_DIR=""
 TILE_WIDTH=25
 TILE_HEIGHT=25
 TILE_BUFFER=15
+FIXED_IOU=""          # empty = let 01_crown_detection.py use its own default (0.7)
+# Deciduousness-score weights + threshold. Empty = use the defaults in
+# phenology_leafshed.py (LeafShedConfig). Whatever is set here is passed to
+# BOTH step 3 and step 3b so the two always score crowns identically.
+W_VEG_AMP=""
+W_DEPTH=""
+W_GCC_AMP=""
+W_TEX=""
+DS_THRESH=""
 SKIP_EXISTING="--skip-existing"
 ALIGN_METHOD="pcc_tiled"
 BASE_THRESH_TAG="conf_0p45"
@@ -58,6 +67,12 @@ while [[ $# -gt 0 ]]; do
         --tile-width)          TILE_WIDTH="$2";         shift 2 ;;
         --tile-height)         TILE_HEIGHT="$2";        shift 2 ;;
         --tile-buffer)         TILE_BUFFER="$2";        shift 2 ;;
+        --fixed-iou)           FIXED_IOU="$2";          shift 2 ;;
+        --w-veg-amp)           W_VEG_AMP="$2";          shift 2 ;;
+        --w-depth)             W_DEPTH="$2";            shift 2 ;;
+        --w-gcc-amp)           W_GCC_AMP="$2";          shift 2 ;;
+        --w-tex)               W_TEX="$2";              shift 2 ;;
+        --ds-thresh)           DS_THRESH="$2";          shift 2 ;;
         --skip-existing)       SKIP_EXISTING="--skip-existing";    shift ;;
         --no-skip-existing)    SKIP_EXISTING="--no-skip-existing"; shift ;;
         --align-method)        ALIGN_METHOD="$2";       shift 2 ;;
@@ -112,6 +127,16 @@ announce_step() {
     echo "STEP:${step_key}"
 }
 
+# Deciduousness-score arguments shared by step 3 and step 3b.
+# Written as --flag=value because the weights can be negative, and
+# "--w-veg-amp -0.4772" as two words can be misread as a new option.
+SCORE_ARGS=()
+[[ -n "$W_VEG_AMP" ]] && SCORE_ARGS+=("--w-veg-amp=${W_VEG_AMP}")
+[[ -n "$W_DEPTH" ]]   && SCORE_ARGS+=("--w-depth=${W_DEPTH}")
+[[ -n "$W_GCC_AMP" ]] && SCORE_ARGS+=("--w-gcc-amp=${W_GCC_AMP}")
+[[ -n "$W_TEX" ]]     && SCORE_ARGS+=("--w-tex=${W_TEX}")
+[[ -n "$DS_THRESH" ]] && SCORE_ARGS+=("--ds-thresh=${DS_THRESH}")
+
 should_run() {
     local step="$1"
     echo "$STEPS" | tr ',' '\n' | grep -qx "$step"
@@ -164,9 +189,19 @@ if should_run 0; then
     [[ -n "$PROJECT_ROOT_ARG" ]] && DISCOVER_ARGS+=("--project-root"  "$PROJECT_ROOT_ARG")
     [[ -n "$MODEL_PATH" ]]       && DISCOVER_ARGS+=("--model-path"    "$MODEL_PATH")
 
-    # Capture output to extract config path and stream it live
-    STEP0_OUT=$(python "${DISCOVER_ARGS[@]}" 2>&1)
+    # Capture output to extract the config path.
+    # `|| STEP0_RC=$?` matters: under `set -e` a bare VAR=$(cmd) aborts the
+    # script the instant cmd fails, BEFORE the echo below — so the Python
+    # traceback / validation message never reached the log. Capture the exit
+    # code instead, print the output, then fail with a clear message.
+    STEP0_RC=0
+    STEP0_OUT=$(python "${DISCOVER_ARGS[@]}" 2>&1) || STEP0_RC=$?
     echo "$STEP0_OUT"
+
+    if [[ $STEP0_RC -ne 0 ]]; then
+        echo "ERROR: Step 0 (00_discover_oms.py) failed with exit code ${STEP0_RC} — see output above." >&2
+        exit "$STEP0_RC"
+    fi
 
     CONFIG_PATH=$(echo "$STEP0_OUT" | grep "^PIPELINE_CONFIG=" | tail -1 | cut -d= -f2-)
 
@@ -207,6 +242,8 @@ if should_run 1; then
         "$SKIP_EXISTING"
     )
     # Note: model_path comes from pipeline_config.json (written by Step 0), not CLI.
+    # IoU threshold used by clean_crowns to drop overlapping detections.
+    [[ -n "$FIXED_IOU" ]] && DETECT_ARGS+=("--fixed-iou" "$FIXED_IOU")
 
     run_in_env "$BASE_ENV" "${DETECT_ARGS[@]}"
 
@@ -252,6 +289,7 @@ if should_run 3; then
         "${SCRIPT_DIR}/03_phenology_analysis.py"
         "--config" "$CONFIG_PATH"
     )
+    PHENO_ARGS+=(${SCORE_ARGS[@]+"${SCORE_ARGS[@]}"})
 
     run_in_env "$TRACKING_ENV" "${PHENO_ARGS[@]}"
 
@@ -267,27 +305,39 @@ fi
 if should_run 3; then
     announce_step "03b_phenophase_classification" "STEP 3b: Phenophase classification (conda: ${TRACKING_ENV})"
 
-    # Script must exist in the pipeline directory
+    # Step 3b needs two things: the script and the trained classifier.
+    # If either is missing the step is SKIPPED with a warning and the run still
+    # finishes (output = step-3 GeoJSON without classifier phenophases).
+    # Set DPM_REQUIRE_PHENOCLF=1 to make a missing script/model a hard error
+    # instead — use that wherever the classified layer is the deliverable.
     PHENOCLF_SCRIPT="${SCRIPT_DIR}/12_apply_phenophase_to_geojson.py"
+    PHENOCLF_SKIP_REASON=""
+
     if [[ ! -f "$PHENOCLF_SCRIPT" ]]; then
-        echo "WARNING: 12_apply_phenophase_to_geojson.py not found at ${PHENOCLF_SCRIPT} — skipping Step 3b" >&2
+        PHENOCLF_SKIP_REASON="12_apply_phenophase_to_geojson.py not found at ${PHENOCLF_SCRIPT}"
     else
-        # Model: use --model-path CLI arg if provided, otherwise fall back to
-        # the fixed location in the project tree
+        # Model search order (first existing file wins):
+        #   1. $DPM_PHENOCLF_MODEL                      explicit override
+        #   2. --model-path, if it names a phenophase model (legacy behaviour)
+        #   3. <project>/models/phenophase_gb.joblib    the mounted models volume
+        #   4. <project>/model_for_phenology/phenophase_gb.joblib   (legacy location)
         PHENOCLF_MODEL=""
-        if [[ -n "$MODEL_PATH" && -f "$MODEL_PATH" && "$MODEL_PATH" == *phenophase* ]]; then
-            PHENOCLF_MODEL="$MODEL_PATH"
-        else
-            # Fixed location where the model is stored
-            FIXED_MODEL="${PROJECT_ROOT}/model_for_phenology/phenophase_gb.joblib"
-            if [[ -f "$FIXED_MODEL" ]]; then
-                PHENOCLF_MODEL="$FIXED_MODEL"
+        PHENOCLF_CANDIDATES=()
+        [[ -n "${DPM_PHENOCLF_MODEL:-}" ]] && PHENOCLF_CANDIDATES+=("$DPM_PHENOCLF_MODEL")
+        [[ -n "$MODEL_PATH" && "$MODEL_PATH" == *phenophase* ]] && PHENOCLF_CANDIDATES+=("$MODEL_PATH")
+        PHENOCLF_CANDIDATES+=(
+            "${PROJECT_ROOT}/models/phenophase_gb.joblib"
+            "${PROJECT_ROOT}/model_for_phenology/phenophase_gb.joblib"
+        )
+        for candidate in "${PHENOCLF_CANDIDATES[@]}"; do
+            if [[ -f "$candidate" ]]; then
+                PHENOCLF_MODEL="$candidate"
+                break
             fi
-        fi
+        done
 
         if [[ -z "$PHENOCLF_MODEL" ]]; then
-            echo "WARNING: phenophase_gb.joblib not found — skipping Step 3b" >&2
-            echo "  Expected at: ${PROJECT_ROOT}/model_for_phenology/phenophase_gb.joblib" >&2
+            PHENOCLF_SKIP_REASON="phenophase_gb.joblib not found (looked in: ${PHENOCLF_CANDIDATES[*]})"
         else
             echo "  Using model: ${PHENOCLF_MODEL}"
             PHENOCLF_ARGS=(
@@ -297,9 +347,23 @@ if should_run 3; then
                 "--min-run"    "2"
                 "--flip-below" "0.90"
             )
+            # same weights / threshold as step 3 (see SCORE_ARGS above)
+            PHENOCLF_ARGS+=(${SCORE_ARGS[@]+"${SCORE_ARGS[@]}"})
 
             run_in_env "$TRACKING_ENV" "${PHENOCLF_ARGS[@]}"
         fi
+    fi
+
+    if [[ -n "$PHENOCLF_SKIP_REASON" ]]; then
+        if [[ "${DPM_REQUIRE_PHENOCLF:-0}" == "1" ]]; then
+            echo "ERROR: Step 3b cannot run: ${PHENOCLF_SKIP_REASON}" >&2
+            echo "  (DPM_REQUIRE_PHENOCLF=1, so this is fatal.)" >&2
+            exit 1
+        fi
+        echo "WARNING: Step 3b SKIPPED: ${PHENOCLF_SKIP_REASON}" >&2
+        echo "  The run will finish WITHOUT classifier phenophases." >&2
+        echo "  Set DPM_PHENOCLF_MODEL=/path/to/phenophase_gb.joblib, or put the file in" >&2
+        echo "  ${PROJECT_ROOT}/models/. Set DPM_REQUIRE_PHENOCLF=1 to fail instead of skipping." >&2
     fi
 
     echo ""
