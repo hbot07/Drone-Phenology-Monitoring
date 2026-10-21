@@ -90,8 +90,8 @@ services:
       # is in NO_PROXY, Python's requests library bypasses the proxy for Google,
       # the direct connection is blocked by the IITD firewall, verify_oauth2_token
       # hangs, and nginx returns a 504 on every Google sign-in attempt.
-      NO_PROXY: "dpm-titiler,dpm-postgres,localhost,127.0.0.1"
-      no_proxy: "dpm-titiler,dpm-postgres,localhost,127.0.0.1"
+      NO_PROXY: "dpm-titiler,dpm-postgres,dpm-filebrowser,localhost,127.0.0.1"
+      no_proxy: "dpm-titiler,dpm-postgres,dpm-filebrowser,localhost,127.0.0.1"
       # --- Database ---
       DPM_DB_HOST: ${DPM_DB_HOST:-dpm-postgres}
       DPM_DB_PORT: ${DPM_DB_PORT:-5432}
@@ -109,7 +109,13 @@ services:
       DPM_MODEL_PATH: ${DPM_MODEL_PATH:-/app/models/250312_flexi.pth}
       DPM_LOG_DIR: /app/data/logs/drone-phenology-monitoring
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      DPM_PIPELINE_TIMEOUT: "14400" 
+      DPM_PIPELINE_TIMEOUT: "14400"
+      # --- FileBrowser (blank base URL disables) ---
+      DPM_FILEBROWSER_BASE_URL: ${DPM_FILEBROWSER_BASE_URL:-}
+      DPM_FILEBROWSER_PUBLIC_URL: ${DPM_FILEBROWSER_PUBLIC_URL:-}
+      DPM_FILEBROWSER_USERNAME: ${DPM_FILEBROWSER_USERNAME:-admin}
+      DPM_FILEBROWSER_PASSWORD: ${DPM_FILEBROWSER_PASSWORD:-}
+      DPM_FILEBROWSER_RUNS_PATH: ${DPM_FILEBROWSER_RUNS_PATH:-} 
     volumes:
       # -------------------------------------------------------------------------
       # LOCAL DEV — single mount (laptop shortcut).
@@ -179,5 +185,25 @@ services:
       - .:/app:ro
     restart: unless-stopped
 
+  # ---------------------------------------------------------------------------
+  # FileBrowser — external file browsing UI for pipeline run outputs.
+  # Serves a polished web UI for browsing, previewing, and downloading files.
+  # Disabled by default — set DPM_FILEBROWSER_BASE_URL in .env to enable.
+  # ---------------------------------------------------------------------------
+  filebrowser:
+    image: filebrowser/filebrowser
+    container_name: dpm-filebrowser
+    profiles:
+      - filebrowser                    # only starts with: docker compose --profile filebrowser up
+    networks:
+      - dpm-net
+    ports:
+      - "${DPM_FILEBROWSER_PORT:-8098}:80"
+    volumes:
+      - ./data/runs:/srv
+      - dpm-filebrowser-db:/database
+    restart: unless-stopped
+
 volumes:
   dpm-pgdata:
+  dpm-filebrowser-db:
