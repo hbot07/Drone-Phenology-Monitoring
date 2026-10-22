@@ -646,7 +646,9 @@ footer a:hover { text-decoration: underline; }
   // so every link, navigation and API call resolves whether the app is served
   // at the root or under a subpath. index.html is served at the app root, so
   // the whole path (minus any trailing slash) IS the base prefix.
-  const _BASE = location.pathname.replace(/\/+$/, '');
+  const _BASE = window.__DPM_BASE !== undefined
+      ? window.__DPM_BASE
+      : location.pathname.replace(/\/+$/, '');
   function _dpmRewriteLinks() {
     if (!_BASE) return;
     document.querySelectorAll('a[href^="/"]:not([href^="//"])').forEach(a => {

@@ -564,7 +564,9 @@ footer {
 // so every link, navigation and API call resolves whether the app is served
 // at the root or under a subpath. This page is served at <base>/new-run, so
 // stripping the last path segment yields the base prefix.
-const _BASE = location.pathname.replace(/\/[^\/]*\/?$/, '');
+const _BASE = window.__DPM_BASE !== undefined
+      ? window.__DPM_BASE
+      : location.pathname.replace(/\/[^\/]*\/?$/, '');
 // Expose on window so inline onclick="...=_BASE+..." / window.open(_BASE+...)
 // attributes (which resolve against the global object, not this script's
 // lexical scope) can read it.

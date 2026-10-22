@@ -191,7 +191,9 @@
   // The app may be served under a path prefix by a reverse proxy
   // (e.g. https://host/act4dws5/dpm/). This page is served at
   // <base>/files/<run_id>, so strip "/files/<run_id>" to get the base prefix.
-  const _BASE = window.location.pathname.replace(/\/files\/[^\/]*\/?$/, '');
+  const _BASE = window.__DPM_BASE !== undefined
+      ? window.__DPM_BASE
+      : window.location.pathname.replace(/\/files\/[^\/]*\/?$/, '');
   window._BASE = _BASE;
   function _dpmRewriteLinks() {
     if (!_BASE) return;
