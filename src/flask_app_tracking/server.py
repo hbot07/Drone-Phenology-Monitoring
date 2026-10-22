@@ -26,7 +26,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, UploadFile, HTTPException, BackgroundTasks, Depends
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 import db
@@ -107,6 +107,26 @@ MAX_OM_BYTES = int(os.environ.get("DPM_MAX_OM_BYTES", str(2 * 1024 ** 3)))
 #   https://dpm.example.com/api  → cross-origin / CDN-hosted frontend
 # ---------------------------------------------------------------------------
 API_BASE_URL = os.environ.get("DPM_API_BASE_URL", "/api").rstrip("/")
+
+# ---------------------------------------------------------------------------
+# Base path for subpath deployments (e.g. /act4dws5/dpm).
+# When the app sits behind a reverse proxy that strips the location prefix
+# (nginx proxy_pass with trailing slash), the browser sees "/" instead of
+# the real mount point.  Setting DPM_BASE_PATH lets the server inject the
+# correct base into every HTML page so client-side navigation works.
+# Leave empty (default) when the app is served at the domain root.
+# ---------------------------------------------------------------------------
+DPM_BASE = os.environ.get("DPM_BASE_PATH", "").strip().rstrip("/")
+
+
+def _inject_base(html_path: Path) -> HTMLResponse:
+    """Read an HTML file, inject ``window.__DPM_BASE`` into <head>, return it."""
+    html = html_path.read_text(encoding="utf-8")
+    if DPM_BASE:
+        # Place the script right after <head> so it runs before any page JS.
+        tag = f'<script>window.__DPM_BASE="{DPM_BASE}";</script>'
+        html = html.replace("<head>", f"<head>{tag}", 1)
+    return HTMLResponse(html)
 
 
 def _resolve_model_path(params: dict) -> str:
@@ -363,7 +383,7 @@ def landing():
     p = _find_page("index.html")
     if not p:
         raise HTTPException(404, "index.html not found")
-    return FileResponse(str(p))
+    return _inject_base(p)
 
 
 @app.get("/dashboard")
@@ -372,7 +392,7 @@ def dashboard():
     p = _find_page("home.html")
     if not p:
         raise HTTPException(404, "home.html not found")
-    return FileResponse(str(p))
+    return _inject_base(p)
 
 
 @app.get("/walkthrough")
@@ -380,7 +400,7 @@ def walkthrough_page():
     p = _find_page("walkthrough.html")
     if not p:
         raise HTTPException(404, "walkthrough.html not found")
-    return FileResponse(str(p))
+    return _inject_base(p)
 
 
 @app.get("/parameter-guide")
@@ -388,7 +408,7 @@ def parameter_guide_page():
     p = _find_page("parameter-guide.html")
     if not p:
         raise HTTPException(404, "parameter-guide.html not found")
-    return FileResponse(str(p))
+    return _inject_base(p)
 
 
 @app.get("/drone-guide")
@@ -396,7 +416,7 @@ def drone_guide_page():
     p = _find_page("drone-guide.html")
     if not p:
         raise HTTPException(404, "drone-guide.html not found")
-    return FileResponse(str(p))
+    return _inject_base(p)
 
 
 @app.get("/new-run")
@@ -406,7 +426,7 @@ def new_run_page():
     p = _find_page("new-run.html")
     if not p:
         raise HTTPException(404, "new-run.html not found")
-    return FileResponse(str(p))
+    return _inject_base(p)
 
 
 @app.get("/param-docs.js")
@@ -425,6 +445,7 @@ def get_config():
         "google_client_id": auth.GOOGLE_CLIENT_ID,
         "max_om_bytes": MAX_OM_BYTES,
         "api_base_url": API_BASE_URL,
+        "base_path": DPM_BASE,
     }
 
 
@@ -1537,7 +1558,7 @@ def file_browser_page(run_id: str):
     p = _find_page("file-browser.html")
     if not p:
         raise HTTPException(404, "file-browser.html not found")
-    return FileResponse(str(p))
+    return _inject_base(p)
 
 
 # ---------------------------------------------------------------------------
