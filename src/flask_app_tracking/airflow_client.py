@@ -70,7 +70,6 @@ def _client() -> httpx.AsyncClient:
             "pipeline locally, not via Airflow."
         )
     return httpx.AsyncClient(
-        base_url=AIRFLOW_API_BASE,
         headers={"Content-Type": "application/json", **_auth_headers()},
         timeout=30.0,
     )
@@ -88,8 +87,10 @@ async def trigger_conf(conf: dict, dag_run_id: Optional[str] = None) -> str:
     if dag_run_id is None:
         dag_run_id = f"dpm_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')}"
     body = {"dag_run_id": dag_run_id, "conf": conf}
+    AIRFLOW_URL = f"{AIRFLOW_API_BASE}/api/v1/dags/{AIRFLOW_DAG_ID}/dagRuns"
+    print(AIRFLOW_URL)
     async with _client() as client:
-        resp = await client.post(f"/api/v1/dags/{AIRFLOW_DAG_ID}/dagRuns", json=body)
+        resp = await client.post(AIRFLOW_URL, json=body)
     if resp.status_code not in (200, 201):
         raise AirflowClientError(
             f"Airflow trigger failed ({resp.status_code}): {resp.text[:500]}"
@@ -107,8 +108,9 @@ async def run_state(dag_run_id: str) -> dict:
          "airflow_state": <raw Airflow state string, or None>,
          "start_date": <str|None>, "end_date": <str|None>}
     """
+    AIRFLOW_URL = f"{AIRFLOW_API_BASE}/api/v1/dags/{AIRFLOW_DAG_ID}/dagRuns/{dag_run_id}"
     async with _client() as client:
-        resp = await client.get(f"/api/v1/dags/{AIRFLOW_DAG_ID}/dagRuns/{dag_run_id}")
+        resp = await client.get(AIRFLOW_URL)
     if resp.status_code == 404:
         return {"state": "UNKNOWN", "airflow_state": None,
                 "start_date": None, "end_date": None}
