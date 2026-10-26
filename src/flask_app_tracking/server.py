@@ -64,7 +64,8 @@ for candidate in [
 log.info("Platform: %s  Pipeline script: %s", platform.system(), PIPELINE_SCRIPT)
 
 # ---------------------------------------------------------------------------
-# Load .env for project root / model path
+# Load project root / model path
+# Priority: OS environment variables (docker-compose / k8s) → .env file (local dev)
 # ---------------------------------------------------------------------------
 PROJECT_ROOT = None
 MODEL_PATH = ""
@@ -77,6 +78,15 @@ def _win_to_wsl(p: str) -> str:
     return p
 
 
+# 1. Read from real OS environment first (how docker-compose / k8s supply values).
+_env_project_root = os.environ.get("DPM_PROJECT_ROOT", "").strip()
+_env_model_path   = os.environ.get("DPM_MODEL_PATH",   "").strip()
+if _env_project_root:
+    PROJECT_ROOT = Path(_env_project_root).resolve()
+if _env_model_path:
+    MODEL_PATH = _env_model_path
+
+# 2. Fall back to a local .env file (useful for WSL / bare-metal dev without Docker).
 env_file = HERE / ".env"
 if env_file.exists():
     for line in env_file.read_text().splitlines():
@@ -86,9 +96,9 @@ if env_file.exists():
         key, val = key.strip(), val.strip().strip('"').strip("'")
         if not _ON_WINDOWS:
             val = _win_to_wsl(val)
-        if key == "DPM_PROJECT_ROOT":
+        if key == "DPM_PROJECT_ROOT" and PROJECT_ROOT is None:
             PROJECT_ROOT = Path(val).resolve()
-        elif key == "DPM_MODEL_PATH":
+        elif key == "DPM_MODEL_PATH" and not MODEL_PATH:
             MODEL_PATH = val
 log.info("PROJECT_ROOT: %s  MODEL_PATH: %s", PROJECT_ROOT, MODEL_PATH)
 
