@@ -107,6 +107,10 @@ services:
       # --- Paths (always /app-relative, matching whichever volume mode is active) ---
       DPM_PROJECT_ROOT: /app
       DPM_MODEL_PATH: ${DPM_MODEL_PATH:-/app/models/250312_flexi.pth}
+      # Pre-trained phenophase classifier — mounted from ./models/ on the host.
+      # run_pipeline.sh reads DPM_PHENOCLF_MODEL and passes it to step 3b.
+      # If the file is absent the step is skipped with a warning (non-fatal).
+      DPM_PHENOCLF_MODEL: ${DPM_PHENOCLF_MODEL:-/app/models/phenophase_gb.joblib}
       DPM_LOG_DIR: /app/data/logs/drone-phenology-monitoring
       LOG_LEVEL: ${LOG_LEVEL:-info}
       DPM_PIPELINE_TIMEOUT: "14400"
@@ -131,7 +135,7 @@ services:
       # On the cluster host:
       #   git clone <repo> ./code
       #   mkdir -p models data
-      #   # copy model weights into ./models/
+      #   # copy model weights into ./models/  (250312_flexi.pth + phenophase_gb.joblib)
       # -------------------------------------------------------------------------
       # - ./code:/app
       # - ./models:/app/models
