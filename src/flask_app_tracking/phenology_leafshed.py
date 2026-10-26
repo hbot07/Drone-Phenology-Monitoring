@@ -34,12 +34,19 @@ class VegMaskConfig:
 @dataclass(frozen=True)
 class LeafShedConfig:
     veg_min_threshold: float = 0.45
-    ds_threshold: float = -0.145
     phenophase_on: float = 0.65
     phenophase_off: float = 0.35
-    # DS weights: learned linear-model coefficients (signed). All configurable
-    # from the dashboard / DAG conf; ds_threshold is the decision boundary on
-    # the resulting signed score.
+    # Deciduousness score:
+    #   DS = w_veg_amp*s_veg_amp + w_depth*s_depth + w_gcc_amp*s_gcc_amp + w_tex*s_tex
+    #   deciduous  <=>  DS >= ds_threshold
+    # The four weights and ds_threshold below are ONE matched set: the
+    # coefficients and decision boundary of the fitted logistic regression
+    # (the same values 10_phenophase_classifier.py and
+    # 12_apply_phenophase_to_geojson.py default to). DS is therefore NOT a 0..1
+    # score: with these weights it ranges from about -1.09 to +1.19. If you
+    # change the weights, ds_threshold must be re-chosen to match them.
+    # (Previous hand-set values: 0.35 / 0.30 / 0.25 / 0.10, threshold 0.70.)
+    ds_threshold: float = -0.145
     w_veg_amp: float = -0.4772
     w_depth: float = 0.7921
     w_gcc_amp: float = -0.6147
