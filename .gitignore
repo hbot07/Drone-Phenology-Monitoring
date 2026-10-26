@@ -11,3 +11,4 @@ misc/thesis/drone-phenology-thesis-overleaf/
 __pycache__/
 .DS_Store
 .env
+walkthrough_video.mp4
