@@ -384,9 +384,7 @@ footer {
         <label>Active model</label>
         <span class="hint">Select the model to use for crown delineation. All variants use Detectree2.</span>
         <select id="nr-model-select">
-          <option value="250312_flexi" selected>250312_flexi (default — flexible multi-site)</option>
-          <option value="urban_canopy">urban_canopy (urban street trees)</option>
-          <option value="tropical_dense">tropical_dense (dense tropical canopy)</option>
+          <option value="" disabled selected>Loading models…</option>
         </select>
       </div>
     </div>
@@ -649,6 +647,34 @@ window.addEventListener('load', () => {
     document.getElementById('av-initials').textContent = initials;
   }
   document.getElementById('dd-email').textContent = email;
+
+  // ── Populate model dropdown from server ──
+  (async () => {
+    const sel = document.getElementById('nr-model-select');
+    try {
+      const res = await fetch(`${_API}/models`);
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      const models = data.models || [];
+      if (models.length === 0) throw new Error('empty');
+      sel.innerHTML = '';
+      models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.key;
+        opt.disabled = !m.available;
+        let label = m.key;
+        if (m.description) label += ` — ${m.description}`;
+        if (m.is_default) label += ' (default)';
+        if (!m.available) label += ' [not found on disk]';
+        opt.textContent = label;
+        if (m.is_default && m.available) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    } catch (_) {
+      // Fallback — keep the page functional with the known default model
+      sel.innerHTML = '<option value="250312_flexi" selected>250312_flexi (default)</option>';
+    }
+  })();
 });
 // ===========================================================================
 
