@@ -20,6 +20,11 @@
 #
 # Rebuild only when THESE dependencies change (system libs, conda envs,
 # CUDA/GDAL versions) — never for app code changes, which are a `git pull`.
+#
+# GPU note: PyTorch 2.7.1 + CUDA 12.8 is required for Blackwell (sm_100)
+# GPUs (e.g. NVIDIA RTX PRO 4500). Earlier PyTorch/CUDA combinations do not
+# ship sm_100 kernel images and fail with:
+#   RuntimeError: CUDA error: no kernel image is available for execution on the device
 # =============================================================================
 
 FROM continuumio/miniconda3:latest
@@ -89,9 +94,13 @@ RUN conda run -n dpm-tracking pip install \
 
 # ---------------------------------------------------------------------------
 # dpm-detectree environment (PyTorch + detectron2 + detectree2)
+#
+# PyTorch is installed via pip (not conda) with the cu128 index so that the
+# wheels include sm_100 (Blackwell) kernel images. conda-forge/pytorch only
+# carries builds up to CUDA 12.1 which lack sm_100 support.
 # ---------------------------------------------------------------------------
 RUN mamba create -y -n dpm-detectree \
-    -c pytorch -c nvidia -c conda-forge \
+    -c conda-forge \
     python=3.10 \
     "numpy=1.26.*" \
     pandas \
@@ -101,29 +110,33 @@ RUN mamba create -y -n dpm-detectree \
     "fiona=1.9.6" \
     "pyproj=3.6.1" \
     matplotlib \
-    "pytorch=2.3.1" \
-    "torchvision=0.18.1" \
-    "torchaudio=2.3.1" \
-    "pytorch-cuda=12.1" \
     opencv \
     rtree \
     tqdm \
     pip \
     && conda clean -afy
 
-# Fix setuptools — pkg_resources removed in setuptools 81+
-# detectron2 setup.py imports it at build time
+# Fix setuptools — pkg_resources was removed in setuptools 81+.
+# detectron2 setup.py imports it at build time so this must come first.
 RUN conda run -n dpm-detectree pip install "setuptools<81" wheel
 
-# detectron2 — pinned commit known to work with detectree2
-# --no-build-isolation: ensures setup.py finds the venv's torch
+# PyTorch 2.7.1 with CUDA 12.8 — first build to include sm_100 (Blackwell).
+# Must be installed BEFORE detectron2 so the source build links against it.
+RUN conda run -n dpm-detectree pip install \
+    torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 \
+    --index-url https://download.pytorch.org/whl/cu128
+
+# detectron2 — pinned commit known to work with detectree2.
+# --no-build-isolation: setup.py imports torch at build time, so it must
+# build against the env's torch, not pip's isolated build environment.
 RUN conda run -n dpm-detectree pip install --no-build-isolation \
     "git+https://github.com/facebookresearch/detectron2.git@e0ec4e189d438848521aee7926f9900e114229f5"
 
 # detectree2
 RUN conda run -n dpm-detectree pip install detectree2
 
-# Pillow<10 required by detectree2
+# Pillow==9.5.0 pinned LAST — detectree2 requires Pillow<10 and a later
+# dep may have pulled in a newer version, so enforce the pin after everything.
 RUN conda run -n dpm-detectree pip install "Pillow==9.5.0"
 
 # ---------------------------------------------------------------------------
