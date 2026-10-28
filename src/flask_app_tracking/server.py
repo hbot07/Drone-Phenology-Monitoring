@@ -22,6 +22,8 @@ import uuid
 import zipfile
 import io
 import json
+from fastapi.staticfiles import StaticFiles
+
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -36,6 +38,7 @@ import airflow_client
 import stac_utils
 import filebrowser_client
 from log_config import get_logger
+import models_registry
 
 log = get_logger("server")
 
@@ -140,34 +143,17 @@ def _inject_base(html_path: Path) -> HTMLResponse:
 
 
 def _resolve_model_path(params: dict) -> str:
-    """
-    Turn the UI's `model_type` (e.g. "urban_canopy") into a weights file.
-
-    Looks for <model_type>.pth in, in order: $DPM_MODELS_DIR, the folder that
-    holds the default model (DPM_MODEL_PATH), <project>/models and
-    <project>/input/detectree_models. If nothing matches, the default
-    DPM_MODEL_PATH is used — i.e. exactly the previous behaviour.
-    """
-    model_type = str((params or {}).get("model_type") or "").strip()
-    # Plain file stem only — no slashes, so it cannot point outside the folders.
-    if model_type and re.fullmatch(r"[A-Za-z0-9_.-]+", model_type):
-        search_dirs: list[Path] = []
-        if os.environ.get("DPM_MODELS_DIR"):
-            search_dirs.append(Path(os.environ["DPM_MODELS_DIR"]))
-        if MODEL_PATH:
-            search_dirs.append(Path(MODEL_PATH).parent)
-        if PROJECT_ROOT:
-            search_dirs.append(PROJECT_ROOT / "models")
-            search_dirs.append(PROJECT_ROOT / "input" / "detectree_models")
-        search_dirs = list(dict.fromkeys(search_dirs))   # drop duplicates, keep order
-        for d in search_dirs:
-            candidate = d / f"{model_type}.pth"
-            if candidate.is_file():
-                return str(candidate)
-        log.warning("model_type=%s: no %s.pth in %s — using default model %s",
-                    model_type, model_type,
-                    [str(d) for d in search_dirs], MODEL_PATH or "(pipeline default)")
-    return str(MODEL_PATH) if MODEL_PATH else ""
+    """Resolve the model weights file via the YAML manifest (models_registry),
+    falling back to the DPM_MODEL_PATH env var if the registry cannot resolve."""
+    model_key = str((params or {}).get("model_type") or "").strip() or None
+    path = models_registry.resolve_model_path(model_key)
+    if path:
+        return path
+    if MODEL_PATH:
+        log.warning("models_registry could not resolve model_key=%r — falling back to %s",
+                    model_key, MODEL_PATH)
+        return str(MODEL_PATH)
+    return ""
 
 STEP_KEYS = [
     "00_discover_oms", "01_crown_detection", "02_crown_tracking",
@@ -457,6 +443,14 @@ def get_config():
         "api_base_url": API_BASE_URL,
         "base_path": DPM_BASE,
     }
+
+
+@app.get("/api/models")
+async def list_models(user: dict = Depends(auth.get_current_user)):
+    """Return detectors from the YAML manifest with availability and default flags."""
+    models = models_registry.list_models()
+    default_key = next((m["key"] for m in models if m["is_default"]), "")
+    return {"models": models, "default": default_key}
 
 
 @app.get("/api/public/runs")
@@ -1906,6 +1900,7 @@ def _build_windows_cmd(run_name: str, om_dir: str, out_dir: str, params: dict) -
             flat.append(part)
     return ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass",
             "-File", str(PIPELINE_SCRIPT)] + flat
+app.mount("/", StaticFiles(directory=str(HERE), html=False), name="static")
 
 
 if __name__ == "__main__":
