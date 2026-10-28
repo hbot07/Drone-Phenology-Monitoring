@@ -1,0 +1,23 @@
+# DPM Model Manifest
+# ------------------
+# Add a new detector by dropping the .pth file into your ./models/ folder
+# (mounted at /app/models/ in Docker) and adding an entry here.
+# The "file" field is looked up under the models_dir (DPM_MODELS_DIR or /app/models/).
+# Set "default: true" on exactly one entry.
+
+detectors:
+  250312_flexi:
+    file: 250312_flexi.pth
+    description: "Flexible multi-site model (recommended default)"
+    default: true
+  tropical_closed:
+    file: 250711_tropical_closed_canopy.pth
+    description: Dense tropical forest only.
+# Example additional models — uncomment and add the .pth file to ./models/
+#  urban_canopy:
+#    file: urban_canopy.pth
+#    description: "Optimised for urban street trees"
+#
+#  tropical_dense:
+#    file: tropical_dense.pth
+#    description: "Dense tropical canopy"
