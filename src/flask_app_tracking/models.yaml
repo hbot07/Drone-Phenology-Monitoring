@@ -6,18 +6,19 @@
 # Set "default: true" on exactly one entry.
 
 detectors:
-  250312_flexi:
+  flexi:
     file: 250312_flexi.pth
-    description: "Flexible multi-site model (recommended default)"
+    description: "Flexible multi-site model"
     default: true
   tropical_closed:
     file: 250711_tropical_closed_canopy.pth
     description: Dense tropical forest only.
-# Example additional models — uncomment and add the .pth file to ./models/
-#  urban_canopy:
-#    file: urban_canopy.pth
-#    description: "Optimised for urban street trees"
-#
-#  tropical_dense:
-#    file: tropical_dense.pth
-#    description: "Dense tropical canopy"
+  urban_cambridge:
+    file: urban_trees_Cambridge_20230630.pth
+    description: Urban trees, Cambridge UK (2023-06-30).
+  paracou:
+    file: 220723_withParacouUAV.pth
+    description: Tropical canopy, Paracou UAV (2022-07-23).
+  randresize:
+    file: 230103_randresize_full.pth
+    description: Random-resize full model (2023-01-03).
