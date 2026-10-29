@@ -737,10 +737,11 @@ function updateFlow(prefix, run) {
 
   const status = run.status;
   const step   = run.current_step || null;
+  const stepLabel = run.step_label || null;  // ← from progress.json via _attach_progress
 
-  let labelText = step ? (STEP_TOTAL_LABEL[step] || run.step_label || step) : 'Starting…';
+  let labelText = stepLabel || (step ? (STEP_TOTAL_LABEL[step] || step) : 'Starting…');
   if (status === 'done')        { labelText = 'Pipeline complete'; }
-  else if (status === 'failed') { labelText = 'Failed — ' + (STEP_TOTAL_LABEL[step] || step || 'unknown step'); }
+  else if (status === 'failed') { labelText = 'Failed — ' + (stepLabel || STEP_TOTAL_LABEL[step] || step || 'unknown step'); }
 
   if (L) L.textContent = labelText;
   T.className = 'mui-lin' + (status === 'done' ? ' done' : status === 'failed' ? ' fail' : '');
