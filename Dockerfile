@@ -90,7 +90,8 @@ RUN conda run -n dpm-tracking pip install \
     asyncpg \
     google-auth \
     httpx>=0.27 \
-    PyJWT
+    PyJWT \
+    pyyaml
 
 # ---------------------------------------------------------------------------
 # dpm-detectree environment (PyTorch + detectron2 + detectree2)
