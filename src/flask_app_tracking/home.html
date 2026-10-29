@@ -670,15 +670,25 @@ async function loadDash() {
   try {
     const r = await fetch(`${_API}/runs`);
     const runs = await r.json();
-    grid.innerHTML = newCard + runs.map(run => `
+    grid.innerHTML = newCard + runs.map(run => {
+      const omCount = run.num_orthos || 0;
+      const step = run.current_step || null;
+      let stepText = '';
+      if (run.status === 'running' && step) {
+        stepText = (run.step_label || STEP_TOTAL_LABEL[step] || step) + ' · ';
+      } else if (run.status === 'failed' && step) {
+        stepText = 'Failed at ' + (STEP_TOTAL_LABEL[step] || step) + ' · ';
+      }
+      return `
       <div class="run-card" onclick="goTo('view','${run.id}')">
         <h3>${run.run_name}</h3>
         <div class="rc-meta">
-          ${run.num_oms} OM${run.num_oms !== 1 ? 's' : ''} · ${(run.total_tiles || 0).toLocaleString()} tiles<br/>
-          ${run.current_step ? `Step: ${run.current_step} · ` : ''}${new Date(run.created_at).toLocaleDateString()}
+          ${omCount} OM${omCount !== 1 ? 's' : ''} uploaded<br/>
+          ${stepText}${new Date(run.created_at).toLocaleDateString()}
         </div>
         <span class="rc-status st-${run.status}">${run.status}</span>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   } catch(e) {
     grid.innerHTML = newCard + `<p style="color:var(--text-muted);font-size:13.5px;padding:12px">Could not load runs.</p>`;
   }
@@ -758,7 +768,7 @@ async function loadView(id) {
 
     document.getElementById('vr-title').textContent = run.run_name;
     document.getElementById('vr-meta').innerHTML =
-      `Created ${new Date(run.created_at).toLocaleString()} · ${run.num_oms} OMs · ${(run.total_tiles||0).toLocaleString()} tiles`;
+      `Created ${new Date(run.created_at).toLocaleString()} · ${run.num_orthos || run.num_oms || 0} OMs`;
 
     // visibility switch — default public unless explicitly set false
     const pubEl = document.getElementById('vr-public');
