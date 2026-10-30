@@ -22,7 +22,6 @@ import uuid
 import zipfile
 import io
 import json
-from fastapi.staticfiles import StaticFiles
 
 from pathlib import Path
 from datetime import datetime, timezone
@@ -1900,7 +1899,13 @@ def _build_windows_cmd(run_name: str, om_dir: str, out_dir: str, params: dict) -
             flat.append(part)
     return ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass",
             "-File", str(PIPELINE_SCRIPT)] + flat
-app.mount("/", StaticFiles(directory=str(HERE), html=False), name="static")
+
+@app.get("/frontpage.mp4")
+def serve_frontpage_video():
+    p = HERE / "frontpage.mp4"
+    if not p.exists():
+        raise HTTPException(404, "Video not found")
+    return FileResponse(str(p), media_type="video/mp4")
 
 
 if __name__ == "__main__":
