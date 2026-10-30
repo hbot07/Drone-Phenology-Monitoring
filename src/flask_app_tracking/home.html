@@ -744,9 +744,10 @@ function updateFlow(prefix, run) {
   const status = run.status;
   const step   = run.current_step || null;
 
-  let labelText = step ? (STEP_TOTAL_LABEL[step] || run.step_label || step) : 'Starting…';
+  const stepLabel = run.step_label || null;
+  let labelText = stepLabel || (step ? (STEP_TOTAL_LABEL[step] || step) : 'Starting…');
   if (status === 'done')        { labelText = 'Pipeline complete'; }
-  else if (status === 'failed') { labelText = 'Failed — ' + (STEP_TOTAL_LABEL[step] || step || 'unknown step'); }
+  else if (status === 'failed') { labelText = 'Failed — ' + (stepLabel || STEP_TOTAL_LABEL[step] || step || 'unknown step'); }
 
   if (L) L.textContent = labelText;
   T.className = 'mui-lin' + (status === 'done' ? ' done' : status === 'failed' ? ' fail' : '');
@@ -789,8 +790,8 @@ async function loadView(id) {
         `<pre style="margin-top:8px;font-size:12px;max-height:200px;overflow:auto;white-space:pre-wrap;background:#fef2f2;padding:10px;border-radius:4px">${escHtml(run.error_msg || '')}</pre>` +
         `</details></div>`;
     } else if (run.status === 'running') {
-      statusEl.innerHTML = `<div class="alert alert-warn"><b>Running…</b> ${STEP_NAMES[run.current_step] || run.current_step}</div>`;
-      pollTimer = setInterval(() => loadView(id), 5000);
+      statusEl.innerHTML = '';
+      pollTimer = setInterval(() => loadView(id), 3000);
     } else {
       statusEl.innerHTML = `<span style="color:var(--text-muted);font-size:14px">Status: ${run.status}</span>`;
     }
