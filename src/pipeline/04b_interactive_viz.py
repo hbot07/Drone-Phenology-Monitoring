@@ -190,6 +190,19 @@ def load_phenophase_geojson(phenology_dir: Path) -> Dict[str, Any]:
     return pheno
 
 
+def _ds_threshold_for(scores_csv, fallback=-0.145):
+    """
+    Deciduous-score threshold the run actually used. Step 3 writes it to
+    leafshed_config.json beside the scores CSV; fall back to the pipeline
+    default if that file is missing or unreadable.
+    """
+    try:
+        cfg_path = Path(scores_csv).parent / "leafshed_config.json"
+        return float(json.loads(cfg_path.read_text())["leafshed"]["ds_threshold"])
+    except Exception:
+        return float(fallback)
+
+
 def generate_phenology_overview(scores_csv, phases_csv, om_stems, out_png):
     try:
         import matplotlib
@@ -199,7 +212,7 @@ def generate_phenology_overview(scores_csv, phases_csv, om_stems, out_png):
         scores_df = pd.read_csv(scores_csv)
         scores_df["deciduous_score"] = pd.to_numeric(scores_df.get("deciduous_score"), errors="coerce")
         scores_df = scores_df[np.isfinite(scores_df["deciduous_score"])].copy()
-        threshold = 0.85
+        threshold = _ds_threshold_for(scores_csv)
         n_decid = int((scores_df["deciduous_score"] >= threshold).sum())
         n_total = len(scores_df)
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
@@ -750,6 +763,14 @@ const OM_TILES     = {om_tile_manifest};   // [{{om_id, stem, tile_url, bounds:{
 const UNDERLAY_OM  = {underlay_om_id};
 const PER_OM_BOUNDS = {per_om_bounds_inline};  // {{crown_label:{{om_id:[minx,miny,maxx,maxy]}}}} WGS84
 
+// --- Subpath-aware API base & run-ID derivation (works behind reverse proxies) ---
+const _vpath = window.location.pathname;
+const _vmark = _vpath.indexOf('/viewer/');
+const DPM_API_BASE = (_vmark >= 0 ? _vpath.slice(0, _vmark) : '') + '/api';
+const _vsegs = _vpath.split('/').filter(Boolean);
+const _vi    = _vsegs.indexOf('viewer');
+const DPM_RUN_ID   = (_vi >= 0 ? _vsegs[_vi + 1] : _vsegs[1]) || '';
+
 // Build stem → tile-info lookup
 const OM_BY_ID  = {{}};   // om_id (int) → tile entry
 const OM_STEMS  = {{}};   // om_id → stem  (for leaf-on/off display)
@@ -1071,7 +1092,7 @@ function renderOMCards(lbl) {{
 
   // Fetch crown crops via TiTiler — each OM uses its own aligned crown bounds
   // for pixel-precise centering (PER_OM_BOUNDS has per-OM WGS84 bounds).
-  const RUN_ID = window.location.pathname.split('/')[2] || '';
+  const RUN_ID = DPM_RUN_ID;
   const crownLabel = curCrownId;
   const omBoundsMap = PER_OM_BOUNDS[crownLabel] || {{}};
 
@@ -1106,7 +1127,7 @@ function renderOMCards(lbl) {{
 
     if (load) {{ load.style.display = 'flex'; load.textContent = 'loading'; }}
     img.style.display = 'none';
-    img.src = `/api/runs/${{RUN_ID}}/crop/${{om.om_id}}?minx=${{(bcLng-hLng).toFixed(7)}}&miny=${{(bcLat-hLat).toFixed(7)}}&maxx=${{(bcLng+hLng).toFixed(7)}}&maxy=${{(bcLat+hLat).toFixed(7)}}&width=${{W}}&height=${{H}}`;
+    img.src = `${{DPM_API_BASE}}/runs/${{RUN_ID}}/crop/${{om.om_id}}?minx=${{(bcLng-hLng).toFixed(7)}}&miny=${{(bcLat-hLat).toFixed(7)}}&maxx=${{(bcLng+hLng).toFixed(7)}}&maxy=${{(bcLat+hLat).toFixed(7)}}&width=${{W}}&height=${{H}}`;
   }});
 }}
 
@@ -1146,9 +1167,9 @@ function updateCrownCropImg(omId, crownBounds) {{
   let hLat=sLat*0.65, hLng=sLng*0.65;
   const cr=W/H, br=(hLng*cosL)/hLat;
   if(br<cr) hLng=hLat*cr/cosL; else hLat=hLng*cosL/cr;
-  const RUN_ID=window.location.pathname.split('/')[2]||'';
+  const RUN_ID=DPM_RUN_ID;
   img.style.display='none';
-  img.src=`/api/runs/${{RUN_ID}}/crop/${{omId}}?minx=${{(cLng-hLng).toFixed(7)}}&miny=${{(cLat-hLat).toFixed(7)}}&maxx=${{(cLng+hLng).toFixed(7)}}&maxy=${{(cLat+hLat).toFixed(7)}}&width=${{W}}&height=${{H}}`;
+  img.src=`${{DPM_API_BASE}}/runs/${{RUN_ID}}/crop/${{omId}}?minx=${{(cLng-hLng).toFixed(7)}}&miny=${{(cLat-hLat).toFixed(7)}}&maxx=${{(cLng+hLng).toFixed(7)}}&maxy=${{(cLat+hLat).toFixed(7)}}&width=${{W}}&height=${{H}}`;
 }}
 
 function showCrownOnTileMap(omId, crownBounds) {{
@@ -1280,10 +1301,10 @@ function showSlotTile(s, idx) {{
   const cr=W/H, br=(hLng*cosL)/hLat;
   if(br<cr) hLng=hLat*cr/cosL; else hLat=hLng*cosL/cr;
 
-  const RUN_ID=window.location.pathname.split('/')[2]||'';
+  const RUN_ID=DPM_RUN_ID;
   if(load) {{ load.style.display='flex'; load.textContent='loading'; }}
   img.style.display='none';
-  img.src=`/api/runs/${{RUN_ID}}/crop/${{omId}}?minx=${{(cLng-hLng).toFixed(7)}}&miny=${{(cLat-hLat).toFixed(7)}}&maxx=${{(cLng+hLng).toFixed(7)}}&maxy=${{(cLat+hLat).toFixed(7)}}&width=${{W}}&height=${{H}}`;
+  img.src=`${{DPM_API_BASE}}/runs/${{RUN_ID}}/crop/${{omId}}?minx=${{(cLng-hLng).toFixed(7)}}&miny=${{(cLat-hLat).toFixed(7)}}&maxx=${{(cLng+hLng).toFixed(7)}}&maxy=${{(cLat+hLat).toFixed(7)}}&width=${{W}}&height=${{H}}`;
 }}
 
 function updateSlotDate(s,idx) {{
