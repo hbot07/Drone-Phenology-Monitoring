@@ -26,7 +26,7 @@ import json
 from pathlib import Path
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, UploadFile, HTTPException, BackgroundTasks, Depends
+from fastapi import FastAPI, UploadFile, HTTPException, BackgroundTasks, Depends, Header
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -1481,6 +1481,71 @@ async def crown_crop(
         raise HTTPException(503, f"TiTiler not reachable: {e.reason}")
     except Exception as e:
         raise HTTPException(500, f"Crop failed: {e}")
+
+
+# ---------------------------------------------------------------------------
+# Species annotations
+#   GET  — public (the public viewer calls it). Returns only {crown_id: species}
+#          plus `can_edit`, true only when the caller's token belongs to the
+#          run's owner. An absent / expired / foreign token is simply "not owner".
+#   POST — run owner only. This is the ONLY write path; hiding the buttons in
+#          the viewer is cosmetic, this check is the real enforcement.
+# ---------------------------------------------------------------------------
+_RUN_ID_RE      = re.compile(r"^[0-9a-f-]{36}$")
+_CROWN_ID_RE    = re.compile(r"^crown_\d{1,6}$")
+_SPECIES_BAD    = re.compile(r"[<>\x00-\x1f\x7f]")
+MAX_SPECIES_LEN = 100
+
+
+class AnnotationReq(BaseModel):
+    crown_id: str
+    species: str = ""
+
+
+async def _optional_user(authorization: str | None) -> dict | None:
+    """Resolve the caller if they sent a valid session token, else None."""
+    if not auth.AUTH_ENABLED:
+        return await auth.get_current_user(None)   # local-dev bypass user
+    if not authorization:
+        return None
+    try:
+        return await auth.get_current_user(authorization)
+    except HTTPException:
+        return None
+
+
+@app.get("/api/runs/{run_id}/annotations")
+async def read_annotations(run_id: str, authorization: str | None = Header(default=None)):
+    if not _RUN_ID_RE.match(run_id):
+        raise HTTPException(400, "Invalid run id")
+    run = await db.get_run(run_id)
+    if run is None:
+        raise HTTPException(404, "Run not found")
+    user = await _optional_user(authorization)
+    can_edit = bool(user and user["email"] == run["owner_email"])
+    return JSONResponse(
+        {"annotations": await db.get_annotations(run_id), "can_edit": can_edit},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.post("/api/runs/{run_id}/annotations")
+async def save_annotation(run_id: str, req: AnnotationReq,
+                          user: dict = Depends(auth.get_current_user)):
+    await auth.require_run_owner(run_id, user)
+    crown_id = req.crown_id.strip()
+    if not _CROWN_ID_RE.match(crown_id):
+        raise HTTPException(400, "Invalid crown id")
+    species = " ".join(req.species.split())          # trim + collapse whitespace
+    if len(species) > MAX_SPECIES_LEN:
+        raise HTTPException(400, f"Species name too long (max {MAX_SPECIES_LEN} characters)")
+    if _SPECIES_BAD.search(species):
+        raise HTTPException(400, "Species name contains invalid characters")
+    if species:
+        await db.upsert_annotation(run_id, crown_id, species)
+    else:
+        await db.delete_annotation(run_id, crown_id)   # empty = remove the label
+    return {"crown_id": crown_id, "species": species}
 
 
 @app.get("/dl/{run_id}/file")
