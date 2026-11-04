@@ -14,7 +14,7 @@ then generates a standalone HTML viewer (Leaflet-based) with:
   - Filter dropdown (radio group): All / Deciduous / Evergreen
   - Dark / light theme toggle (SVG moon / sun icon)
   - Crown comparison panel — two slots, each with independent tile map + slider
-  - Species annotation stored in browser localStorage
+  - Species annotation: saved on the server by the run owner; read-only for visitors
   - Draw tool for multi-crown region selection
 
 Requires: dpm-tracking conda environment
@@ -502,6 +502,12 @@ def build_html(
       background:var(--bg2); color:var(--green); cursor:pointer; font-size:11px;
     }}
 
+    /* Read-only (public) mode — species labels shown, not editable */
+    body.ro .sp-row {{ display:none; }}
+    body.ro #sp-input {{ background:transparent; border-color:transparent; padding-left:0; pointer-events:none; }}
+    .sp-ro {{ padding:0 12px 8px; font-size:12px; color:var(--t1); }}
+    .sp-ro b {{ color:var(--t0); font-weight:600; }}
+
     /* COMPARISON PANEL */
     #cmp-panel {{
       width:0; overflow:hidden; transition:width .22s ease;
@@ -802,10 +808,51 @@ document.getElementById('theme-btn').addEventListener('click', () => {{
 // ═══════════════════════════════════════════════════════
 // SPECIES
 // ═══════════════════════════════════════════════════════
-const SP_KEY = 'iv-species-' + RUN_TAG;
-let speciesMap = JSON.parse(localStorage.getItem(SP_KEY) || '{{}}');
-const saveSpecies = (id,v) => {{ speciesMap[id]=v; localStorage.setItem(SP_KEY,JSON.stringify(speciesMap)); }};
-const getSpecies  = id => speciesMap[id] || '';
+// Labels live on the server. Anyone can READ them; only the logged-in owner of
+// this run can WRITE (enforced by POST /api/runs/<run>/annotations).
+// Opened as a plain local file (not via /viewer/<run>/), labels stay in localStorage.
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const SERVED  = _vmark >= 0 && /^[0-9a-f-]{{36}}$/.test(DPM_RUN_ID);
+const SP_KEY  = 'iv-species-' + RUN_TAG;
+const ANN_URL = DPM_API_BASE + '/runs/' + DPM_RUN_ID + '/annotations';
+let speciesMap = {{}};
+let CAN_EDIT   = !SERVED;          // served mode starts read-only until the server says otherwise
+if (!SERVED) {{ try {{ speciesMap = JSON.parse(localStorage.getItem(SP_KEY) || '{{}}'); }} catch(e) {{}} }}
+const getSpecies = id => speciesMap[id] || '';
+
+function _authHeaders() {{
+  try {{ const t = localStorage.getItem('dpm_token'); return t ? {{ 'Authorization': 'Bearer ' + t }} : {{}}; }}
+  catch(e) {{ return {{}}; }}
+}}
+
+// Resolves true only if the label was really stored.
+async function saveSpecies(id, v) {{
+  if (!CAN_EDIT) return false;
+  if (!SERVED) {{
+    speciesMap[id] = v;
+    try {{ localStorage.setItem(SP_KEY, JSON.stringify(speciesMap)); }} catch(e) {{}}
+    return true;
+  }}
+  try {{
+    const r = await fetch(ANN_URL, {{
+      method: 'POST',
+      headers: Object.assign({{ 'Content-Type': 'application/json' }}, _authHeaders()),
+      body: JSON.stringify({{ crown_id: id, species: v }}),
+    }});
+    if (!r.ok) return false;
+    if (v) speciesMap[id] = v; else delete speciesMap[id];
+    return true;
+  }} catch(e) {{ return false; }}
+}}
+
+function applyMode() {{
+  document.body.classList.toggle('ro', !CAN_EDIT);
+  const inp = document.getElementById('sp-input');
+  inp.readOnly = !CAN_EDIT;
+  inp.placeholder = CAN_EDIT ? 'e.g. Acacia robusta' : '—';
+  document.getElementById('sp-save').style.display = CAN_EDIT ? '' : 'none';
+}}
+applyMode();
 
 // ═══════════════════════════════════════════════════════
 // MAIN MAP  (geographic CRS, WGS84 / Web Mercator tiles)
@@ -979,11 +1026,13 @@ document.getElementById('ip-close').addEventListener('click', () => {{
   if(selLayer){{selLayer.setStyle(styleDef(selLayer.feature));selLayer=null;}}
   curCrownId=null; curFeature=null;
 }});
-document.getElementById('sp-save').addEventListener('click', function() {{
+document.getElementById('sp-save').addEventListener('click', async function() {{
   if(!curCrownId) return;
-  saveSpecies(curCrownId, document.getElementById('sp-input').value.trim());
-  this.textContent='✓ Saved'; setTimeout(()=>{{this.textContent='Save species';}},1500);
-  applyFilter();
+  const btn = this;
+  const ok = await saveSpecies(curCrownId, document.getElementById('sp-input').value.trim());
+  btn.textContent = ok ? '✓ Saved' : '✕ Not saved — sign in again';
+  setTimeout(()=>{{btn.textContent='Save species';}}, ok ? 1500 : 3500);
+  if(ok) applyFilter();
 }});
 
 // ═══════════════════════════════════════════════════════
@@ -1044,9 +1093,9 @@ function renderOMCards(lbl) {{
 
   // Species row + single-column time-series grid (non-interactive)
   let html = `
-    <div class="sp-row">
+    ${{CAN_EDIT ? '' : (sp ? '<div class="sp-ro">Species: <b>' + esc(sp) + '</b></div>' : '')}}<div class="sp-row">
       <input class="sp-inp" id="panel-sp" type="text"
-             placeholder="Species…" value="${{sp}}"/>
+             placeholder="Species…" value="${{esc(sp)}}"/>
       <button class="sp-btn" onclick="savePanelSp('${{lbl}}')">Save</button>
     </div>
     <div class="ts-grid" id="ts-grid">`;
@@ -1210,8 +1259,12 @@ document.getElementById('reset-btn').addEventListener('click',()=>{{
   omSlider.value=UNDERLAY_OM-1; omSlider.dispatchEvent(new Event('input'));
 }});
 
-function savePanelSp(lbl) {{
-  saveSpecies(lbl,document.getElementById('panel-sp').value.trim());
+async function savePanelSp(lbl) {{
+  const inp = document.getElementById('panel-sp');
+  const btn = inp ? inp.parentElement.querySelector('.sp-btn') : null;
+  const ok = await saveSpecies(lbl, inp.value.trim());
+  if(btn) {{ btn.textContent = ok ? '✓' : '✕'; setTimeout(()=>{{btn.textContent='Save';}}, ok ? 1500 : 3500); }}
+  if(!ok) return;
   if(curCrownId===lbl) document.getElementById('sp-input').value=getSpecies(lbl);
   applyFilter();
 }}
@@ -1260,7 +1313,7 @@ function renderSlot(s) {{
     info+=`<div class="cmp-row"><span class="cmp-key">Leaf-off</span><span class="cmp-val">${{str}}</span></div>`;
   }}
   const sp=getSpecies(d.label);
-  if(sp) info+=`<div class="cmp-row"><span class="cmp-key">Species</span><span class="cmp-val">${{sp}}</span></div>`;
+  if(sp) info+=`<div class="cmp-row"><span class="cmp-key">Species</span><span class="cmp-val">${{esc(sp)}}</span></div>`;
   const infoEl=document.getElementById('slot-'+s+'-info');
   infoEl.innerHTML=info; infoEl.style.display='block';
 
@@ -1364,14 +1417,14 @@ function doSearch(){{
       document.getElementById('content').innerHTML=
         `<div style="padding:14px;">
           <div style="font-size:12px;color:var(--t1);font-weight:600;margin-bottom:6px;">
-            ${{matches.length}} crown${{matches.length>1?'s':''}} tagged as "${{q}}"</div>
+            ${{matches.length}} crown${{matches.length>1?'s':''}} tagged as "${{esc(q)}}"</div>
           <div style="font-size:11px;color:var(--t2);line-height:1.8;">
             ${{matches.map(l=>l.feature.properties.crown_label).join(', ')}}</div>
         </div>`;
       return;
     }}
     document.getElementById('content').innerHTML=
-      `<div class="no-data" style="padding:16px;">No match for "${{q}}".</div>`;
+      `<div class="no-data" style="padding:16px;">No match for "${{esc(q)}}".</div>`;
     return;
   }}
   if(activeFilter!=='all' && !passesFilter(found.feature.properties.crown_label))
@@ -1465,6 +1518,27 @@ document.addEventListener('keydown',e=>{{
   if(e.key==='ArrowRight'){{omSlider.value=Math.min(+omSlider.value+1,+omSlider.max);omSlider.dispatchEvent(new Event('input'));}}
   if(e.key==='ArrowLeft') {{omSlider.value=Math.max(+omSlider.value-1,0);           omSlider.dispatchEvent(new Event('input'));}}
 }});
+
+// ═══════════════════════════════════════════════════════
+// LOAD SPECIES LABELS (public read; server says if caller is the owner)
+// ═══════════════════════════════════════════════════════
+(async function loadAnnotations() {{
+  if (!SERVED) {{ applyMode(); return; }}
+  try {{
+    const r = await fetch(ANN_URL, {{ headers: _authHeaders(), cache: 'no-store' }});
+    if (r.ok) {{
+      const d = await r.json();
+      speciesMap = d.annotations || {{}};
+      CAN_EDIT   = !!d.can_edit;
+    }}
+  }} catch(e) {{}}
+  applyMode();
+  if (curCrownId) {{
+    document.getElementById('sp-input').value = getSpecies(curCrownId);
+    renderOMCards(curCrownId);
+  }}
+  ['a','b'].forEach(s => {{ if (slotData[s]) renderSlot(s); }});
+}})();
 </script>
 </body>
 </html>'''
