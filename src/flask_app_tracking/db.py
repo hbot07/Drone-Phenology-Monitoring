@@ -141,6 +141,17 @@ async def init_db():
         await con.execute("CREATE INDEX IF NOT EXISTS idx_jobs_run ON jobs(run_id);")
         await con.execute("CREATE INDEX IF NOT EXISTS idx_jobs_state ON jobs(state);")
 
+        # ---- annotations (owner's species labels; publicly readable) ----
+        await con.execute("""
+            CREATE TABLE IF NOT EXISTS annotations (
+                run_id     TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+                crown_id   TEXT NOT NULL,
+                species    TEXT NOT NULL,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                PRIMARY KEY (run_id, crown_id)
+            );
+        """)
+
         # ---- Migrations for existing databases ----
         for col_sql in [
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;",
@@ -159,7 +170,7 @@ async def init_db():
             except Exception:
                 pass  # column already exists with different constraint — fine
 
-    _log.info("Schema ready (users, runs, orthos, jobs)")
+    _log.info("Schema ready (users, runs, orthos, jobs, annotations)")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -398,3 +409,31 @@ def _row_to_job(row: asyncpg.Record) -> dict:
         if isinstance(d.get(k), datetime):
             d[k] = d[k].astimezone(timezone.utc).isoformat()
     return d
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Annotations (species label per crown, written by the run owner only)
+# ═══════════════════════════════════════════════════════════════════════════
+async def get_annotations(run_id: str) -> dict:
+    """{crown_id: species} for a run. Nothing else is exposed."""
+    async with pool().acquire() as con:
+        rows = await con.fetch(
+            "SELECT crown_id, species FROM annotations WHERE run_id = $1", run_id)
+    return {r["crown_id"]: r["species"] for r in rows}
+
+
+async def upsert_annotation(run_id: str, crown_id: str, species: str):
+    async with pool().acquire() as con:
+        await con.execute("""
+            INSERT INTO annotations (run_id, crown_id, species, updated_at)
+            VALUES ($1, $2, $3, now())
+            ON CONFLICT (run_id, crown_id) DO UPDATE
+              SET species = EXCLUDED.species, updated_at = now();
+        """, run_id, crown_id, species)
+
+
+async def delete_annotation(run_id: str, crown_id: str):
+    async with pool().acquire() as con:
+        await con.execute(
+            "DELETE FROM annotations WHERE run_id = $1 AND crown_id = $2",
+            run_id, crown_id)
